@@ -67,6 +67,4 @@ jobs:
         working-directory: src/backend
         run: |
           dotnet tool install --global dotnet-ef
-          dotnet ef database update --project LiturgiekStatistiek.Infrastructure --startup-project LiturgiekStatistiek.Api
-        env:
-          ConnectionStrings__DefaultConnection: ${{ secrets.SQL_CONNECTION_STRING }}
+          dotnet ef database update --project LiturgiekStatistiek.Infrastructure --startup-project LiturgiekStatistiek.Api --connection "${{ secrets.SQL_CONNECTION_STRING }}"
