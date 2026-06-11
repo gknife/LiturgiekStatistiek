@@ -1,1 +1,36 @@
-<h1>Instellingen</h1><mat-slide-toggle>Donker thema</mat-slide-toggle>
+<h1>Instellingen</h1>
+<p class="page-description">Pas het uiterlijk van de website aan naar uw voorkeur.</p>
+
+<div class="settings-grid">
+  <mat-card class="setting-card">
+    <h3><mat-icon>dark_mode</mat-icon> Thema</h3>
+    <mat-slide-toggle [checked]="preferences.theme === 'dark'"
+      (change)="onThemeToggle($event.checked)">
+      Donker thema
+    </mat-slide-toggle>
+  </mat-card>
+
+  <mat-card class="setting-card">
+    <h3><mat-icon>format_size</mat-icon> Lettergrootte</h3>
+    <mat-radio-group [(ngModel)]="preferences.fontSize" (change)="onFontSizeChange()">
+      <mat-radio-button value="small">Klein</mat-radio-button>
+      <mat-radio-button value="medium">Normaal</mat-radio-button>
+      <mat-radio-button value="large">Groot</mat-radio-button>
+    </mat-radio-group>
+  </mat-card>
+
+  <mat-card class="setting-card">
+    <h3><mat-icon>palette</mat-icon> Accentkleur</h3>
+    <mat-form-field appearance="outline">
+      <mat-label>Kleur</mat-label>
+      <mat-select [(ngModel)]="preferences.accentColor" (selectionChange)="onAccentChange()">
+        @for (color of accentColors; track color.value) {
+          <mat-option [value]="color.value">
+            <span class="color-dot" [style.background-color]="color.value"></span>
+            {{ color.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </mat-card>
+</div>

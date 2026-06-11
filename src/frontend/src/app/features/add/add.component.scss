@@ -1,3 +1,125 @@
 :host {
   display: block;
 }
+
+.page-description {
+  color: #4a5568;
+  margin-bottom: 1.5rem;
+}
+
+.tab-content {
+  padding: 1.5rem 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+.toggles-row {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.step-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+// Elements
+.elements-section {
+  padding: 1rem 0;
+
+  .section-hint {
+    color: #718096;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+.element-card {
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  
+  .element-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .position-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #2c5282;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  .element-label-field {
+    flex: 2;
+  }
+
+  .element-notes-field {
+    flex: 1;
+  }
+}
+
+// Review
+.review-section {
+  padding: 1rem 0;
+
+  h3 {
+    font-family: "Merriweather", serif;
+    color: #1a365d;
+  }
+}
+
+.review-card {
+  padding: 1.5rem;
+  margin: 1rem 0;
+
+  p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+}
+
+// Paste/URL tabs
+.result-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f7fafc;
+
+  pre {
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .element-header {
+    flex-wrap: wrap;
+  }
+}

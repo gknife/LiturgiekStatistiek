@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IListService, ListService>();
         services.AddScoped<ISongService, SongService>();
         services.AddScoped<IContentService, ContentService>();
+        services.AddScoped<IQueryService, QueryService>();
 
         return services;
     }

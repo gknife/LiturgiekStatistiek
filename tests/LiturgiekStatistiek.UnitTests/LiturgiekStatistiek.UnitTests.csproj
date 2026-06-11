@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Application\LiturgiekStatistiek.Application.csproj" />
     <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Domain\LiturgiekStatistiek.Domain.csproj" />
+    <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Infrastructure\LiturgiekStatistiek.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

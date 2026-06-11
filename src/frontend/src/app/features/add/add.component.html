@@ -1,1 +1,238 @@
-<h1>Dienst toevoegen</h1><mat-tab-group><mat-tab label="Handmatig"><p>Handmatig een dienst invoeren.</p></mat-tab><mat-tab label="Tekst plakken"><p>Plak een liturgietekst om automatisch te verwerken.</p></mat-tab><mat-tab label="URL"><p>Importeer vanuit kerkdienstgemist.nl.</p></mat-tab><mat-tab label="Bulk"><p>Importeer meerdere diensten tegelijk.</p></mat-tab></mat-tab-group>
+<h1>Dienst toevoegen</h1>
+<p class="page-description">Voeg een nieuwe kerkdienst toe aan de database.</p>
+
+<mat-tab-group>
+  <!-- Tab 1: Manual entry -->
+  <mat-tab label="Handmatig invoeren">
+    <div class="tab-content">
+      <mat-stepper linear>
+        <!-- Step 1: Metadata -->
+        <mat-step [stepControl]="metadataForm" label="Metadata">
+          <form [formGroup]="metadataForm" class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Datum</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="date">
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Dagdeel</mat-label>
+              <mat-select formControlName="timeOfDay">
+                @for (t of timeOfDayOptions; track t.value) {
+                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Gemeente</mat-label>
+              <input matInput [formControl]="congregationControl" [matAutocomplete]="congAuto"
+                placeholder="Typ om te zoeken...">
+              <mat-autocomplete #congAuto="matAutocomplete">
+                @for (c of congregationSuggestions; track c.id) {
+                  <mat-option [value]="c.name" (onSelectionChange)="selectCongregation(c)">
+                    {{ c.name }} — {{ c.city }} ({{ c.denominationAbbreviation }})
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Voorganger</mat-label>
+              <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
+                placeholder="Typ om te zoeken...">
+              <mat-autocomplete #preachAuto="matAutocomplete">
+                @for (p of preacherSuggestions; track p.id) {
+                  <mat-option [value]="p.fullName" (onSelectionChange)="selectPreacher(p)">
+                    {{ p.fullName }}
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Zondag kerkelijk jaar</mat-label>
+              <mat-select formControlName="churchCalendarSundayId">
+                <mat-option [value]="''">— Geen —</mat-option>
+                @for (s of churchCalendarSundays; track s.id) {
+                  <mat-option [value]="s.id">{{ s.value }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Bijbelvertaling</mat-label>
+              <mat-select formControlName="bibleTranslationId">
+                <mat-option [value]="''">— Geen —</mat-option>
+                @for (bt of bibleTranslations; track bt.id) {
+                  <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Muzikale begeleiding</mat-label>
+              <mat-select formControlName="musicalAccompanimentId">
+                <mat-option [value]="''">— Geen —</mat-option>
+                @for (m of musicalAccompaniments; track m.id) {
+                  <mat-option [value]="m.id">{{ m.value }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Bijzonderheden</mat-label>
+              <mat-select formControlName="specialOccasionId">
+                <mat-option [value]="''">— Geen —</mat-option>
+                @for (o of specialOccasions; track o.id) {
+                  <mat-option [value]="o.id">{{ o.value }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Preektekst</mat-label>
+              <input matInput formControlName="sermonText" placeholder="Bijv. Openbaring 2:1-7">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Thema preek</mat-label>
+              <input matInput formControlName="sermonTheme">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Uitzending URL</mat-label>
+              <input matInput formControlName="broadcastUrl" placeholder="https://...">
+            </mat-form-field>
+
+            <div class="toggles-row">
+              <mat-slide-toggle formControlName="isReadingService">Leesdienst</mat-slide-toggle>
+              <mat-slide-toggle formControlName="hasBeamerLiturgy">Beamer (liturgie)</mat-slide-toggle>
+              <mat-slide-toggle formControlName="hasBeamerTexts">Beamer (teksten)</mat-slide-toggle>
+              <mat-slide-toggle formControlName="hasBeamerSongs">Beamer (liederen)</mat-slide-toggle>
+            </div>
+
+            <div class="step-actions">
+              <button mat-raised-button color="primary" matStepperNext>Volgende</button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- Step 2: Service Elements (ordered liturgy) -->
+        <mat-step label="Orde van dienst">
+          <div class="elements-section">
+            <p class="section-hint">Voeg de onderdelen van de dienst toe in de juiste volgorde.</p>
+
+            @for (element of elements; track element.position; let i = $index) {
+              <mat-card class="element-card">
+                <div class="element-header">
+                  <span class="position-badge">{{ element.position }}</span>
+                  <mat-form-field appearance="outline" class="element-label-field">
+                    <mat-label>Onderdeel</mat-label>
+                    <input matInput [(ngModel)]="element.label"
+                      placeholder="Bijv. Openingslied, Schriftlezing, Gebed...">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="element-notes-field">
+                    <mat-label>Opmerking</mat-label>
+                    <input matInput [(ngModel)]="element.notes" placeholder="Bijv. staand, gezongen">
+                  </mat-form-field>
+                  <button mat-icon-button color="warn" (click)="removeElement(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </mat-card>
+            }
+
+            <button mat-stroked-button color="primary" (click)="addElement()">
+              <mat-icon>add</mat-icon> Onderdeel toevoegen
+            </button>
+          </div>
+
+          <div class="step-actions">
+            <button mat-button matStepperPrevious>Terug</button>
+            <button mat-raised-button color="primary" matStepperNext>Volgende</button>
+          </div>
+        </mat-step>
+
+        <!-- Step 3: Review & Save -->
+        <mat-step label="Controleren & Opslaan">
+          <div class="review-section">
+            <h3>Overzicht</h3>
+            <p>Controleer de ingevoerde gegevens en sla de dienst op.</p>
+
+            <mat-card class="review-card">
+              <p><strong>Datum:</strong> {{ metadataForm.get('date')?.value | date:'d MMMM yyyy' }}</p>
+              <p><strong>Dagdeel:</strong> {{ timeOfDayOptions[metadataForm.get('timeOfDay')?.value]?.label }}</p>
+              <p><strong>Gemeente:</strong> {{ congregationControl.value }}</p>
+              <p><strong>Voorganger:</strong> {{ preacherControl.value }}</p>
+              <p><strong>Preektekst:</strong> {{ metadataForm.get('sermonText')?.value }}</p>
+              <p><strong>Thema:</strong> {{ metadataForm.get('sermonTheme')?.value }}</p>
+              <p><strong>Onderdelen:</strong> {{ elements.length }}</p>
+            </mat-card>
+
+            <div class="step-actions">
+              <button mat-button matStepperPrevious>Terug</button>
+              <button mat-raised-button color="primary" (click)="saveService()">
+                <mat-icon>save</mat-icon> Opslaan
+              </button>
+            </div>
+          </div>
+        </mat-step>
+      </mat-stepper>
+    </div>
+  </mat-tab>
+
+  <!-- Tab 2: Paste to parse -->
+  <mat-tab label="Plakken & verwerken">
+    <div class="tab-content">
+      <mat-card>
+        <h3>Liturgie plakken</h3>
+        <p>Plak hieronder de volledige liturgie zoals u die gewend bent te noteren.
+           Het systeem zal deze automatisch verwerken tot gestructureerde data.</p>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Liturgietekst</mat-label>
+          <textarea matInput [(ngModel)]="pasteText" rows="15"
+            placeholder="Plak hier de liturgie...&#10;&#10;Bijv:&#10;Voorzang: Ps. 63:2&#10;Openingslied: Opw. 220&#10;Schriftlezing: Filippenzen 1:12-26&#10;Na de preek: LvdK 91: 1, 2, 4"></textarea>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" (click)="submitPaste()"
+          [disabled]="!pasteText || parsing">
+          <mat-icon>auto_fix_high</mat-icon>
+          {{ parsing ? 'Bezig met verwerken...' : 'Verwerken' }}
+        </button>
+
+        @if (parsedResult) {
+          <mat-card class="result-card">
+            <h4>Resultaat</h4>
+            <pre>{{ parsedResult | json }}</pre>
+          </mat-card>
+        }
+      </mat-card>
+    </div>
+  </mat-tab>
+
+  <!-- Tab 3: URL import -->
+  <mat-tab label="URL importeren">
+    <div class="tab-content">
+      <mat-card>
+        <h3>Importeren van kerkdienstgemist.nl</h3>
+        <p>Voer de URL van een dienst op kerkdienstgemist.nl in.
+           Het systeem haalt de liturgie op en verwerkt deze automatisch.</p>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>URL</mat-label>
+          <input matInput [(ngModel)]="importUrl"
+            placeholder="https://kerkdienstgemist.nl/stations/...">
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" (click)="submitUrl()"
+          [disabled]="!importUrl || importing">
+          <mat-icon>cloud_download</mat-icon>
+          {{ importing ? 'Bezig met importeren...' : 'Importeren' }}
+        </button>
+      </mat-card>
+    </div>
+  </mat-tab>
+</mat-tab-group>
