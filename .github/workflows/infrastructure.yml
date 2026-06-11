@@ -18,26 +18,15 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Validate Bicep
+      - name: Deploy Bicep
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: rg-liturgiek-statistiek
           template: infrastructure/main.bicep
-          parameters: infrastructure/parameters/production.bicepparam
-          deploymentMode: Validate
-
-      - name: What-If
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: rg-liturgiek-statistiek
-          template: infrastructure/main.bicep
-          parameters: infrastructure/parameters/production.bicepparam
-          additionalArguments: --what-if
-
-      - name: Deploy
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: rg-liturgiek-statistiek
-          template: infrastructure/main.bicep
-          parameters: infrastructure/parameters/production.bicepparam
+          parameters: >
+            sqlAdminLogin=${{ secrets.SQL_ADMIN_LOGIN }}
+            sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
+            aadTenantId=${{ secrets.AAD_TENANT_ID }}
+            aadClientId=${{ secrets.AAD_CLIENT_ID }}
           deploymentName: infra-${{ github.sha }}
+          failOnStdErr: false

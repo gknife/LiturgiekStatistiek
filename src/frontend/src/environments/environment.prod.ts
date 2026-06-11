@@ -1,11 +1,11 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.liturgiekstatistiek.nl/api',
+  apiUrl: 'https://REPLACE_WITH_CONTAINER_APP_FQDN/api',  // e.g. https://ca-liturgiek-api.nicegrass-abc123.westeurope.azurecontainerapps.io/api
   msalConfig: {
     auth: {
-      clientId: '00000000-0000-0000-0000-000000000000',
-      authority: 'https://login.microsoftonline.com/common',
-      redirectUri: 'https://liturgiekstatistiek.nl',
+      clientId: 'REPLACE_WITH_ENTRA_CLIENT_ID',        // From App Registration
+      authority: 'https://login.microsoftonline.com/REPLACE_WITH_TENANT_ID',
+      redirectUri: 'https://REPLACE_WITH_SWA_URL',     // e.g. https://liturgiek-web-prod.azurestaticapps.net
     },
     scopes: ['api://liturgiek-statistiek/access'],
   },
