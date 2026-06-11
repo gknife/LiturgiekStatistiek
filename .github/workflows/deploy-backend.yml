@@ -65,6 +65,8 @@ jobs:
 
       - name: Run EF Core Migrations
         working-directory: src/backend
+        env:
+          CONNECTION_STRING: ${{ secrets.SQL_CONNECTION_STRING }}
         run: |
           dotnet tool install --global dotnet-ef
-          dotnet ef database update --project LiturgiekStatistiek.Infrastructure --startup-project LiturgiekStatistiek.Api --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+          dotnet ef database update --project LiturgiekStatistiek.Infrastructure --startup-project LiturgiekStatistiek.Api --connection "${CONNECTION_STRING}"
