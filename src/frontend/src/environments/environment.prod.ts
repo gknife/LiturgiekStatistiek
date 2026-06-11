@@ -1,12 +1,12 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://REPLACE_WITH_CONTAINER_APP_FQDN/api',  // e.g. https://ca-liturgiek-api.nicegrass-abc123.westeurope.azurecontainerapps.io/api
+  apiUrl: 'https://ca-liturgiek-api.happypond-fc71b176.westeurope.azurecontainerapps.io/api',
   msalConfig: {
     auth: {
-      clientId: 'REPLACE_WITH_ENTRA_CLIENT_ID',        // From App Registration
-      authority: 'https://login.microsoftonline.com/REPLACE_WITH_TENANT_ID',
-      redirectUri: 'https://REPLACE_WITH_SWA_URL',     // e.g. https://liturgiek-web-prod.azurestaticapps.net
+      clientId: 'ee00b27d-ca8e-4c09-aff2-5d632f42691e',        // From App Registration
+      authority: 'https://login.microsoftonline.com/ec105fef-67f8-4b7a-b298-3a50eb06538c',
+      redirectUri: 'https://gentle-plant-025c0e503.7.azurestaticapps.net',
     },
-    scopes: ['api://REPLACE_WITH_ENTRA_CLIENT_ID/access'],  // Use same Client ID as above
+    scopes: ['api://ee00b27d-ca8e-4c09-aff2-5d632f42691e/access'],  // Use same Client ID as above
   },
 };
