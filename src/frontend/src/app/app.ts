@@ -5,6 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
+import { AuthService } from './core/auth/auth.service';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +19,7 @@ import { MatListModule } from '@angular/material/list';
     MatIconModule,
     MatSidenavModule,
     MatListModule,
+    AsyncPipe,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -31,4 +34,14 @@ export class App {
     { path: '/instellingen', label: 'Instellingen', icon: 'settings' },
     { path: '/contact', label: 'Contact', icon: 'mail' },
   ];
+
+  constructor(public auth: AuthService) {}
+
+  login(): void {
+    this.auth.login();
+  }
+
+  logout(): void {
+    this.auth.logout();
+  }
 }

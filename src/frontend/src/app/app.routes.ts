@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, researcherGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -12,6 +13,7 @@ export const routes: Routes = [
   {
     path: 'toevoegen',
     loadComponent: () => import('./features/add/add.component').then(m => m.AddComponent),
+    canActivate: [researcherGuard],
   },
   {
     path: 'lijsten',
@@ -32,6 +34,7 @@ export const routes: Routes = [
   {
     path: 'beheer',
     loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent),
+    canActivate: [authGuard],
   },
   {
     path: '**',

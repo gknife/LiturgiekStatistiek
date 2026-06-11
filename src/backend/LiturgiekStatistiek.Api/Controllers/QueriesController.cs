@@ -9,10 +9,12 @@ namespace LiturgiekStatistiek.Api.Controllers;
 public class QueriesController : ControllerBase
 {
     private readonly IQueryService _queryService;
+    private readonly ILlmService _llmService;
 
-    public QueriesController(IQueryService queryService)
+    public QueriesController(IQueryService queryService, ILlmService llmService)
     {
         _queryService = queryService;
+        _llmService = llmService;
     }
 
     [HttpGet("templates")]
@@ -27,7 +29,18 @@ public class QueriesController : ControllerBase
     {
         if (!string.IsNullOrEmpty(request.NaturalLanguageQuery))
         {
-            var result = await _queryService.ExecuteNaturalLanguageAsync(request.NaturalLanguageQuery, ct);
+            var parseResult = await _llmService.ParseNaturalLanguageQueryAsync(request.NaturalLanguageQuery, ct);
+            if (!parseResult.Success)
+            {
+                return Ok(new QueryResult
+                {
+                    Title = "Kon vraag niet verwerken",
+                    Description = parseResult.ErrorMessage ?? "Onbekende fout",
+                });
+            }
+
+            var result = await _queryService.ExecuteTemplateAsync(
+                parseResult.TemplateId!, parseResult.Parameters!, ct);
             return Ok(result);
         }
 

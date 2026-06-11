@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ISongService, SongService>();
         services.AddScoped<IContentService, ContentService>();
         services.AddScoped<IQueryService, QueryService>();
+        services.AddSingleton<ILlmService, LlmService>();
 
         return services;
     }

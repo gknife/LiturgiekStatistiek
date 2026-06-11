@@ -27,10 +27,17 @@
           </a>
         }
       </nav>
-      <button mat-button class="login-button">
-        <mat-icon>login</mat-icon>
-        Inloggen
-      </button>
+      @if (auth.isAuthenticated$ | async) {
+        <button mat-button class="login-button" (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          Uitloggen
+        </button>
+      } @else {
+        <button mat-button class="login-button" (click)="login()">
+          <mat-icon>login</mat-icon>
+          Inloggen
+        </button>
+      }
     </mat-toolbar>
 
     <main class="app-content">

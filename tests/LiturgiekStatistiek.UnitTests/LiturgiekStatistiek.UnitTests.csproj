@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Application\LiturgiekStatistiek.Application.csproj" />
     <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Domain\LiturgiekStatistiek.Domain.csproj" />
     <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Infrastructure\LiturgiekStatistiek.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\backend\LiturgiekStatistiek.Api\LiturgiekStatistiek.Api.csproj" />
   </ItemGroup>
 
 </Project>
