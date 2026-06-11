@@ -52,6 +52,7 @@ module containerApp 'modules/container-app.bicep' = {
     location: location
     containerRegistryName: acr.outputs.name
     containerRegistryLoginServer: acr.outputs.loginServer
+    containerRegistryPassword: acr.outputs.adminPassword
     sqlConnectionString: sql.outputs.connectionString
     aadTenantId: aadTenantId
     aadClientId: aadClientId

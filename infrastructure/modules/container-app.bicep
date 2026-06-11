@@ -10,6 +10,10 @@ param containerRegistryName string
 @description('ACR login server')
 param containerRegistryLoginServer string
 
+@description('ACR admin password')
+@secure()
+param containerRegistryPassword string
+
 @description('SQL connection string')
 @secure()
 param sqlConnectionString string
@@ -71,7 +75,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
       secrets: [
         {
           name: 'acr-password'
-          value: '' // Set during deployment
+          value: containerRegistryPassword
         }
         {
           name: 'sql-connection-string'
