@@ -1,1 +1,44 @@
-<h1>Lijsten &amp; Afkortingen</h1><p>Overzicht van alle voorgedefinieerde lijsten en afkortingen gebruikt in de database.</p>
+<h1>Lijsten &amp; Afkortingen</h1>
+<p class="page-description">
+  Overzicht van alle voorgedefinieerde lijsten en afkortingen gebruikt in de database.
+</p>
+
+<mat-form-field appearance="outline" class="search-field">
+  <mat-label>Zoeken in lijsten</mat-label>
+  <input matInput [(ngModel)]="searchQuery" (ngModelChange)="filterLists()" placeholder="Zoek op naam of afkorting...">
+  <mat-icon matSuffix>search</mat-icon>
+</mat-form-field>
+
+@if (loading) {
+  <p>Laden...</p>
+} @else {
+  <mat-accordion multi>
+    @for (list of filteredLists; track list.id) {
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ list.name }}</mat-panel-title>
+          <mat-panel-description>
+            {{ list.description }} ({{ list.items.length }} items)
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <table mat-table [dataSource]="list.items" class="list-table">
+          <ng-container matColumnDef="value">
+            <th mat-header-cell *matHeaderCellDef>Naam</th>
+            <td mat-cell *matCellDef="let item">{{ item.value }}</td>
+          </ng-container>
+          <ng-container matColumnDef="abbreviation">
+            <th mat-header-cell *matHeaderCellDef>Afkorting</th>
+            <td mat-cell *matCellDef="let item">
+              @if (item.abbreviation) {
+                <mat-chip>{{ item.abbreviation }}</mat-chip>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="['value', 'abbreviation']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['value', 'abbreviation']"></tr>
+        </table>
+      </mat-expansion-panel>
+    }
+  </mat-accordion>
+}

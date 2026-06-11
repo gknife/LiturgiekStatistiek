@@ -1,1 +1,60 @@
-<h1>Zoeken</h1><p>Doorzoek de database met voorgedefinieerde zoekopdrachten, vrije tekst, of de geavanceerde filterbouwer.</p><mat-tab-group><mat-tab label="Voorgedefinieerd"><p>Voorgedefinieerde zoekopdrachten komen hier.</p></mat-tab><mat-tab label="Vrije vraag"><p>Stel uw vraag in gewoon Nederlands.</p></mat-tab><mat-tab label="Geavanceerd"><p>Geavanceerde filterbouwer.</p></mat-tab></mat-tab-group>
+<h1>Zoeken</h1>
+<p class="page-description">
+  Doorzoek de database met voorgedefinieerde zoekopdrachten, vrije tekst, of de geavanceerde filterbouwer.
+</p>
+
+<mat-tab-group animationDuration="200ms">
+  <!-- Predefined Templates -->
+  <mat-tab label="Voorgedefinieerd">
+    <div class="tab-content">
+      <div class="template-grid">
+        @for (template of queryTemplates; track template.id) {
+          <mat-card class="template-card">
+            <mat-icon class="template-icon">{{ template.icon }}</mat-icon>
+            <h3>{{ template.title }}</h3>
+            <p>{{ template.description }}</p>
+          </mat-card>
+        }
+      </div>
+    </div>
+  </mat-tab>
+
+  <!-- Natural Language -->
+  <mat-tab label="Vrije vraag">
+    <div class="tab-content">
+      <p class="tab-intro">
+        Stel uw vraag in gewoon Nederlands. Het systeem vertaalt uw vraag naar een database-zoekopdracht.
+      </p>
+      <mat-form-field appearance="outline" class="query-field">
+        <mat-label>Uw vraag</mat-label>
+        <textarea matInput [(ngModel)]="naturalLanguageQuery" rows="3"
+          placeholder="Bijv.: Welk lied wordt het meest gezongen in de Gereformeerde Gemeenten?"></textarea>
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="submitNaturalLanguageQuery()"
+              [disabled]="!naturalLanguageQuery.trim()">
+        <mat-icon>search</mat-icon> Zoeken
+      </button>
+
+      <div class="examples">
+        <h4>Voorbeeldvragen:</h4>
+        <ul>
+          @for (example of exampleQueries; track example) {
+            <li><a (click)="naturalLanguageQuery = example">{{ example }}</a></li>
+          }
+        </ul>
+      </div>
+    </div>
+  </mat-tab>
+
+  <!-- Advanced Filter -->
+  <mat-tab label="Geavanceerd">
+    <div class="tab-content">
+      <p class="tab-intro">
+        Bouw uw zoekopdracht stap voor stap op met filters.
+      </p>
+      <mat-card class="filter-builder">
+        <p><em>Geavanceerde filterbouwer wordt binnenkort toegevoegd.</em></p>
+      </mat-card>
+    </div>
+  </mat-tab>
+</mat-tab-group>

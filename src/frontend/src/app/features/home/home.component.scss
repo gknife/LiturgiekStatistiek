@@ -4,34 +4,100 @@
 
 .hero {
   text-align: center;
-  padding: 3rem 1rem;
-  margin-bottom: 2rem;
+  padding: 3rem 1rem 2rem;
 
   h1 {
-    font-family: 'Merriweather', serif;
+    font-family: "Merriweather", serif;
     font-size: 2.5rem;
     font-weight: 700;
     color: #1a365d;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .subtitle {
     font-size: 1.1rem;
     color: #4a5568;
-    max-width: 600px;
+    max-width: 650px;
     margin: 0 auto;
+    line-height: 1.6;
   }
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1.5rem;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
 
-  mat-card {
+.stat-card {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  cursor: default;
+
+  .stat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+    color: #2c5282;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a365d;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: #4a5568;
+    margin-top: 0.25rem;
+  }
+}
+
+.quick-actions {
+  h2 {
     text-align: center;
-    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.action-card {
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  mat-icon {
+    font-size: 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #d69e2e;
+    margin-bottom: 0.75rem;
+  }
+
+  h3 {
+    font-family: "Merriweather", serif;
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+    color: #1a365d;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #4a5568;
+    margin: 0;
+    line-height: 1.4;
   }
 }
