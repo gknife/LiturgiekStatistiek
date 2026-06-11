@@ -87,7 +87,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'api'
-          image: '${containerRegistryLoginServer}/liturgiek-statistiek-api:latest'
+          image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'  // Placeholder until CI/CD pushes real image
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
