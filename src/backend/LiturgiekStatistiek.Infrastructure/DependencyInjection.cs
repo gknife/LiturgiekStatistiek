@@ -10,12 +10,20 @@ namespace LiturgiekStatistiek.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, bool useInMemory = false)
     {
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+        if (useInMemory)
+        {
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseInMemoryDatabase("LiturgiekStatistiek"));
+        }
+        else
+        {
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+        }
 
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<ApplicationDbContext>());

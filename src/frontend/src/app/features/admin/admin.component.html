@@ -1,1 +1,40 @@
-<h1>Beheer</h1><p>Beheerpaneel voor content en gebruikers.</p>
+<h1>Beheer</h1>
+<p class="page-description">Beheer de inhoud van de website en database.</p>
+
+<mat-tab-group>
+  <mat-tab label="Homepage inhoud">
+    <div class="tab-content">
+      <mat-card class="edit-card">
+        <h3><mat-icon>edit</mat-icon> Homepage bewerken</h3>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Titel</mat-label>
+          <input matInput [(ngModel)]="editTitle">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Inhoud (Markdown)</mat-label>
+          <textarea matInput [(ngModel)]="editContent" rows="20"></textarea>
+        </mat-form-field>
+
+        <div class="actions">
+          <button mat-raised-button color="primary" (click)="saveContent()" [disabled]="saving">
+            <mat-icon>save</mat-icon> {{ saving ? 'Opslaan...' : 'Opslaan' }}
+          </button>
+          @if (savedMessage) {
+            <span class="saved-msg">{{ savedMessage }}</span>
+          }
+        </div>
+      </mat-card>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Database overzicht">
+    <div class="tab-content">
+      <mat-card>
+        <h3><mat-icon>storage</mat-icon> Statistieken</h3>
+        <p>Beheer van de database en gebruikers wordt hier beschikbaar.</p>
+      </mat-card>
+    </div>
+  </mat-tab>
+</mat-tab-group>

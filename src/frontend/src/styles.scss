@@ -2,6 +2,9 @@
 // Include theming for Angular Material with `mat.theme()`.
 @use '@angular/material' as mat;
 
+// Leaflet
+@import 'leaflet/dist/leaflet.css';
+
 html {
   height: 100%;
   @include mat.theme((

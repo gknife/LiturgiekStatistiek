@@ -4,11 +4,21 @@ using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Authentication
-builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+// Authentication (skip in dev if disabled)
+var disableAuth = builder.Configuration.GetValue<bool>("DisableAuthentication");
+if (!disableAuth)
+{
+    builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+}
+else
+{
+    builder.Services.AddAuthentication();
+    builder.Services.AddAuthorization();
+}
 
 // Infrastructure (EF Core, etc.)
-builder.Services.AddInfrastructure(builder.Configuration);
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
+builder.Services.AddInfrastructure(builder.Configuration, useInMemory);
 
 // CORS
 builder.Services.AddCors(options =>
@@ -26,10 +36,27 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ApplicationDbContext>();
+
+if (!useInMemory)
+{
+    builder.Services.AddHealthChecks()
+        .AddDbContextCheck<ApplicationDbContext>();
+}
+else
+{
+    builder.Services.AddHealthChecks();
+}
 
 var app = builder.Build();
+
+// Seed data in development
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.EnsureCreated();
+    await DataSeeder.SeedAsync(db);
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -37,10 +64,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
-app.UseAuthentication();
-app.UseAuthorization();
+
+if (!disableAuth)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
+
 app.MapControllers();
 app.MapHealthChecks("/health");
 

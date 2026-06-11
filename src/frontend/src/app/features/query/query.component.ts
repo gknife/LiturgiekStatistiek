@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,33 +7,50 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { ResultChartComponent, ChartData } from '../../shared/components/result-chart/result-chart.component';
+import { ResultTableComponent } from '../../shared/components/result-table/result-table.component';
+import { ResultMapComponent } from '../../shared/components/result-map/result-map.component';
+
+interface QueryTemplate {
+  id: string;
+  title: string;
+  description: string;
+  parameters: { name: string; label: string; type: string; required: boolean; defaultValue?: string }[];
+  defaultChartType: string;
+}
+
+interface QueryResult {
+  title: string;
+  description: string;
+  chartType: string;
+  columns: string[];
+  rows: Record<string, any>[];
+  totalCount: number;
+  chart?: ChartData;
+}
 
 @Component({
   selector: 'app-query',
   standalone: true,
   imports: [
-    MatCardModule, MatTabsModule, MatIconModule, MatButtonModule,
-    MatInputModule, MatFormFieldModule, MatSelectModule, FormsModule,
+    CommonModule, MatCardModule, MatTabsModule, MatIconModule, MatButtonModule,
+    MatInputModule, MatFormFieldModule, MatSelectModule, MatProgressSpinnerModule,
+    FormsModule, ResultChartComponent, ResultTableComponent, ResultMapComponent,
   ],
   templateUrl: './query.component.html',
   styleUrl: './query.component.scss',
 })
-export class QueryComponent {
+export class QueryComponent implements OnInit {
   naturalLanguageQuery = '';
-
-  queryTemplates = [
-    { id: 'most-sung', title: 'Meest gezongen lied', description: 'Welk lied wordt het meest gezongen in een gemeente?', icon: 'music_note' },
-    { id: 'most-verse', title: 'Meest gezongen couplet', description: 'Welk couplet van een lied wordt het vaakst gezongen?', icon: 'format_list_numbered' },
-    { id: 'opening-song', title: 'Meest gezongen openingslied', description: 'Welk lied wordt het vaakst als openingslied gebruikt?', icon: 'play_arrow' },
-    { id: 'avg-songs', title: 'Gemiddeld aantal liederen', description: 'Hoeveel liederen/coupletten worden gemiddeld gezongen?', icon: 'calculate' },
-    { id: 'psalm-compare', title: 'Psalmengebruik vergelijken', description: 'Welke gemeente zingt de meeste psalmen? Vergelijking.', icon: 'compare_arrows' },
-    { id: 'city-map', title: 'Lied per stad (kaart)', description: 'Welke stad zingt een bepaald lied het meest?', icon: 'map' },
-    { id: 'seasonal', title: 'Liederen per seizoen', description: 'Welke liederen worden in een bepaalde periode gezongen?', icon: 'calendar_month' },
-    { id: 'song-lookup', title: 'Diensten met lied X', description: 'Geef alle diensten waar een bepaald lied wordt gezongen.', icon: 'search' },
-    { id: 'sequence', title: 'Lied X na lied Y', description: 'Welke diensten hebben lied X direct na lied Y?', icon: 'swap_vert' },
-    { id: 'trend', title: 'Gebruik over tijd', description: 'Hoe is het gebruik van een lied toe-/afgenomen?', icon: 'trending_up' },
-  ];
+  queryTemplates: QueryTemplate[] = [];
+  selectedTemplate: QueryTemplate | null = null;
+  templateParams: Record<string, string> = {};
+  loading = false;
+  result: QueryResult | null = null;
 
   exampleQueries = [
     'Welk lied wordt het meest gezongen in de GG?',
@@ -43,8 +61,68 @@ export class QueryComponent {
     'Hoe is het gebruik van Psalm 116 veranderd over de jaren?',
   ];
 
+  private apiUrl = environment.apiUrl;
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    this.http.get<QueryTemplate[]>(`${this.apiUrl}/queries/templates`).subscribe({
+      next: templates => this.queryTemplates = templates,
+    });
+  }
+
+  selectTemplate(template: QueryTemplate): void {
+    this.selectedTemplate = template;
+    this.templateParams = {};
+    template.parameters.forEach(p => {
+      if (p.defaultValue) this.templateParams[p.name] = p.defaultValue;
+    });
+  }
+
+  executeTemplate(): void {
+    if (!this.selectedTemplate) return;
+    this.loading = true;
+    this.result = null;
+
+    this.http.post<QueryResult>(`${this.apiUrl}/queries/execute`, {
+      templateId: this.selectedTemplate.id,
+      parameters: this.templateParams,
+    }).subscribe({
+      next: res => { this.result = res; this.loading = false; },
+      error: () => { this.loading = false; },
+    });
+  }
+
   submitNaturalLanguageQuery(): void {
-    // TODO: Send to backend LLM endpoint
-    console.log('Query:', this.naturalLanguageQuery);
+    if (!this.naturalLanguageQuery) return;
+    this.loading = true;
+    this.result = null;
+
+    this.http.post<QueryResult>(`${this.apiUrl}/queries/execute`, {
+      naturalLanguageQuery: this.naturalLanguageQuery,
+    }).subscribe({
+      next: res => { this.result = res; this.loading = false; },
+      error: () => { this.loading = false; },
+    });
+  }
+
+  useExample(query: string): void {
+    this.naturalLanguageQuery = query;
+    this.submitNaturalLanguageQuery();
+  }
+
+  exportExcel(): void {
+    if (!this.selectedTemplate) return;
+    this.http.post(`${this.apiUrl}/export/excel`, {
+      templateId: this.selectedTemplate.id,
+      parameters: this.templateParams,
+    }, { responseType: 'blob' }).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.result?.title || 'export'}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
 }

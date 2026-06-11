@@ -1,60 +1,119 @@
-<h1>Zoeken</h1>
-<p class="page-description">
-  Doorzoek de database met voorgedefinieerde zoekopdrachten, vrije tekst, of de geavanceerde filterbouwer.
-</p>
+<h1>Zoeken & Statistieken</h1>
+<p class="page-description">Doorzoek de database met voorgedefinieerde sjablonen of stel uw eigen vraag.</p>
 
-<mat-tab-group animationDuration="200ms">
-  <!-- Predefined Templates -->
-  <mat-tab label="Voorgedefinieerd">
+<mat-tab-group>
+  <!-- Tab 1: Templates -->
+  <mat-tab label="Sjablonen">
     <div class="tab-content">
-      <div class="template-grid">
-        @for (template of queryTemplates; track template.id) {
-          <mat-card class="template-card">
-            <mat-icon class="template-icon">{{ template.icon }}</mat-icon>
-            <h3>{{ template.title }}</h3>
-            <p>{{ template.description }}</p>
-          </mat-card>
-        }
-      </div>
-    </div>
-  </mat-tab>
-
-  <!-- Natural Language -->
-  <mat-tab label="Vrije vraag">
-    <div class="tab-content">
-      <p class="tab-intro">
-        Stel uw vraag in gewoon Nederlands. Het systeem vertaalt uw vraag naar een database-zoekopdracht.
-      </p>
-      <mat-form-field appearance="outline" class="query-field">
-        <mat-label>Uw vraag</mat-label>
-        <textarea matInput [(ngModel)]="naturalLanguageQuery" rows="3"
-          placeholder="Bijv.: Welk lied wordt het meest gezongen in de Gereformeerde Gemeenten?"></textarea>
-      </mat-form-field>
-      <button mat-raised-button color="primary" (click)="submitNaturalLanguageQuery()"
-              [disabled]="!naturalLanguageQuery.trim()">
-        <mat-icon>search</mat-icon> Zoeken
-      </button>
-
-      <div class="examples">
-        <h4>Voorbeeldvragen:</h4>
-        <ul>
-          @for (example of exampleQueries; track example) {
-            <li><a (click)="naturalLanguageQuery = example">{{ example }}</a></li>
+      @if (!selectedTemplate) {
+        <div class="templates-grid">
+          @for (template of queryTemplates; track template.id) {
+            <mat-card class="template-card" (click)="selectTemplate(template)">
+              <h3>{{ template.title }}</h3>
+              <p>{{ template.description }}</p>
+            </mat-card>
           }
-        </ul>
-      </div>
+        </div>
+      } @else {
+        <mat-card class="selected-template">
+          <div class="template-header">
+            <h3>{{ selectedTemplate.title }}</h3>
+            <button mat-icon-button (click)="selectedTemplate = null; result = null">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <p>{{ selectedTemplate.description }}</p>
+
+          <div class="params-form">
+            @for (param of selectedTemplate.parameters; track param.name) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ param.label }}</mat-label>
+                <input matInput [(ngModel)]="templateParams[param.name]"
+                  [required]="param.required"
+                  [placeholder]="param.defaultValue || ''">
+              </mat-form-field>
+            }
+          </div>
+
+          <div class="actions-row">
+            <button mat-raised-button color="primary" (click)="executeTemplate()" [disabled]="loading">
+              <mat-icon>search</mat-icon> Uitvoeren
+            </button>
+            @if (result) {
+              <button mat-stroked-button (click)="exportExcel()">
+                <mat-icon>download</mat-icon> Exporteren (Excel)
+              </button>
+            }
+          </div>
+        </mat-card>
+      }
     </div>
   </mat-tab>
 
-  <!-- Advanced Filter -->
-  <mat-tab label="Geavanceerd">
+  <!-- Tab 2: Natural language -->
+  <mat-tab label="Vraag stellen (NL)">
     <div class="tab-content">
-      <p class="tab-intro">
-        Bouw uw zoekopdracht stap voor stap op met filters.
-      </p>
-      <mat-card class="filter-builder">
-        <p><em>Geavanceerde filterbouwer wordt binnenkort toegevoegd.</em></p>
+      <mat-card>
+        <h3>Stel een vraag in het Nederlands</h3>
+        <p class="hint">Typ uw onderzoeksvraag en het systeem vertaalt deze naar een databasequery.</p>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Uw vraag</mat-label>
+          <input matInput [(ngModel)]="naturalLanguageQuery"
+            placeholder="Bijv. Welk lied wordt het meest gezongen in de GG?"
+            (keyup.enter)="submitNaturalLanguageQuery()">
+          <mat-icon matSuffix>psychology</mat-icon>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" (click)="submitNaturalLanguageQuery()" [disabled]="loading">
+          <mat-icon>send</mat-icon> Zoeken
+        </button>
+
+        <div class="examples-section">
+          <h4>Voorbeeldvragen:</h4>
+          <div class="example-chips">
+            @for (example of exampleQueries; track example) {
+              <button mat-stroked-button class="example-chip" (click)="useExample(example)">
+                {{ example }}
+              </button>
+            }
+          </div>
+        </div>
       </mat-card>
     </div>
   </mat-tab>
 </mat-tab-group>
+
+<!-- Loading -->
+@if (loading) {
+  <div class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Bezig met zoeken...</p>
+  </div>
+}
+
+<!-- Results -->
+@if (result && !loading) {
+  <div class="results-section">
+    <h2>{{ result.title }}</h2>
+    @if (result.description) {
+      <p class="result-description">{{ result.description }}</p>
+    }
+
+    @if (result.chart && result.chartType !== 'map' && result.chartType !== 'table') {
+      <mat-card class="chart-card">
+        <app-result-chart [chartType]="result.chartType" [data]="result.chart"></app-result-chart>
+      </mat-card>
+    }
+
+    @if (result.chartType === 'map') {
+      <mat-card class="chart-card">
+        <app-result-map [rows]="result.rows"></app-result-map>
+      </mat-card>
+    }
+
+    @if (result.columns.length > 0 && result.rows.length > 0) {
+      <app-result-table [columns]="result.columns" [rows]="result.rows" [totalCount]="result.totalCount"></app-result-table>
+    }
+  </div>
+}

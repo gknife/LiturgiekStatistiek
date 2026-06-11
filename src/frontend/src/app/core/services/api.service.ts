@@ -136,4 +136,18 @@ export class ApiService {
   updateContent(slug: string, request: { titleNl: string; contentMarkdown: string }): Observable<ContentPage> {
     return this.http.put<ContentPage>(`${this.baseUrl}/content/${slug}`, request);
   }
+
+  // Queries
+  getQueryTemplates(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/queries/templates`);
+  }
+
+  executeQuery(request: { templateId?: string; naturalLanguageQuery?: string; parameters?: Record<string, string> }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/queries/execute`, request);
+  }
+
+  // Export
+  exportExcel(request: any): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}/export/excel`, request, { responseType: 'blob' });
+  }
 }
