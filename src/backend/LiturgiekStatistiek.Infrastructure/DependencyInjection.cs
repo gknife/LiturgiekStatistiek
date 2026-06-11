@@ -1,5 +1,7 @@
+using LiturgiekStatistiek.Application.Interfaces;
 using LiturgiekStatistiek.Domain.Interfaces;
 using LiturgiekStatistiek.Infrastructure.Persistence;
+using LiturgiekStatistiek.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,13 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<ApplicationDbContext>());
+
+        services.AddScoped<IServiceService, ServiceService>();
+        services.AddScoped<ICongregationService, CongregationService>();
+        services.AddScoped<IPreacherService, PreacherService>();
+        services.AddScoped<IListService, ListService>();
+        services.AddScoped<ISongService, SongService>();
+        services.AddScoped<IContentService, ContentService>();
 
         return services;
     }
