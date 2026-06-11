@@ -1,0 +1,111 @@
+{
+  "app": {
+    "title": "Liturgiek Statistiek",
+    "subtitle": "Onderzoeksplatform voor liturgie en kerkmuziek",
+    "nav": {
+      "home": "Home",
+      "query": "Zoeken",
+      "add": "Toevoegen",
+      "lists": "Lijsten",
+      "songs": "Liedcatalogus",
+      "settings": "Instellingen",
+      "contact": "Contact",
+      "admin": "Beheer",
+      "login": "Inloggen",
+      "logout": "Uitloggen"
+    },
+    "footer": {
+      "copyright": "© 2026 Liturgiek Statistiek — Onderzoeksproject",
+      "contact": "Contact",
+      "github": "GitHub",
+      "privacy": "Privacy"
+    },
+    "home": {
+      "title": "Liturgiek Statistiek",
+      "stats": {
+        "services": "Diensten",
+        "congregations": "Gemeenten",
+        "songs": "Liederen",
+        "preachers": "Voorgangers"
+      }
+    },
+    "query": {
+      "title": "Zoeken",
+      "description": "Doorzoek de database met voorgedefinieerde zoekopdrachten, vrije tekst, of de geavanceerde filterbouwer.",
+      "tabs": {
+        "templates": "Voorgedefinieerd",
+        "natural": "Vrije vraag",
+        "advanced": "Geavanceerd"
+      },
+      "placeholder": "Stel uw vraag in gewoon Nederlands...",
+      "execute": "Zoeken",
+      "export": {
+        "excel": "Exporteer naar Excel",
+        "pdf": "Exporteer naar PDF",
+        "image": "Exporteer grafiek"
+      },
+      "results": "Resultaten",
+      "noResults": "Geen resultaten gevonden."
+    },
+    "add": {
+      "title": "Dienst toevoegen",
+      "methods": {
+        "manual": "Handmatig invoeren",
+        "paste": "Tekst plakken",
+        "url": "URL importeren",
+        "bulk": "Bulk importeren"
+      },
+      "form": {
+        "date": "Datum",
+        "timeOfDay": "Dagdeel",
+        "congregation": "Gemeente",
+        "preacher": "Voorganger",
+        "save": "Opslaan",
+        "cancel": "Annuleren",
+        "addNew": "Nieuw toevoegen aan database"
+      }
+    },
+    "lists": {
+      "title": "Lijsten & Afkortingen",
+      "description": "Overzicht van alle voorgedefinieerde lijsten en afkortingen gebruikt in de database."
+    },
+    "songs": {
+      "title": "Liedcatalogus",
+      "description": "Catalogus van liederen per bundel."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "Neem contact op met de onderzoeker of draag bij aan het project.",
+      "contribute": "Bijdragen",
+      "contributeText": "Dit project is open source. Bijdragen zijn welkom via GitHub."
+    },
+    "settings": {
+      "title": "Instellingen",
+      "theme": "Thema",
+      "light": "Licht",
+      "dark": "Donker",
+      "font": "Lettertype",
+      "language": "Taal"
+    },
+    "common": {
+      "loading": "Laden...",
+      "error": "Er is een fout opgetreden.",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "edit": "Bewerken",
+      "delete": "Verwijderen",
+      "search": "Zoeken",
+      "filter": "Filteren",
+      "export": "Exporteren",
+      "back": "Terug",
+      "next": "Volgende",
+      "previous": "Vorige",
+      "yes": "Ja",
+      "no": "Nee",
+      "confirm": "Bevestigen",
+      "morning": "Ochtend",
+      "afternoon": "Middag",
+      "evening": "Avond"
+    }
+  }
+}

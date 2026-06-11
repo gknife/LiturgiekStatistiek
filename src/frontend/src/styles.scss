@@ -1,0 +1,39 @@
+
+// Include theming for Angular Material with `mat.theme()`.
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$yellow-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+body {
+  color-scheme: light;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+  height: 100%;
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Merriweather', serif;
+  color: #1a365d;
+}
+
+a {
+  color: #2c5282;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

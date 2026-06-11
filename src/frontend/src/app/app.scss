@@ -1,0 +1,101 @@
+// Academic theme colors
+$primary-dark: #1a365d;
+$primary: #2c5282;
+$primary-light: #4a7ab5;
+$accent: #d69e2e;
+$accent-light: #ecc94b;
+$bg-light: #f7fafc;
+$text-primary: #1a202c;
+$text-secondary: #4a5568;
+$border: #e2e8f0;
+
+.app-container {
+  height: 100vh;
+}
+
+.app-sidenav {
+  width: 260px;
+}
+
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.app-title {
+  font-family: 'Merriweather', serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.02em;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.desktop-nav {
+  display: none;
+
+  @media (min-width: 960px) {
+    display: flex;
+    gap: 0.25rem;
+  }
+}
+
+.menu-button {
+  @media (min-width: 960px) {
+    display: none !important;
+  }
+}
+
+.login-button {
+  margin-left: 0.5rem;
+}
+
+.active-link {
+  border-bottom: 2px solid $accent;
+}
+
+.app-content {
+  min-height: calc(100vh - 64px - 60px);
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 600px) {
+    padding: 1rem;
+  }
+}
+
+.app-footer {
+  background: $primary-dark;
+  color: white;
+  padding: 1rem 2rem;
+
+  .footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1.5rem;
+
+    a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+
+      &:hover {
+        color: white;
+      }
+    }
+  }
+}

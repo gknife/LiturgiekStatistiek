@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="../../tests/LiturgiekStatistiek.IntegrationTests/LiturgiekStatistiek.IntegrationTests.csproj" />
+  <Project Path="../../tests/LiturgiekStatistiek.UnitTests/LiturgiekStatistiek.UnitTests.csproj" />
+  <Project Path="LiturgiekStatistiek.Api/LiturgiekStatistiek.Api.csproj" />
+  <Project Path="LiturgiekStatistiek.Application/LiturgiekStatistiek.Application.csproj" />
+  <Project Path="LiturgiekStatistiek.Domain/LiturgiekStatistiek.Domain.csproj" />
+  <Project Path="LiturgiekStatistiek.Infrastructure/LiturgiekStatistiek.Infrastructure.csproj" />
+</Solution>
