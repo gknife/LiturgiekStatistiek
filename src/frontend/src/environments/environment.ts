@@ -7,6 +7,6 @@ export const environment = {
       authority: 'https://login.microsoftonline.com/common',
       redirectUri: 'http://localhost:4200',
     },
-    scopes: ['api://liturgiek-statistiek/access'],
+    scopes: ['api://00000000-0000-0000-0000-000000000000/access'],  // Replace with your Client ID
   },
 };

@@ -7,6 +7,6 @@ export const environment = {
       authority: 'https://login.microsoftonline.com/REPLACE_WITH_TENANT_ID',
       redirectUri: 'https://REPLACE_WITH_SWA_URL',     // e.g. https://liturgiek-web-prod.azurestaticapps.net
     },
-    scopes: ['api://liturgiek-statistiek/access'],
+    scopes: ['api://REPLACE_WITH_ENTRA_CLIENT_ID/access'],  // Use same Client ID as above
   },
 };
