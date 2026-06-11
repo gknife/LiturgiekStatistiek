@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { marked } from 'marked';
 
 @Component({
   selector: 'app-home',
@@ -29,6 +30,12 @@ export class HomeComponent implements OnInit {
     });
     this.api.getPreachers({ page: 1, pageSize: 1 }).subscribe({
       next: (r) => (this.stats.preachers = r.totalCount),
+      error: () => {},
+    });
+    this.api.getContent('homepage').subscribe({
+      next: (page) => {
+        this.contentHtml = marked(page.contentMarkdown) as string;
+      },
       error: () => {},
     });
   }

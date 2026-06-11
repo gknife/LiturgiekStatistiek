@@ -32,7 +32,7 @@
             "styles": [
               "src/styles.scss"
             ],
-            "allowedCommonJsDependencies": ["leaflet", "chart.js"]
+            "allowedCommonJsDependencies": ["leaflet", "chart.js", "marked"]
           },
           "configurations": {
             "production": {

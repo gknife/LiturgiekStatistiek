@@ -53,7 +53,9 @@ cd src/backend
 dotnet restore
 dotnet run --project LiturgiekStatistiek.Api
 ```
-API will be available at `https://localhost:7001`
+API will be available at `http://localhost:5001` (Swagger UI at `/swagger`)
+
+The development environment uses an in-memory database with sample data (3 services from Zutphen, Apeldoorn, and Putten) and disabled authentication for easy testing.
 
 **Frontend:**
 ```bash

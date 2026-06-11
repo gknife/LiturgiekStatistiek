@@ -49,3 +49,11 @@
     </mat-card>
   </div>
 </section>
+
+@if (contentHtml) {
+  <section class="about-section">
+    <mat-card class="content-card">
+      <div [innerHTML]="contentHtml"></div>
+    </mat-card>
+  </section>
+}
