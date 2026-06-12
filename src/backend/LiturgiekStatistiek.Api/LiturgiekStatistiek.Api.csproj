@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <ProjectReference Include="..\LiturgiekStatistiek.Application\LiturgiekStatistiek.Application.csproj" />
@@ -20,6 +20,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ccf98dfc-7c7d-4158-96cb-da2ca311dff5</UserSecretsId>
   </PropertyGroup>
 
 </Project>
