@@ -58,6 +58,22 @@ $border: #e2e8f0;
   margin-left: 0.5rem;
 }
 
+.user-button {
+  margin-left: 0.5rem;
+
+  .user-name {
+    margin-left: 0.25rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @media (max-width: 600px) {
+      display: none;
+    }
+  }
+}
+
 .active-link {
   border-bottom: 2px solid $accent;
 }

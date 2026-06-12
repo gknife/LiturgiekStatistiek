@@ -1,7 +1,7 @@
 <mat-sidenav-container class="app-container">
   <mat-sidenav #sidenav mode="over" class="app-sidenav">
     <mat-nav-list>
-      @for (item of navItems; track item.path) {
+      @for (item of visibleNavItems; track item.path) {
         <a mat-list-item [routerLink]="item.path" routerLinkActive="active"
            [routerLinkActiveOptions]="{exact: item.path === '/'}"
            (click)="sidenav.close()">
@@ -20,7 +20,7 @@
       <img src="logo.png" alt="Liturgiek Statistiek" class="app-logo" routerLink="/" />
       <span class="spacer"></span>
       <nav class="desktop-nav">
-        @for (item of navItems; track item.path) {
+        @for (item of visibleNavItems; track item.path) {
           <a mat-button [routerLink]="item.path" routerLinkActive="active-link"
              [routerLinkActiveOptions]="{exact: item.path === '/'}">
             {{ item.label }}
@@ -28,10 +28,20 @@
         }
       </nav>
       @if (auth.isAuthenticated$ | async) {
-        <button mat-button class="login-button" (click)="logout()">
-          <mat-icon>logout</mat-icon>
-          Uitloggen
+        <button mat-button [matMenuTriggerFor]="userMenu" class="user-button">
+          <mat-icon>account_circle</mat-icon>
+          <span class="user-name">{{ (auth.user$ | async)?.name }}</span>
         </button>
+        <mat-menu #userMenu="matMenu">
+          <button mat-menu-item disabled>
+            <mat-icon>email</mat-icon>
+            <span>{{ (auth.user$ | async)?.email }}</span>
+          </button>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Uitloggen</span>
+          </button>
+        </mat-menu>
       } @else {
         <button mat-button class="login-button" (click)="login()">
           <mat-icon>login</mat-icon>

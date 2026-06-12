@@ -71,22 +71,17 @@ export class AuthService {
 
   async login(): Promise<void> {
     await this.initialize();
-
-    try {
-      const response = await this.msalInstance.loginPopup({
-        scopes: environment.msalConfig.scopes,
-      });
-      this.handleAuthResult(response);
-    } catch (error) {
-      console.error('Login failed:', error);
-    }
+    // Use redirect — user stays in the same window
+    await this.msalInstance.loginRedirect({
+      scopes: environment.msalConfig.scopes,
+    });
   }
 
   async logout(): Promise<void> {
     await this.initialize();
     this._isAuthenticated.next(false);
     this._user.next(null);
-    await this.msalInstance.logoutPopup();
+    await this.msalInstance.logoutRedirect();
   }
 
   async getAccessToken(): Promise<string | null> {

@@ -25,7 +25,7 @@ describe('App', () => {
   it('should have navigation items', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
-    expect(app.navItems.length).toBeGreaterThan(0);
-    expect(app.navItems[0].label).toBe('Home');
+    expect(app.allNavItems.length).toBeGreaterThan(0);
+    expect(app.allNavItems[0].label).toBe('Home');
   });
 });
