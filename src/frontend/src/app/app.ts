@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,7 +24,7 @@ import { AsyncPipe } from '@angular/common';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {
+export class App implements OnInit {
   navItems = [
     { path: '/', label: 'Home', icon: 'home' },
     { path: '/zoeken', label: 'Zoeken', icon: 'search' },
@@ -36,6 +36,10 @@ export class App {
   ];
 
   constructor(public auth: AuthService) {}
+
+  async ngOnInit(): Promise<void> {
+    await this.auth.initialize();
+  }
 
   login(): void {
     this.auth.login();

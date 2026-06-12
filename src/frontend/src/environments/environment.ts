@@ -3,10 +3,10 @@ export const environment = {
   apiUrl: 'http://localhost:5001/api',
   msalConfig: {
     auth: {
-      clientId: '00000000-0000-0000-0000-000000000000',
-      authority: 'https://login.microsoftonline.com/common',
+      clientId: 'ee00b27d-ca8e-4c09-aff2-5d632f42691e',
+      authority: 'https://login.microsoftonline.com/ec105fef-67f8-4b7a-b298-3a50eb06538c',
       redirectUri: 'http://localhost:4200',
     },
-    scopes: ['api://00000000-0000-0000-0000-000000000000/access'],  // Replace with your Client ID
+    scopes: ['api://ee00b27d-ca8e-4c09-aff2-5d632f42691e/access'],
   },
 };
