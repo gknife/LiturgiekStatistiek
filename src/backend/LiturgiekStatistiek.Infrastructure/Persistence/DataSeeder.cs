@@ -294,7 +294,7 @@ Welkom bij het onderzoeksplatform **Liturgiek Statistiek**. Dit project brengt d
 
 - **Zoeken**: Doorzoek de database met voorgedefinieerde sjablonen of stel uw eigen vraag in het Nederlands.
 - **Statistieken**: Ontdek patronen in liedkeuze, psalmgebruik, en liturgische praktijken.
-- **Bijdragen**: Help het onderzoek door liturgie�n van kerkdiensten in te voeren.
+- **Bijdragen**: Help het onderzoek door liturgieën van kerkdiensten in te voeren.
 
 ## Over het onderzoek
 

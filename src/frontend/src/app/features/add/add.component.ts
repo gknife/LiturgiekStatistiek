@@ -116,7 +116,7 @@ export class AddComponent implements OnInit {
 
   selectCongregation(congregation: CongregationSummary): void {
     this.metadataForm.patchValue({ congregationId: congregation.id });
-    this.congregationControl.setValue(congregation.name + ' � ' + congregation.city);
+    this.congregationControl.setValue(congregation.name + ' — ' + congregation.city);
   }
 
   selectPreacher(preacher: PreacherSummary): void {
