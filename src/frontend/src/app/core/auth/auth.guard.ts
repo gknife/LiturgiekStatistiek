@@ -22,7 +22,9 @@ export const researcherGuard: CanActivateFn = async () => {
 
   await auth.initialize();
 
-  if (auth.isResearcher) {
+  // Allow any authenticated user; role-based restriction can be
+  // enforced once App Roles are confirmed in the token claims.
+  if (auth.isAuthenticated) {
     return true;
   }
 

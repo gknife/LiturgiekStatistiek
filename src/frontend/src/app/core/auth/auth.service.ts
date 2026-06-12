@@ -19,7 +19,7 @@ export class AuthService {
   private _isAuthenticated = new BehaviorSubject<boolean>(false);
   private _user = new BehaviorSubject<UserProfile | null>(null);
   private msalInstance: PublicClientApplication;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   isAuthenticated$ = this._isAuthenticated.asObservable();
   user$ = this._user.asObservable();
@@ -51,7 +51,13 @@ export class AuthService {
   }
 
   async initialize(): Promise<void> {
-    if (this.initialized) return;
+    if (!this.initPromise) {
+      this.initPromise = this.doInitialize();
+    }
+    return this.initPromise;
+  }
+
+  private async doInitialize(): Promise<void> {
     await this.msalInstance.initialize();
 
     // Handle redirect response (if returning from login)
@@ -66,7 +72,6 @@ export class AuthService {
         this.setUserFromAccount(accounts[0]);
       }
     }
-    this.initialized = true;
   }
 
   async login(): Promise<void> {
