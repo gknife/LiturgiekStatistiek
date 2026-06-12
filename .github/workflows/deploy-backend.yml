@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/backend/**'
       - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
 
 env:
   AZURE_CONTAINER_REGISTRY: ${{ secrets.ACR_LOGIN_SERVER }}
