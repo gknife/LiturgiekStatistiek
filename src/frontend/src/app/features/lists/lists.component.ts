@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -37,7 +37,7 @@ export class ListsComponent implements OnInit {
 
   constructor(
     private api: ApiService,
-    private zone: NgZone,
+    private cdr: ChangeDetectorRef,
     private snackBar: MatSnackBar,
     public auth: AuthService,
   ) {}
@@ -50,19 +50,16 @@ export class ListsComponent implements OnInit {
     this.loading = true;
     this.api.getAllLists().subscribe({
       next: (lists) => {
-        this.zone.run(() => {
-          // Sort alphabetically by description (Dutch name)
-          this.lists = lists.sort((a, b) =>
-            (a.description ?? a.name).localeCompare(b.description ?? b.name, 'nl')
-          );
-          this.applyFilter();
-          this.loading = false;
-        });
+        this.lists = lists.sort((a, b) =>
+          (a.description ?? a.name).localeCompare(b.description ?? b.name, 'nl')
+        );
+        this.applyFilter();
+        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.zone.run(() => {
-          this.loading = false;
-        });
+        this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -110,7 +107,6 @@ export class ListsComponent implements OnInit {
     if (!this.editingItem || !this.editingItem.value.trim()) return;
 
     if (this.editingItem.itemId) {
-      // Update existing
       this.api.updateListItem(this.editingItem.itemId, {
         value: this.editingItem.value.trim(),
         abbreviation: this.editingItem.abbreviation.trim() || null,
@@ -118,16 +114,13 @@ export class ListsComponent implements OnInit {
         isActive: true,
       }).subscribe({
         next: () => {
-          this.zone.run(() => {
-            this.snackBar.open('Item bijgewerkt', 'OK', { duration: 2000 });
-            this.editingItem = null;
-            this.loadLists();
-          });
+          this.snackBar.open('Item bijgewerkt', 'OK', { duration: 2000 });
+          this.editingItem = null;
+          this.loadLists();
         },
         error: () => this.snackBar.open('Fout bij opslaan', 'OK', { duration: 3000 }),
       });
     } else {
-      // Create new
       const list = this.lists.find(l => l.id === this.editingItem!.listId);
       const maxSort = list ? Math.max(0, ...list.items.map(i => i.sortOrder)) : 0;
       this.api.addListItem({
@@ -137,11 +130,9 @@ export class ListsComponent implements OnInit {
         sortOrder: maxSort + 1,
       }).subscribe({
         next: () => {
-          this.zone.run(() => {
-            this.snackBar.open('Item toegevoegd', 'OK', { duration: 2000 });
-            this.editingItem = null;
-            this.loadLists();
-          });
+          this.snackBar.open('Item toegevoegd', 'OK', { duration: 2000 });
+          this.editingItem = null;
+          this.loadLists();
         },
         error: () => this.snackBar.open('Fout bij toevoegen', 'OK', { duration: 3000 }),
       });
@@ -152,10 +143,8 @@ export class ListsComponent implements OnInit {
     if (!confirm(`Weet u zeker dat u "${item.value}" wilt verwijderen?`)) return;
     this.api.deleteListItem(item.id).subscribe({
       next: () => {
-        this.zone.run(() => {
-          this.snackBar.open('Item verwijderd', 'OK', { duration: 2000 });
-          this.loadLists();
-        });
+        this.snackBar.open('Item verwijderd', 'OK', { duration: 2000 });
+        this.loadLists();
       },
       error: () => this.snackBar.open('Fout bij verwijderen', 'OK', { duration: 3000 }),
     });
