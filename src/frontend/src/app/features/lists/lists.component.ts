@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -27,16 +27,22 @@ export class ListsComponent implements OnInit {
   searchQuery = '';
   loading = true;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private zone: NgZone) {}
 
   ngOnInit(): void {
     this.api.getAllLists().subscribe({
       next: (lists) => {
-        this.lists = lists;
-        this.filteredLists = lists;
-        this.loading = false;
+        this.zone.run(() => {
+          this.lists = lists;
+          this.filteredLists = lists;
+          this.loading = false;
+        });
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.zone.run(() => {
+          this.loading = false;
+        });
+      },
     });
   }
 
