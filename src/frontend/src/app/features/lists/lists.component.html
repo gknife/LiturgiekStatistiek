@@ -16,9 +16,9 @@
     @for (list of filteredLists; track list.id) {
       <mat-expansion-panel>
         <mat-expansion-panel-header>
-          <mat-panel-title>{{ list.name }}</mat-panel-title>
+          <mat-panel-title>{{ getDisplayName(list) }}</mat-panel-title>
           <mat-panel-description>
-            {{ list.description }} ({{ list.items.length }} items)
+            {{ list.items.length }} items
           </mat-panel-description>
         </mat-expansion-panel-header>
 
@@ -35,9 +35,45 @@
               }
             </td>
           </ng-container>
-          <tr mat-header-row *matHeaderRowDef="['value', 'abbreviation']"></tr>
-          <tr mat-row *matRowDef="let row; columns: ['value', 'abbreviation']"></tr>
+          @if (auth.isAuthenticated) {
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Acties</th>
+              <td mat-cell *matCellDef="let item">
+                <button mat-icon-button color="primary" (click)="startEdit(list, item)" matTooltip="Bewerken">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteItem(item)" matTooltip="Verwijderen">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+          }
+          <tr mat-header-row *matHeaderRowDef="auth.isAuthenticated ? ['value', 'abbreviation', 'actions'] : ['value', 'abbreviation']"></tr>
+          <tr mat-row *matRowDef="let row; columns: auth.isAuthenticated ? ['value', 'abbreviation', 'actions'] : ['value', 'abbreviation']"></tr>
         </table>
+
+        @if (auth.isAuthenticated) {
+          @if (editingItem && editingItem.listId === list.id) {
+            <div class="edit-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Naam</mat-label>
+                <input matInput [(ngModel)]="editingItem.value" (keyup.enter)="saveItem()">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Afkorting</mat-label>
+                <input matInput [(ngModel)]="editingItem.abbreviation" (keyup.enter)="saveItem()">
+              </mat-form-field>
+              <button mat-raised-button color="primary" (click)="saveItem()">
+                <mat-icon>save</mat-icon> Opslaan
+              </button>
+              <button mat-button (click)="cancelEdit()">Annuleren</button>
+            </div>
+          } @else {
+            <button mat-stroked-button color="primary" (click)="startAdd(list)" class="add-button">
+              <mat-icon>add</mat-icon> Item toevoegen
+            </button>
+          }
+        }
       </mat-expansion-panel>
     }
   </mat-accordion>

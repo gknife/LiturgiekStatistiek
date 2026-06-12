@@ -110,12 +110,16 @@ export class ApiService {
     return this.http.get<ListDefinition>(`${this.baseUrl}/lists/${name}`);
   }
 
-  addListItem(request: { listDefinitionId: string; value: string; abbreviation?: string; sortOrder: number }): Observable<ListItem> {
+  addListItem(request: { listDefinitionId: string; value: string; abbreviation?: string | null; sortOrder: number }): Observable<ListItem> {
     return this.http.post<ListItem>(`${this.baseUrl}/lists/items`, request);
   }
 
-  updateListItem(id: string, request: { value: string; abbreviation?: string; sortOrder: number; isActive: boolean }): Observable<ListItem> {
+  updateListItem(id: string, request: { value: string; abbreviation?: string | null; sortOrder: number; isActive: boolean }): Observable<ListItem> {
     return this.http.put<ListItem>(`${this.baseUrl}/lists/items/${id}`, request);
+  }
+
+  deleteListItem(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/lists/items/${id}`);
   }
 
   // Songs

@@ -6,9 +6,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { ListDefinition } from '../../core/models/api.models';
+import { AuthService } from '../../core/auth/auth.service';
+import { ListDefinition, ListItem } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-lists',
@@ -16,7 +20,8 @@ import { ListDefinition } from '../../core/models/api.models';
   imports: [
     MatCardModule, MatTableModule, MatExpansionModule,
     MatChipsModule, MatIconModule, MatInputModule,
-    MatFormFieldModule, FormsModule,
+    MatFormFieldModule, MatButtonModule, MatDialogModule,
+    MatSnackBarModule, FormsModule,
   ],
   templateUrl: './lists.component.html',
   styleUrl: './lists.component.scss',
@@ -27,14 +32,30 @@ export class ListsComponent implements OnInit {
   searchQuery = '';
   loading = true;
 
-  constructor(private api: ApiService, private zone: NgZone) {}
+  // Inline editing state
+  editingItem: { listId: string; itemId: string | null; value: string; abbreviation: string } | null = null;
+
+  constructor(
+    private api: ApiService,
+    private zone: NgZone,
+    private snackBar: MatSnackBar,
+    public auth: AuthService,
+  ) {}
 
   ngOnInit(): void {
+    this.loadLists();
+  }
+
+  loadLists(): void {
+    this.loading = true;
     this.api.getAllLists().subscribe({
       next: (lists) => {
         this.zone.run(() => {
-          this.lists = lists;
-          this.filteredLists = lists;
+          // Sort alphabetically by description (Dutch name)
+          this.lists = lists.sort((a, b) =>
+            (a.description ?? a.name).localeCompare(b.description ?? b.name, 'nl')
+          );
+          this.applyFilter();
           this.loading = false;
         });
       },
@@ -46,16 +67,97 @@ export class ListsComponent implements OnInit {
     });
   }
 
+  getDisplayName(list: ListDefinition): string {
+    return list.description ?? list.name;
+  }
+
   filterLists(): void {
+    this.applyFilter();
+  }
+
+  private applyFilter(): void {
     const q = this.searchQuery.toLowerCase();
+    if (!q) {
+      this.filteredLists = [...this.lists];
+      return;
+    }
     this.filteredLists = this.lists.filter(
       (l) =>
-        l.name.toLowerCase().includes(q) ||
+        (l.description ?? l.name).toLowerCase().includes(q) ||
         l.items.some(
           (i) =>
             i.value.toLowerCase().includes(q) ||
             (i.abbreviation && i.abbreviation.toLowerCase().includes(q))
         )
     );
+  }
+
+  // --- Edit functionality ---
+
+  startAdd(list: ListDefinition): void {
+    this.editingItem = { listId: list.id, itemId: null, value: '', abbreviation: '' };
+  }
+
+  startEdit(list: ListDefinition, item: ListItem): void {
+    this.editingItem = { listId: list.id, itemId: item.id, value: item.value, abbreviation: item.abbreviation ?? '' };
+  }
+
+  cancelEdit(): void {
+    this.editingItem = null;
+  }
+
+  saveItem(): void {
+    if (!this.editingItem || !this.editingItem.value.trim()) return;
+
+    if (this.editingItem.itemId) {
+      // Update existing
+      this.api.updateListItem(this.editingItem.itemId, {
+        value: this.editingItem.value.trim(),
+        abbreviation: this.editingItem.abbreviation.trim() || null,
+        sortOrder: 0,
+        isActive: true,
+      }).subscribe({
+        next: () => {
+          this.zone.run(() => {
+            this.snackBar.open('Item bijgewerkt', 'OK', { duration: 2000 });
+            this.editingItem = null;
+            this.loadLists();
+          });
+        },
+        error: () => this.snackBar.open('Fout bij opslaan', 'OK', { duration: 3000 }),
+      });
+    } else {
+      // Create new
+      const list = this.lists.find(l => l.id === this.editingItem!.listId);
+      const maxSort = list ? Math.max(0, ...list.items.map(i => i.sortOrder)) : 0;
+      this.api.addListItem({
+        listDefinitionId: this.editingItem.listId,
+        value: this.editingItem.value.trim(),
+        abbreviation: this.editingItem.abbreviation.trim() || null,
+        sortOrder: maxSort + 1,
+      }).subscribe({
+        next: () => {
+          this.zone.run(() => {
+            this.snackBar.open('Item toegevoegd', 'OK', { duration: 2000 });
+            this.editingItem = null;
+            this.loadLists();
+          });
+        },
+        error: () => this.snackBar.open('Fout bij toevoegen', 'OK', { duration: 3000 }),
+      });
+    }
+  }
+
+  deleteItem(item: ListItem): void {
+    if (!confirm(`Weet u zeker dat u "${item.value}" wilt verwijderen?`)) return;
+    this.api.deleteListItem(item.id).subscribe({
+      next: () => {
+        this.zone.run(() => {
+          this.snackBar.open('Item verwijderd', 'OK', { duration: 2000 });
+          this.loadLists();
+        });
+      },
+      error: () => this.snackBar.open('Fout bij verwijderen', 'OK', { duration: 3000 }),
+    });
   }
 }
