@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -14,6 +14,8 @@ import { environment } from '../../../environments/environment';
 import { ResultChartComponent, ChartData } from '../../shared/components/result-chart/result-chart.component';
 import { ResultTableComponent } from '../../shared/components/result-table/result-table.component';
 import { ResultMapComponent } from '../../shared/components/result-map/result-map.component';
+import { AdvancedQueryComponent } from './advanced-query.component';
+import { AiStatus } from '../../core/models/api.models';
 
 interface QueryTemplate {
   id: string;
@@ -40,17 +42,21 @@ interface QueryResult {
     CommonModule, MatCardModule, MatTabsModule, MatIconModule, MatButtonModule,
     MatInputModule, MatFormFieldModule, MatSelectModule, MatProgressSpinnerModule,
     FormsModule, ResultChartComponent, ResultTableComponent, ResultMapComponent,
+    AdvancedQueryComponent,
   ],
   templateUrl: './query.component.html',
   styleUrl: './query.component.scss',
 })
 export class QueryComponent implements OnInit {
+  private readonly http = inject(HttpClient);
+
   naturalLanguageQuery = '';
-  queryTemplates: QueryTemplate[] = [];
+  readonly queryTemplates = signal<QueryTemplate[]>([]);
   selectedTemplate: QueryTemplate | null = null;
   templateParams: Record<string, string> = {};
-  loading = false;
-  result: QueryResult | null = null;
+  readonly loading = signal(false);
+  readonly result = signal<QueryResult | null>(null);
+  readonly aiStatus = signal<AiStatus | null>(null);
 
   exampleQueries = [
     'Welk lied wordt het meest gezongen in de GG?',
@@ -63,11 +69,13 @@ export class QueryComponent implements OnInit {
 
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
-
   ngOnInit(): void {
     this.http.get<QueryTemplate[]>(`${this.apiUrl}/queries/templates`).subscribe({
-      next: templates => this.queryTemplates = templates,
+      next: templates => this.queryTemplates.set(templates),
+    });
+
+    this.http.get<AiStatus>(`${this.apiUrl}/queries/ai-status`).subscribe({
+      next: status => this.aiStatus.set(status),
     });
   }
 
@@ -79,30 +87,35 @@ export class QueryComponent implements OnInit {
     });
   }
 
+  clearTemplate(): void {
+    this.selectedTemplate = null;
+    this.result.set(null);
+  }
+
   executeTemplate(): void {
     if (!this.selectedTemplate) return;
-    this.loading = true;
-    this.result = null;
+    this.loading.set(true);
+    this.result.set(null);
 
     this.http.post<QueryResult>(`${this.apiUrl}/queries/execute`, {
       templateId: this.selectedTemplate.id,
       parameters: this.templateParams,
     }).subscribe({
-      next: res => { this.result = res; this.loading = false; },
-      error: () => { this.loading = false; },
+      next: res => { this.result.set(res); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 
   submitNaturalLanguageQuery(): void {
     if (!this.naturalLanguageQuery) return;
-    this.loading = true;
-    this.result = null;
+    this.loading.set(true);
+    this.result.set(null);
 
     this.http.post<QueryResult>(`${this.apiUrl}/queries/execute`, {
       naturalLanguageQuery: this.naturalLanguageQuery,
     }).subscribe({
-      next: res => { this.result = res; this.loading = false; },
-      error: () => { this.loading = false; },
+      next: res => { this.result.set(res); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 
@@ -120,7 +133,7 @@ export class QueryComponent implements OnInit {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${this.result?.title || 'export'}.xlsx`;
+      a.download = `${this.result()?.title || 'export'}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     });

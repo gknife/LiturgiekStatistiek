@@ -1,5 +1,5 @@
 <h1>Zoeken & Statistieken</h1>
-<p class="page-description">Doorzoek de database met voorgedefinieerde sjablonen of stel uw eigen vraag.</p>
+<p class="page-description">Doorzoek de database met voorgedefinieerde sjablonen, stel uw eigen vraag of bouw een geavanceerde query.</p>
 
 <mat-tab-group>
   <!-- Tab 1: Templates -->
@@ -7,7 +7,7 @@
     <div class="tab-content">
       @if (!selectedTemplate) {
         <div class="templates-grid">
-          @for (template of queryTemplates; track template.id) {
+          @for (template of queryTemplates(); track template.id) {
             <mat-card class="template-card" (click)="selectTemplate(template)">
               <h3>{{ template.title }}</h3>
               <p>{{ template.description }}</p>
@@ -18,7 +18,7 @@
         <mat-card class="selected-template">
           <div class="template-header">
             <h3>{{ selectedTemplate.title }}</h3>
-            <button mat-icon-button (click)="selectedTemplate = null; result = null">
+            <button mat-icon-button (click)="clearTemplate()">
               <mat-icon>close</mat-icon>
             </button>
           </div>
@@ -36,10 +36,10 @@
           </div>
 
           <div class="actions-row">
-            <button mat-raised-button color="primary" (click)="executeTemplate()" [disabled]="loading">
+            <button mat-raised-button color="primary" (click)="executeTemplate()" [disabled]="loading()">
               <mat-icon>search</mat-icon> Uitvoeren
             </button>
-            @if (result) {
+            @if (result()) {
               <button mat-stroked-button (click)="exportExcel()">
                 <mat-icon>download</mat-icon> Exporteren (Excel)
               </button>
@@ -57,6 +57,13 @@
         <h3>Stel een vraag in het Nederlands</h3>
         <p class="hint">Typ uw onderzoeksvraag en het systeem vertaalt deze naar een databasequery.</p>
 
+        @if (aiStatus() && !aiStatus()!.isConfigured) {
+          <div class="ai-warning">
+            <mat-icon>warning</mat-icon>
+            <span>{{ aiStatus()!.message }}</span>
+          </div>
+        }
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Uw vraag</mat-label>
           <input matInput [(ngModel)]="naturalLanguageQuery"
@@ -65,7 +72,7 @@
           <mat-icon matSuffix>psychology</mat-icon>
         </mat-form-field>
 
-        <button mat-raised-button color="primary" (click)="submitNaturalLanguageQuery()" [disabled]="loading">
+        <button mat-raised-button color="primary" (click)="submitNaturalLanguageQuery()" [disabled]="loading()">
           <mat-icon>send</mat-icon> Zoeken
         </button>
 
@@ -82,10 +89,17 @@
       </mat-card>
     </div>
   </mat-tab>
+
+  <!-- Tab 3: Advanced builder -->
+  <mat-tab label="Geavanceerd">
+    <div class="tab-content">
+      <app-advanced-query></app-advanced-query>
+    </div>
+  </mat-tab>
 </mat-tab-group>
 
 <!-- Loading -->
-@if (loading) {
+@if (loading()) {
   <div class="loading-container">
     <mat-spinner diameter="40"></mat-spinner>
     <p>Bezig met zoeken...</p>
@@ -93,27 +107,27 @@
 }
 
 <!-- Results -->
-@if (result && !loading) {
+@if (result() && !loading()) {
   <div class="results-section">
-    <h2>{{ result.title }}</h2>
-    @if (result.description) {
-      <p class="result-description">{{ result.description }}</p>
+    <h2>{{ result()!.title }}</h2>
+    @if (result()!.description) {
+      <p class="result-description">{{ result()!.description }}</p>
     }
 
-    @if (result.chart && result.chartType !== 'map' && result.chartType !== 'table') {
+    @if (result()!.chart && result()!.chartType !== 'map' && result()!.chartType !== 'table') {
       <mat-card class="chart-card">
-        <app-result-chart [chartType]="result.chartType" [data]="result.chart"></app-result-chart>
+        <app-result-chart [chartType]="result()!.chartType" [data]="result()!.chart!"></app-result-chart>
       </mat-card>
     }
 
-    @if (result.chartType === 'map') {
+    @if (result()!.chartType === 'map') {
       <mat-card class="chart-card">
-        <app-result-map [rows]="result.rows"></app-result-map>
+        <app-result-map [rows]="result()!.rows"></app-result-map>
       </mat-card>
     }
 
-    @if (result.columns.length > 0 && result.rows.length > 0) {
-      <app-result-table [columns]="result.columns" [rows]="result.rows" [totalCount]="result.totalCount"></app-result-table>
+    @if (result()!.columns.length > 0 && result()!.rows.length > 0) {
+      <app-result-table [columns]="result()!.columns" [rows]="result()!.rows" [totalCount]="result()!.totalCount"></app-result-table>
     }
   </div>
 }

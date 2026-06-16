@@ -21,6 +21,9 @@ $border: #e2e8f0;
   position: sticky;
   top: 0;
   z-index: 1000;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
 .app-logo {
@@ -28,11 +31,17 @@ $border: #e2e8f0;
   width: auto;
   cursor: pointer;
   margin-right: 0.5rem;
-  filter: brightness(0) invert(1); // Make logo white on dark toolbar
+
+  // Original full-colour logo on the light toolbar; invert to white in dark mode.
+  filter: none;
 
   @media (max-width: 600px) {
     height: 32px;
   }
+}
+
+:root.dark-theme .app-logo {
+  filter: brightness(0) invert(1);
 }
 
 .spacer {
@@ -75,7 +84,7 @@ $border: #e2e8f0;
 }
 
 .active-link {
-  border-bottom: 2px solid $accent;
+  border-bottom: 2px solid var(--app-accent, #d69e2e);
 }
 
 .app-content {

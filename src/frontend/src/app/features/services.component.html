@@ -1,0 +1,187 @@
+<div class="services-page">
+  <div class="page-header">
+    <div>
+      <h1>Diensten</h1>
+      <p class="page-description">Bekijk, filter en beheer alle geregistreerde diensten.</p>
+    </div>
+    @if (isAuthenticated) {
+      <button mat-raised-button color="primary" (click)="openAdd()">
+        <mat-icon>add</mat-icon> Nieuwe dienst
+      </button>
+    }
+  </div>
+
+  <!-- Filters -->
+  <mat-card class="filter-card">
+    <mat-form-field appearance="outline">
+      <mat-label>Gemeente</mat-label>
+      <mat-select [(ngModel)]="filterCongregationId">
+        <mat-option value="">Alle gemeenten</mat-option>
+        @for (c of congregations(); track c.id) {
+          <mat-option [value]="c.id">{{ c.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Van</mat-label>
+      <input matInput type="date" [(ngModel)]="filterFromDate">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Tot</mat-label>
+      <input matInput type="date" [(ngModel)]="filterToDate">
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" (click)="applyFilters()">
+      <mat-icon>filter_list</mat-icon> Filteren
+    </button>
+    <button mat-stroked-button (click)="clearFilters()">
+      <mat-icon>clear</mat-icon> Wissen
+    </button>
+  </mat-card>
+
+  <!-- Bulk toolbar (authenticated) -->
+  @if (isAuthenticated && selectedIds().size > 0) {
+    <mat-card class="bulk-toolbar">
+      <span class="bulk-count">{{ selectedIds().size }} geselecteerd</span>
+
+      <mat-form-field appearance="outline" class="bulk-field">
+        <mat-label>Veld</mat-label>
+        <mat-select [(ngModel)]="bulkField" (ngModelChange)="bulkValue = ''">
+          @for (f of bulkFields; track f.value) {
+            <mat-option [value]="f.value">{{ f.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @switch (bulkField) {
+        @case ('timeOfDay') {
+          <mat-form-field appearance="outline" class="bulk-value">
+            <mat-label>Dagdeel</mat-label>
+            <mat-select [(ngModel)]="bulkValue">
+              @for (t of timeOfDayOptions; track t.value) {
+                <mat-option [value]="t.value">{{ t.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+        @case ('isReadingService') {
+          <mat-form-field appearance="outline" class="bulk-value">
+            <mat-label>Leesdienst</mat-label>
+            <mat-select [(ngModel)]="bulkValue">
+              <mat-option value="true">Ja</mat-option>
+              <mat-option value="false">Nee</mat-option>
+            </mat-select>
+          </mat-form-field>
+        }
+        @case ('congregationId') {
+          <mat-form-field appearance="outline" class="bulk-value">
+            <mat-label>Gemeente</mat-label>
+            <mat-select [(ngModel)]="bulkValue">
+              @for (c of congregations(); track c.id) {
+                <mat-option [value]="c.id">{{ c.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+      }
+
+      <button mat-raised-button color="primary" (click)="applyBulk()" [disabled]="!canApplyBulk">
+        <mat-icon>done_all</mat-icon> Toepassen
+      </button>
+
+      @if (isAdmin) {
+        <button mat-raised-button color="warn" (click)="bulkDelete()">
+          <mat-icon>delete</mat-icon> Verwijderen
+        </button>
+      }
+    </mat-card>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  <!-- Table -->
+  @if (!loading()) {
+    <mat-card class="table-card">
+      <table mat-table [dataSource]="services()">
+        @if (isAuthenticated) {
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox [checked]="allSelected" (change)="toggleSelectAll()"></mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let row">
+              <mat-checkbox [checked]="isSelected(row.id)" (change)="toggleSelect(row.id)"></mat-checkbox>
+            </td>
+          </ng-container>
+        }
+
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>Datum</th>
+          <td mat-cell *matCellDef="let row">{{ row.date }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="timeOfDay">
+          <th mat-header-cell *matHeaderCellDef>Dagdeel</th>
+          <td mat-cell *matCellDef="let row">{{ timeLabel(row.timeOfDay) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="congregation">
+          <th mat-header-cell *matHeaderCellDef>Gemeente</th>
+          <td mat-cell *matCellDef="let row">{{ row.congregationName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="city">
+          <th mat-header-cell *matHeaderCellDef>Plaats</th>
+          <td mat-cell *matCellDef="let row">{{ row.city }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="preacher">
+          <th mat-header-cell *matHeaderCellDef>Voorganger</th>
+          <td mat-cell *matCellDef="let row">{{ row.preacherName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="specialOccasion">
+          <th mat-header-cell *matHeaderCellDef>Bijzondere gelegenheid</th>
+          <td mat-cell *matCellDef="let row">{{ row.specialOccasion }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="elementCount">
+          <th mat-header-cell *matHeaderCellDef>Onderdelen</th>
+          <td mat-cell *matCellDef="let row">{{ row.elementCount }}</td>
+        </ng-container>
+
+        @if (isAuthenticated) {
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <button mat-icon-button matTooltip="Bewerken" (click)="openEdit(row)">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+        }
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      @if (services().length === 0) {
+        <p class="empty">Geen diensten gevonden.</p>
+      }
+
+      <mat-paginator
+        [length]="totalCount()"
+        [pageSize]="pageSize"
+        [pageIndex]="page - 1"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="onPage($event)">
+      </mat-paginator>
+    </mat-card>
+  }
+</div>

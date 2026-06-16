@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, researcherGuard } from './core/auth/auth.guard';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -11,9 +11,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/query/query.component').then(m => m.QueryComponent),
   },
   {
+    path: 'diensten',
+    loadComponent: () => import('./features/services.component').then(m => m.ServicesComponent),
+  },
+  {
     path: 'toevoegen',
-    loadComponent: () => import('./features/add/add.component').then(m => m.AddComponent),
-    canActivate: [researcherGuard],
+    redirectTo: 'diensten',
   },
   {
     path: 'lijsten',

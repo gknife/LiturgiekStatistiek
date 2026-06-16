@@ -5,7 +5,7 @@ Chart.register(...registerables);
 
 export interface ChartData {
   labels: string[];
-  datasets: { label: string; data: number[]; backgroundColor?: string }[];
+  datasets: { label: string; data: number[]; backgroundColor?: string | null }[];
 }
 
 @Component({

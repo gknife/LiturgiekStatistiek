@@ -35,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<ISongService, SongService>();
         services.AddScoped<IContentService, ContentService>();
         services.AddScoped<IQueryService, QueryService>();
+        services.AddScoped<IAdvancedQueryService, AdvancedQueryService>();
+        services.AddScoped<ISavedQueryService, SavedQueryService>();
         services.AddSingleton<ILlmService, LlmService>();
 
         return services;

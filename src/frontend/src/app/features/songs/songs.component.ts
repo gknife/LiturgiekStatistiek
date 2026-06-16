@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatSelectModule } from '@angular/material/select';
@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { ListDefinition, ListItem, Song } from '../../core/models/api.models';
+import { ListItem, Song } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-songs',
@@ -22,14 +22,14 @@ import { ListDefinition, ListItem, Song } from '../../core/models/api.models';
   styleUrl: './songs.component.scss',
 })
 export class SongsComponent implements OnInit {
-  bundles: ListItem[] = [];
+  readonly bundles = signal<ListItem[]>([]);
   selectedBundleId: string | null = null;
-  songs: Song[] = [];
+  readonly songs = signal<Song[]>([]);
   displayedColumns = ['number', 'title', 'numberOfVerses'];
-  totalCount = 0;
+  readonly totalCount = signal(0);
   page = 1;
   pageSize = 50;
-  loading = false;
+  readonly loading = signal(false);
   searchQuery = '';
 
   constructor(private api: ApiService) {}
@@ -37,9 +37,9 @@ export class SongsComponent implements OnInit {
   ngOnInit(): void {
     this.api.getListByName('SongBundles').subscribe({
       next: (list) => {
-        this.bundles = list.items;
-        if (this.bundles.length > 0) {
-          this.selectedBundleId = this.bundles[0].id;
+        this.bundles.set(list.items);
+        if (list.items.length > 0) {
+          this.selectedBundleId = list.items[0].id;
           this.loadSongs();
         }
       },
@@ -59,21 +59,22 @@ export class SongsComponent implements OnInit {
 
   loadSongs(): void {
     if (!this.selectedBundleId) return;
-    this.loading = true;
+    this.loading.set(true);
     this.api.getSongsByBundle(this.selectedBundleId, this.page, this.pageSize).subscribe({
       next: (result) => {
-        this.songs = result.items;
-        this.totalCount = result.totalCount;
-        this.loading = false;
+        this.songs.set(result.items);
+        this.totalCount.set(result.totalCount);
+        this.loading.set(false);
       },
-      error: () => (this.loading = false),
+      error: () => this.loading.set(false),
     });
   }
 
   get filteredSongs(): Song[] {
-    if (!this.searchQuery) return this.songs;
+    const songs = this.songs();
+    if (!this.searchQuery) return songs;
     const q = this.searchQuery.toLowerCase();
-    return this.songs.filter(
+    return songs.filter(
       (s) => s.number.toString().includes(q) || (s.title && s.title.toLowerCase().includes(q))
     );
   }

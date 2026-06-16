@@ -11,10 +11,19 @@ namespace LiturgiekStatistiek.Api.Controllers;
 public class ExportController : ControllerBase
 {
     private readonly IQueryService _queryService;
+    private readonly IAdvancedQueryService _advancedQueryService;
 
-    public ExportController(IQueryService queryService)
+    public ExportController(IQueryService queryService, IAdvancedQueryService advancedQueryService)
     {
         _queryService = queryService;
+        _advancedQueryService = advancedQueryService;
+    }
+
+    [HttpPost("advanced-excel")]
+    public async Task<IActionResult> ExportAdvancedToExcel([FromBody] AdvancedQueryDefinition definition, CancellationToken ct)
+    {
+        var result = await _advancedQueryService.ExecuteAsync(definition with { PageSize = 10000, Page = 1 }, ct);
+        return BuildWorkbook(result);
     }
 
     [HttpPost("excel")]
@@ -28,6 +37,11 @@ public class ExportController : ControllerBase
         else
             return BadRequest();
 
+        return BuildWorkbook(result);
+    }
+
+    private IActionResult BuildWorkbook(QueryResult result)
+    {
         using var workbook = new XLWorkbook();
         var worksheet = workbook.Worksheets.Add(result.Title.Length > 31 ? result.Title[..31] : result.Title);
 

@@ -43,6 +43,11 @@ export interface ServiceDetail {
   elements: ServiceElement[];
   createdAt: string;
   createdBy: string | null;
+  timeOfDayValue: number;
+  churchCalendarSundayId: string | null;
+  bibleTranslationId: string | null;
+  musicalAccompanimentId: string | null;
+  specialOccasionId: string | null;
 }
 
 export interface ServiceElement {
@@ -130,4 +135,80 @@ export interface ContentPage {
   contentMarkdown: string;
   modifiedBy: string | null;
   modifiedAt: string | null;
+}
+
+export interface AiStatus {
+  isConfigured: boolean;
+  hasEndpoint: boolean;
+  hasApiKey: boolean;
+  deploymentName: string | null;
+  message: string;
+}
+
+// ---------------- Query result ----------------
+
+export interface QueryResult {
+  title: string;
+  description: string;
+  chartType: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  totalCount: number;
+  chart: ChartData | null;
+}
+
+export interface ChartData {
+  labels: string[];
+  datasets: ChartDataset[];
+}
+
+export interface ChartDataset {
+  label: string;
+  data: number[];
+  backgroundColor: string | null;
+}
+
+// ---------------- Advanced query builder ----------------
+
+export interface AdvancedField {
+  key: string;
+  label: string;
+  type: string;
+  operators: string[];
+  listKey: string | null;
+  canGroupBy: boolean;
+}
+
+export interface AdvancedQuerySchema {
+  fields: AdvancedField[];
+  groupByFields: AdvancedField[];
+}
+
+export interface AdvancedFilter {
+  field: string;
+  operator: string;
+  value?: string | null;
+  value2?: string | null;
+  songBundleA?: string | null;
+  songNumberA?: number | null;
+  songBundleB?: string | null;
+  songNumberB?: number | null;
+}
+
+export interface AdvancedQueryDefinition {
+  name?: string | null;
+  filters: AdvancedFilter[];
+  outputMode: 'list' | 'aggregate';
+  groupBy?: string | null;
+  page: number;
+  pageSize: number;
+  chartType: string;
+}
+
+export interface SavedQuery {
+  id: string;
+  name: string;
+  queryParameters: string;
+  isPublic: boolean;
+  createdAt: string;
 }

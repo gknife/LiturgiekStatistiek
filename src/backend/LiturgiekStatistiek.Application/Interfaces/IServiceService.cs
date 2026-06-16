@@ -9,4 +9,6 @@ public interface IServiceService
     Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, string userId);
     Task<ServiceDto?> UpdateServiceAsync(Guid id, UpdateServiceRequest request, string userId);
     Task<bool> DeleteServiceAsync(Guid id);
+    Task<BulkOperationResult> BulkUpdateAsync(BulkUpdateServicesRequest request, string userId);
+    Task<BulkOperationResult> BulkDeleteAsync(BulkDeleteServicesRequest request);
 }

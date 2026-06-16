@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -8,7 +8,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { ContentPage } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-admin',
@@ -21,36 +20,34 @@ import { ContentPage } from '../../core/models/api.models';
   styleUrl: './admin.component.scss',
 })
 export class AdminComponent implements OnInit {
-  homepageContent: ContentPage | null = null;
-  editTitle = '';
-  editContent = '';
-  saving = false;
-  savedMessage = '';
+  readonly editTitle = signal('');
+  readonly editContent = signal('');
+  readonly saving = signal(false);
+  readonly savedMessage = signal('');
 
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
     this.api.getContent('homepage').subscribe({
       next: page => {
-        this.homepageContent = page;
-        this.editTitle = page.titleNl;
-        this.editContent = page.contentMarkdown;
+        this.editTitle.set(page.titleNl);
+        this.editContent.set(page.contentMarkdown);
       },
     });
   }
 
   saveContent(): void {
-    this.saving = true;
+    this.saving.set(true);
     this.api.updateContent('homepage', {
-      titleNl: this.editTitle,
-      contentMarkdown: this.editContent,
+      titleNl: this.editTitle(),
+      contentMarkdown: this.editContent(),
     }).subscribe({
       next: () => {
-        this.saving = false;
-        this.savedMessage = 'Opgeslagen!';
-        setTimeout(() => this.savedMessage = '', 3000);
+        this.saving.set(false);
+        this.savedMessage.set('Opgeslagen!');
+        setTimeout(() => this.savedMessage.set(''), 3000);
       },
-      error: () => { this.saving = false; },
+      error: () => { this.saving.set(false); },
     });
   }
 }

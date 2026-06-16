@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-description {
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.filter-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.bulk-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+
+  .bulk-count {
+    font-weight: 600;
+  }
+
+  .bulk-field { min-width: 150px; }
+  .bulk-value { min-width: 180px; }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.table-card {
+  padding: 0.5rem;
+
+  table {
+    width: 100%;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 1.5rem;
+    color: #4a5568;
+  }
+}

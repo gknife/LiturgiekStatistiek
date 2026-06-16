@@ -14,6 +14,10 @@ import {
   Song,
   ContentPage,
   ListItem,
+  AiStatus,
+  AdvancedQuerySchema,
+  AdvancedQueryDefinition,
+  SavedQuery,
 } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -148,6 +152,49 @@ export class ApiService {
 
   executeQuery(request: { templateId?: string; naturalLanguageQuery?: string; parameters?: Record<string, string> }): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/queries/execute`, request);
+  }
+
+  getAiStatus(): Observable<AiStatus> {
+    return this.http.get<AiStatus>(`${this.baseUrl}/queries/ai-status`);
+  }
+
+  // Advanced query builder
+  getAdvancedSchema(): Observable<AdvancedQuerySchema> {
+    return this.http.get<AdvancedQuerySchema>(`${this.baseUrl}/queries/advanced/schema`);
+  }
+
+  executeAdvancedQuery(definition: AdvancedQueryDefinition): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/queries/advanced/execute`, definition);
+  }
+
+  compareAdvancedQueries(queries: AdvancedQueryDefinition[]): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/queries/advanced/compare`, { queries });
+  }
+
+  exportAdvancedExcel(definition: AdvancedQueryDefinition): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}/export/advanced-excel`, definition, { responseType: 'blob' });
+  }
+
+  // Saved queries (authenticated)
+  getSavedQueries(): Observable<SavedQuery[]> {
+    return this.http.get<SavedQuery[]>(`${this.baseUrl}/queries/saved`);
+  }
+
+  createSavedQuery(request: { name: string; queryParameters: string; isPublic: boolean }): Observable<SavedQuery> {
+    return this.http.post<SavedQuery>(`${this.baseUrl}/queries/saved`, request);
+  }
+
+  deleteSavedQuery(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/queries/saved/${id}`);
+  }
+
+  // Bulk service operations
+  bulkUpdateServices(request: { serviceIds: string[]; field: string; value: string | null }): Observable<{ affected: number }> {
+    return this.http.post<{ affected: number }>(`${this.baseUrl}/services/bulk-update`, request);
+  }
+
+  bulkDeleteServices(request: { serviceIds: string[] }): Observable<{ affected: number }> {
+    return this.http.post<{ affected: number }>(`${this.baseUrl}/services/bulk-delete`, request);
   }
 
   // Export

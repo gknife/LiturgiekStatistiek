@@ -1,0 +1,123 @@
+.advanced-builder {
+  display: block;
+}
+
+.query-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+
+  .active-query {
+    border-color: var(--app-accent, #3f51b5);
+    color: var(--app-accent, #3f51b5);
+    font-weight: 600;
+  }
+
+  .remove-query {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+}
+
+.builder-card {
+  padding: 1.5rem;
+
+  h3 {
+    margin: 1.25rem 0 0.5rem;
+  }
+
+  .hint {
+    font-weight: 400;
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+}
+
+.query-name {
+  width: 100%;
+  max-width: 320px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+
+  .field-select { min-width: 180px; }
+  .operator-select { min-width: 150px; }
+  .value-input { min-width: 160px; }
+  .value-input.narrow { min-width: 90px; }
+}
+
+.song-seq {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  .seq-arrow {
+    opacity: 0.6;
+  }
+}
+
+.bool-hint {
+  padding: 0 0.75rem;
+  opacity: 0.8;
+}
+
+.add-filter {
+  margin-top: 0.5rem;
+}
+
+.output-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.saved-card {
+  margin-top: 1rem;
+  padding: 1rem 1.5rem;
+
+  .saved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .saved-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2rem 0;
+}
+
+.results-section {
+  margin-top: 1.5rem;
+
+  .chart-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+}

@@ -9,11 +9,11 @@
   <mat-icon matSuffix>search</mat-icon>
 </mat-form-field>
 
-@if (loading) {
+@if (loading()) {
   <p>Laden...</p>
 } @else {
   <mat-accordion multi>
-    @for (list of filteredLists; track list.id) {
+    @for (list of filteredLists(); track list.id) {
       <mat-expansion-panel>
         <mat-expansion-panel-header>
           <mat-panel-title>{{ getDisplayName(list) }}</mat-panel-title>

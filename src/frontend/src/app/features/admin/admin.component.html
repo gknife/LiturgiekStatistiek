@@ -9,20 +9,20 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Titel</mat-label>
-          <input matInput [(ngModel)]="editTitle">
+          <input matInput [ngModel]="editTitle()" (ngModelChange)="editTitle.set($event)">
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Inhoud (Markdown)</mat-label>
-          <textarea matInput [(ngModel)]="editContent" rows="20"></textarea>
+          <textarea matInput [ngModel]="editContent()" (ngModelChange)="editContent.set($event)" rows="20"></textarea>
         </mat-form-field>
 
         <div class="actions">
-          <button mat-raised-button color="primary" (click)="saveContent()" [disabled]="saving">
-            <mat-icon>save</mat-icon> {{ saving ? 'Opslaan...' : 'Opslaan' }}
+          <button mat-raised-button color="primary" (click)="saveContent()" [disabled]="saving()">
+            <mat-icon>save</mat-icon> {{ saving() ? 'Opslaan...' : 'Opslaan' }}
           </button>
-          @if (savedMessage) {
-            <span class="saved-msg">{{ savedMessage }}</span>
+          @if (savedMessage()) {
+            <span class="saved-msg">{{ savedMessage() }}</span>
           }
         </div>
       </mat-card>

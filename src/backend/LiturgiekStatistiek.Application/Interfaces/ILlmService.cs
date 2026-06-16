@@ -2,8 +2,23 @@ namespace LiturgiekStatistiek.Application.Interfaces;
 
 public interface ILlmService
 {
+    /// <summary>True when a usable Azure OpenAI endpoint, API key and deployment are configured.</summary>
+    bool IsConfigured { get; }
+
+    /// <summary>Non-sensitive diagnostic describing the current Azure OpenAI configuration state.</summary>
+    LlmStatus GetStatus();
+
     Task<LlmQueryParseResult> ParseNaturalLanguageQueryAsync(string query, CancellationToken ct = default);
     Task<LlmLiturgyParseResult> ParseLiturgyTextAsync(string text, CancellationToken ct = default);
+}
+
+public record LlmStatus
+{
+    public bool IsConfigured { get; init; }
+    public bool HasEndpoint { get; init; }
+    public bool HasApiKey { get; init; }
+    public string? DeploymentName { get; init; }
+    public string Message { get; init; } = string.Empty;
 }
 
 public record LlmQueryParseResult

@@ -9,17 +9,17 @@
 <section class="stats-grid">
   <mat-card class="stat-card">
     <mat-icon class="stat-icon">church</mat-icon>
-    <div class="stat-value">{{ stats.services }}</div>
+    <div class="stat-value">{{ stats().services }}</div>
     <div class="stat-label">Diensten</div>
   </mat-card>
   <mat-card class="stat-card">
     <mat-icon class="stat-icon">groups</mat-icon>
-    <div class="stat-value">{{ stats.congregations }}</div>
+    <div class="stat-value">{{ stats().congregations }}</div>
     <div class="stat-label">Gemeenten</div>
   </mat-card>
   <mat-card class="stat-card">
     <mat-icon class="stat-icon">person</mat-icon>
-    <div class="stat-value">{{ stats.preachers }}</div>
+    <div class="stat-value">{{ stats().preachers }}</div>
     <div class="stat-label">Voorgangers</div>
   </mat-card>
 </section>
@@ -32,7 +32,7 @@
       <h3>Zoeken</h3>
       <p>Doorzoek de database met statistische vragen.</p>
     </mat-card>
-    <mat-card class="action-card" routerLink="/toevoegen">
+    <mat-card class="action-card" routerLink="/diensten">
       <mat-icon>add_circle</mat-icon>
       <h3>Toevoegen</h3>
       <p>Voeg een nieuwe kerkdienst toe aan de database.</p>
@@ -50,10 +50,10 @@
   </div>
 </section>
 
-@if (contentHtml) {
+@if (contentHtml()) {
   <section class="about-section">
     <mat-card class="content-card">
-      <div [innerHTML]="contentHtml"></div>
+      <div [innerHTML]="contentHtml()"></div>
     </mat-card>
   </section>
 }

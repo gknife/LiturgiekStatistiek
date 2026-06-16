@@ -144,7 +144,12 @@ public class ServiceService : IServiceService
                         .ToList()))
                 .ToList(),
             service.CreatedAt,
-            service.CreatedBy);
+            service.CreatedBy,
+            (int)service.TimeOfDay,
+            service.ChurchCalendarSundayId,
+            service.BibleTranslationId,
+            service.MusicalAccompanimentId,
+            service.SpecialOccasionId);
     }
 
     public async Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, string userId)
@@ -248,6 +253,9 @@ public class ServiceService : IServiceService
     {
         var service = await _context.Services
             .Include(s => s.Bundles)
+            .Include(s => s.Elements)
+                .ThenInclude(e => e.Songs)
+                    .ThenInclude(sg => sg.Verses)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (service == null)
@@ -291,8 +299,137 @@ public class ServiceService : IServiceService
             }
         }
 
+        // Full nested edit: when Elements are supplied, replace the whole tree
+        // (elements -> songs -> verses). Simpler and correct for v1; avoids
+        // per-child diffing.
+        if (request.Elements != null)
+        {
+            foreach (var existing in service.Elements)
+            {
+                foreach (var song in existing.Songs)
+                    _context.SongVerses.RemoveRange(song.Verses);
+                _context.ServiceElementSongs.RemoveRange(existing.Songs);
+            }
+            _context.ServiceElements.RemoveRange(service.Elements);
+            service.Elements.Clear();
+
+            foreach (var elementRequest in request.Elements)
+            {
+                var element = new ServiceElement
+                {
+                    Id = Guid.NewGuid(),
+                    ServiceId = service.Id,
+                    Position = elementRequest.Position,
+                    ElementType = (ElementType)elementRequest.ElementType,
+                    LabelId = elementRequest.LabelId,
+                    ScriptureReference = elementRequest.ScriptureReference,
+                    Notes = elementRequest.Notes,
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                if (elementRequest.Songs != null)
+                {
+                    foreach (var songRequest in elementRequest.Songs)
+                    {
+                        var song = new ServiceElementSong
+                        {
+                            Id = Guid.NewGuid(),
+                            ServiceElementId = element.Id,
+                            BundleId = songRequest.BundleId,
+                            SongNumber = songRequest.SongNumber,
+                            Position = songRequest.Position
+                        };
+
+                        if (songRequest.Verses != null)
+                        {
+                            for (var index = 0; index < songRequest.Verses.Count; index++)
+                            {
+                                song.Verses.Add(new SongVerse
+                                {
+                                    Id = Guid.NewGuid(),
+                                    ServiceElementSongId = song.Id,
+                                    VerseLabel = songRequest.Verses[index],
+                                    Position = index + 1
+                                });
+                            }
+                        }
+
+                        element.Songs.Add(song);
+                    }
+                }
+
+                service.Elements.Add(element);
+            }
+        }
+
         await _context.SaveChangesAsync();
         return await GetServiceByIdAsync(id);
+    }
+
+    public async Task<BulkOperationResult> BulkUpdateAsync(BulkUpdateServicesRequest request, string userId)
+    {
+        if (request.ServiceIds == null || request.ServiceIds.Count == 0)
+            return new BulkOperationResult(0);
+
+        var services = await _context.Services
+            .Where(s => request.ServiceIds.Contains(s.Id))
+            .ToListAsync();
+
+        foreach (var service in services)
+        {
+            ApplyBulkField(service, request.Field, request.Value);
+            service.ModifiedBy = userId;
+            service.ModifiedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+        return new BulkOperationResult(services.Count);
+    }
+
+    public async Task<BulkOperationResult> BulkDeleteAsync(BulkDeleteServicesRequest request)
+    {
+        if (request.ServiceIds == null || request.ServiceIds.Count == 0)
+            return new BulkOperationResult(0);
+
+        var services = await _context.Services
+            .Where(s => request.ServiceIds.Contains(s.Id))
+            .ToListAsync();
+
+        _context.Services.RemoveRange(services);
+        await _context.SaveChangesAsync();
+        return new BulkOperationResult(services.Count);
+    }
+
+    private static void ApplyBulkField(Service service, string field, string? value)
+    {
+        switch (field?.ToLowerInvariant())
+        {
+            case "timeofday":
+                if (int.TryParse(value, out var tod) && Enum.IsDefined(typeof(TimeOfDay), tod))
+                    service.TimeOfDay = (TimeOfDay)tod;
+                break;
+            case "congregationid":
+                if (Guid.TryParse(value, out var cid)) service.CongregationId = cid;
+                break;
+            case "preacherid":
+                service.PreacherId = Guid.TryParse(value, out var pid) ? pid : null;
+                break;
+            case "bibletranslationid":
+                service.BibleTranslationId = Guid.TryParse(value, out var bid) ? bid : null;
+                break;
+            case "specialoccasionid":
+                service.SpecialOccasionId = Guid.TryParse(value, out var sid) ? sid : null;
+                break;
+            case "musicalaccompanimentid":
+                service.MusicalAccompanimentId = Guid.TryParse(value, out var mid) ? mid : null;
+                break;
+            case "isreadingservice":
+                service.IsReadingService = bool.TryParse(value, out var b) && b;
+                break;
+            default:
+                throw new ArgumentException($"Onbekend of niet-toegestaan veld voor bulk-bewerking: '{field}'.");
+        }
     }
 
     public async Task<bool> DeleteServiceAsync(Guid id)

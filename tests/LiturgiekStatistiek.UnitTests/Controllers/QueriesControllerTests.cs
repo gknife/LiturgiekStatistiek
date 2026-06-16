@@ -13,13 +13,21 @@ public class QueriesControllerTests
     private QueriesController _sut = null!;
     private Mock<IQueryService> _queryServiceMock = null!;
     private Mock<ILlmService> _llmServiceMock = null!;
+    private Mock<IAdvancedQueryService> _advancedQueryServiceMock = null!;
+    private Mock<ISavedQueryService> _savedQueryServiceMock = null!;
 
     [SetUp]
     public void SetUp()
     {
         _queryServiceMock = new Mock<IQueryService>();
         _llmServiceMock = new Mock<ILlmService>();
-        _sut = new QueriesController(_queryServiceMock.Object, _llmServiceMock.Object);
+        _advancedQueryServiceMock = new Mock<IAdvancedQueryService>();
+        _savedQueryServiceMock = new Mock<ISavedQueryService>();
+        _sut = new QueriesController(
+            _queryServiceMock.Object,
+            _llmServiceMock.Object,
+            _advancedQueryServiceMock.Object,
+            _savedQueryServiceMock.Object);
     }
 
     [Test]
@@ -90,5 +98,59 @@ public class QueriesControllerTests
         var result = await _sut.ExecuteQuery(request, CancellationToken.None);
 
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public void GetAdvancedSchema_ReturnsOkWithSchema()
+    {
+        _advancedQueryServiceMock.Setup(s => s.GetSchema())
+            .Returns(new AdvancedQuerySchema { Fields = new() { new() { Key = "date" } } });
+
+        var result = _sut.GetAdvancedSchema();
+
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        var ok = (OkObjectResult)result.Result!;
+        var schema = (AdvancedQuerySchema)ok.Value!;
+        Assert.That(schema.Fields, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ExecuteAdvanced_ReturnsOkWithResult()
+    {
+        _advancedQueryServiceMock.Setup(s => s.ExecuteAsync(It.IsAny<AdvancedQueryDefinition>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new QueryResult { Title = "Geavanceerd", TotalCount = 3 });
+
+        var result = await _sut.ExecuteAdvanced(new AdvancedQueryDefinition(), CancellationToken.None);
+
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        var ok = (OkObjectResult)result.Result!;
+        var queryResult = (QueryResult)ok.Value!;
+        Assert.That(queryResult.TotalCount, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task CompareAdvanced_ReturnsOkWithResult()
+    {
+        _advancedQueryServiceMock.Setup(s => s.CompareAsync(It.IsAny<IReadOnlyList<AdvancedQueryDefinition>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new QueryResult { Title = "Vergelijking" });
+
+        var request = new CompareQueriesRequest { Queries = new() { new(), new() } };
+        var result = await _sut.CompareAdvanced(request, CancellationToken.None);
+
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+    }
+
+    [Test]
+    public void GetAiStatus_ReturnsOkWithStatus()
+    {
+        _llmServiceMock.Setup(s => s.GetStatus())
+            .Returns(new LlmStatus { IsConfigured = false, Message = "Niet geconfigureerd" });
+
+        var result = _sut.GetAiStatus();
+
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        var ok = (OkObjectResult)result.Result!;
+        var status = (LlmStatus)ok.Value!;
+        Assert.That(status.IsConfigured, Is.False);
     }
 }

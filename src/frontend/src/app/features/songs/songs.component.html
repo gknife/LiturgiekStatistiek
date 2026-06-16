@@ -5,7 +5,7 @@
   <mat-form-field appearance="outline">
     <mat-label>Bundel</mat-label>
     <mat-select [(ngModel)]="selectedBundleId" (selectionChange)="onBundleChange()">
-      @for (bundle of bundles; track bundle.id) {
+      @for (bundle of bundles(); track bundle.id) {
         <mat-option [value]="bundle.id">
           {{ bundle.abbreviation ? bundle.abbreviation + ' — ' : '' }}{{ bundle.value }}
         </mat-option>
@@ -20,7 +20,7 @@
   </mat-form-field>
 </div>
 
-@if (loading) {
+@if (loading()) {
   <p>Laden...</p>
 } @else if (filteredSongs.length === 0) {
   <mat-card class="empty-state">
@@ -45,7 +45,7 @@
     <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
   </table>
 
-  <mat-paginator [length]="totalCount" [pageSize]="pageSize"
+  <mat-paginator [length]="totalCount()" [pageSize]="pageSize"
     [pageSizeOptions]="[25, 50, 100, 150]" (page)="onPageChange($event)"
     showFirstLastButtons>
   </mat-paginator>

@@ -84,6 +84,24 @@ cd src/frontend && npm test
 - `ConnectionStrings:DefaultConnection` — SQL Server connection string
 - `AzureAd:*` — Microsoft Entra ID configuration
 - `AllowedOrigins` — CORS origins
+- `AzureOpenAI:Endpoint`, `AzureOpenAI:ApiKey`, `AzureOpenAI:DeploymentName` — Azure OpenAI (see below)
+
+### Azure OpenAI (natural language queries & paste-to-parse)
+
+The AI features require **all three** of `Endpoint`, `ApiKey` and `DeploymentName`.
+If any is missing the rest of the app keeps working and the UI shows a clear
+"AI niet geconfigureerd" banner. Configure via User Secrets (recommended for dev):
+
+```bash
+cd src/backend/LiturgiekStatistiek.Api
+dotnet user-secrets set "AzureOpenAI:Endpoint" "https://<your-resource>.openai.azure.com/"
+dotnet user-secrets set "AzureOpenAI:ApiKey" "<your-key>"
+dotnet user-secrets set "AzureOpenAI:DeploymentName" "gpt-4o-mini"
+```
+
+`DeploymentName` must match the **deployment** name in your Azure OpenAI resource
+(not the model name). The configured state can be checked at
+`GET /api/queries/ai-status`. See [`docs/ai-configuration.md`](docs/ai-configuration.md).
 
 ### Frontend (`environments/environment.ts`)
 - `apiUrl` — Backend API URL
@@ -132,6 +150,8 @@ Budget alert configured at €25/month.
 ## 📖 Features
 
 - **Query Engine:** Predefined templates, natural language (Dutch), advanced filter builder
+- **Advanced Query Builder:** Block-based filters over services & songs, group-by aggregates, song-sequence operators (before/after/directly-before/directly-after), multi-query comparison, save/load (authenticated) — see [`docs/advanced-query.md`](docs/advanced-query.md)
+- **Diensten (bulk view/edit):** Paginated/filtered grid, public view, inline & multi-select bulk edit for authenticated users, Admin bulk delete, create/edit dialog overlay — see [`docs/bulk-diensten.md`](docs/bulk-diensten.md)
 - **Data Entry:** Manual forms, paste-to-parse, URL import, bulk operations
 - **Visualization:** Charts (Chart.js/Plotly), maps (Leaflet), tables
 - **Export:** Excel, PDF, chart images
@@ -139,7 +159,16 @@ Budget alert configured at €25/month.
 - **Predefined Lists:** Configurable abbreviations, denominations, bundles, etc.
 - **Authentication:** Microsoft Entra ID (Admin/Researcher roles)
 - **Responsive:** Full mobile support
-- **Dark Mode:** User-configurable theme
+- **Theming:** Light/dark mode, configurable accent colour & font size — see [`docs/theming.md`](docs/theming.md)
+
+## 📚 Technical Documentation
+
+Detailed technical docs live under [`docs/`](docs/):
+- [`architecture.md`](docs/architecture.md) — overall architecture & zoneless change detection
+- [`advanced-query.md`](docs/advanced-query.md) — advanced query builder design
+- [`bulk-diensten.md`](docs/bulk-diensten.md) — bulk view/edit Diensten
+- [`theming.md`](docs/theming.md) — theming, logo & favicon
+- [`ai-configuration.md`](docs/ai-configuration.md) — Azure OpenAI setup & troubleshooting
 
 ## 📝 License
 

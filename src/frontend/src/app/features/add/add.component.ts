@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Optional, Inject } from '@angular/core';
 import { DatePipe, JsonPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -14,11 +14,16 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { CongregationSummary, PreacherSummary, ListItem } from '../../core/models/api.models';
+import { CongregationSummary, PreacherSummary, ListItem, ServiceDetail } from '../../core/models/api.models';
 import { debounceTime, switchMap, of } from 'rxjs';
 import { FormControl } from '@angular/forms';
+
+export interface AddDialogData {
+  serviceId?: string;
+}
 
 @Component({
   selector: 'app-add',
@@ -73,7 +78,22 @@ export class AddComponent implements OnInit {
     notes: string;
   }> = [];
 
-  constructor(private fb: FormBuilder, private api: ApiService) {}
+  editingServiceId: string | null = null;
+
+  get isEditMode(): boolean {
+    return this.editingServiceId !== null;
+  }
+
+  get isInDialog(): boolean {
+    return this.dialogRef !== null;
+  }
+
+  constructor(
+    private fb: FormBuilder,
+    private api: ApiService,
+    @Optional() private dialogRef: MatDialogRef<AddComponent> | null,
+    @Optional() @Inject(MAT_DIALOG_DATA) private dialogData: AddDialogData | null,
+  ) {}
 
   ngOnInit(): void {
     this.metadataForm = this.fb.group({
@@ -112,6 +132,51 @@ export class AddComponent implements OnInit {
       debounceTime(300),
       switchMap(val => val && val.length > 1 ? this.api.searchPreachers(val) : of([]))
     ).subscribe(results => this.preacherSuggestions = results);
+
+    // Edit mode: load the existing service and prefill the form.
+    if (this.dialogData?.serviceId) {
+      this.editingServiceId = this.dialogData.serviceId;
+      this.api.getService(this.editingServiceId).subscribe(service => this.prefill(service));
+    }
+  }
+
+  private prefill(service: ServiceDetail): void {
+    this.metadataForm.patchValue({
+      date: service.date,
+      timeOfDay: service.timeOfDayValue,
+      congregationId: service.congregation.id,
+      preacherId: service.preacher?.id ?? '',
+      churchCalendarSundayId: service.churchCalendarSundayId ?? '',
+      bibleTranslationId: service.bibleTranslationId ?? '',
+      musicalAccompanimentId: service.musicalAccompanimentId ?? '',
+      specialOccasionId: service.specialOccasionId ?? '',
+      isReadingService: service.isReadingService,
+      broadcastUrl: service.broadcastUrl ?? '',
+      sermonText: service.sermonText ?? '',
+      sermonTheme: service.sermonTheme ?? '',
+      hasBeamerLiturgy: service.hasBeamerLiturgy,
+      hasBeamerTexts: service.hasBeamerTexts,
+      hasBeamerSongs: service.hasBeamerSongs,
+    });
+
+    this.congregationControl.setValue(`${service.congregation.name} — ${service.congregation.city}`);
+    if (service.preacher) {
+      this.preacherControl.setValue(service.preacher.fullName);
+    }
+
+    this.elements = service.elements
+      .sort((a, b) => a.position - b.position)
+      .map(e => ({
+        position: e.position,
+        elementType: 0,
+        label: e.label ?? '',
+        notes: e.notes ?? '',
+        songs: e.songs.map(s => ({
+          bundle: s.bundleAbbreviation ?? s.bundleName,
+          number: s.songNumber,
+          verses: s.verses,
+        })),
+      }));
   }
 
   selectCongregation(congregation: CongregationSummary): void {
@@ -162,9 +227,29 @@ export class AddComponent implements OnInit {
       ...this.metadataForm.value,
       elements: this.elements,
     };
-    this.api.createService(request).subscribe({
-      next: () => alert('Dienst opgeslagen!'),
-      error: (err: any) => alert('Fout bij opslaan: ' + err.message),
-    });
+
+    if (this.isEditMode && this.editingServiceId) {
+      this.api.updateService(this.editingServiceId, request).subscribe({
+        next: () => this.finish(true),
+        error: (err: any) => alert('Fout bij opslaan: ' + err.message),
+      });
+    } else {
+      this.api.createService(request).subscribe({
+        next: () => this.finish(true),
+        error: (err: any) => alert('Fout bij opslaan: ' + err.message),
+      });
+    }
+  }
+
+  finish(saved: boolean): void {
+    if (this.dialogRef) {
+      this.dialogRef.close(saved);
+    } else if (saved) {
+      alert('Dienst opgeslagen!');
+    }
+  }
+
+  cancel(): void {
+    this.dialogRef?.close(false);
   }
 }

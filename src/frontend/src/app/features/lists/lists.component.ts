@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -7,7 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -20,24 +21,23 @@ import { ListDefinition, ListItem } from '../../core/models/api.models';
   imports: [
     MatCardModule, MatTableModule, MatExpansionModule,
     MatChipsModule, MatIconModule, MatInputModule,
-    MatFormFieldModule, MatButtonModule, MatDialogModule,
+    MatFormFieldModule, MatButtonModule, MatTooltipModule, MatDialogModule,
     MatSnackBarModule, FormsModule,
   ],
   templateUrl: './lists.component.html',
   styleUrl: './lists.component.scss',
 })
 export class ListsComponent implements OnInit {
-  lists: ListDefinition[] = [];
-  filteredLists: ListDefinition[] = [];
+  private allLists: ListDefinition[] = [];
+  readonly filteredLists = signal<ListDefinition[]>([]);
   searchQuery = '';
-  loading = true;
+  readonly loading = signal(true);
 
   // Inline editing state
   editingItem: { listId: string; itemId: string | null; value: string; abbreviation: string } | null = null;
 
   constructor(
     private api: ApiService,
-    private cdr: ChangeDetectorRef,
     private snackBar: MatSnackBar,
     public auth: AuthService,
   ) {}
@@ -47,19 +47,17 @@ export class ListsComponent implements OnInit {
   }
 
   loadLists(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.api.getAllLists().subscribe({
       next: (lists) => {
-        this.lists = lists.sort((a, b) =>
+        this.allLists = lists.sort((a, b) =>
           (a.description ?? a.name).localeCompare(b.description ?? b.name, 'nl')
         );
         this.applyFilter();
-        this.loading = false;
-        this.cdr.detectChanges();
+        this.loading.set(false);
       },
       error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
+        this.loading.set(false);
       },
     });
   }
@@ -75,17 +73,19 @@ export class ListsComponent implements OnInit {
   private applyFilter(): void {
     const q = this.searchQuery.toLowerCase();
     if (!q) {
-      this.filteredLists = [...this.lists];
+      this.filteredLists.set([...this.allLists]);
       return;
     }
-    this.filteredLists = this.lists.filter(
-      (l) =>
-        (l.description ?? l.name).toLowerCase().includes(q) ||
-        l.items.some(
-          (i) =>
-            i.value.toLowerCase().includes(q) ||
-            (i.abbreviation && i.abbreviation.toLowerCase().includes(q))
-        )
+    this.filteredLists.set(
+      this.allLists.filter(
+        (l) =>
+          (l.description ?? l.name).toLowerCase().includes(q) ||
+          l.items.some(
+            (i) =>
+              i.value.toLowerCase().includes(q) ||
+              (i.abbreviation && i.abbreviation.toLowerCase().includes(q))
+          )
+      )
     );
   }
 
@@ -121,7 +121,7 @@ export class ListsComponent implements OnInit {
         error: () => this.snackBar.open('Fout bij opslaan', 'OK', { duration: 3000 }),
       });
     } else {
-      const list = this.lists.find(l => l.id === this.editingItem!.listId);
+      const list = this.allLists.find(l => l.id === this.editingItem!.listId);
       const maxSort = list ? Math.max(0, ...list.items.map(i => i.sortOrder)) : 0;
       this.api.addListItem({
         listDefinitionId: this.editingItem.listId,

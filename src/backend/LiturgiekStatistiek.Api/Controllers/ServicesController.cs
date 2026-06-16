@@ -63,4 +63,28 @@ public class ServicesController : ControllerBase
         if (!success) return NotFound();
         return NoContent();
     }
+
+    [HttpPost("bulk-update")]
+    [Authorize]
+    public async Task<ActionResult<BulkOperationResult>> BulkUpdate([FromBody] BulkUpdateServicesRequest request)
+    {
+        var userId = User.Identity?.Name ?? "unknown";
+        try
+        {
+            var result = await _serviceService.BulkUpdateAsync(request, userId);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("bulk-delete")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<BulkOperationResult>> BulkDelete([FromBody] BulkDeleteServicesRequest request)
+    {
+        var result = await _serviceService.BulkDeleteAsync(request);
+        return Ok(result);
+    }
 }

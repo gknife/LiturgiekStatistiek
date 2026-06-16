@@ -1,0 +1,248 @@
+<div class="advanced-builder">
+  <!-- Query tabs (for comparison) -->
+  <div class="query-tabs">
+    @for (q of queries; track $index) {
+      <button mat-stroked-button
+        [class.active-query]="$index === activeIndex"
+        (click)="selectQuery($index)">
+        {{ q.name }}
+        @if (queries.length > 1) {
+          <mat-icon class="remove-query" (click)="removeQuery($index); $event.stopPropagation()">close</mat-icon>
+        }
+      </button>
+    }
+    <button mat-icon-button matTooltip="Query toevoegen voor vergelijking" (click)="addQuery()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <mat-card class="builder-card">
+    <mat-form-field appearance="outline" class="query-name">
+      <mat-label>Querynaam</mat-label>
+      <input matInput [(ngModel)]="activeQuery.name">
+    </mat-form-field>
+
+    <!-- Filter blocks -->
+    <h3>Filters <span class="hint">(alle voorwaarden gelden tegelijk)</span></h3>
+
+    @for (filter of activeQuery.filters; track $index) {
+      <div class="filter-row">
+        <mat-form-field appearance="outline" class="field-select">
+          <mat-label>Veld</mat-label>
+          <mat-select [(ngModel)]="filter.field" (ngModelChange)="onFieldChange(filter)">
+            @for (f of schema()?.fields ?? []; track f.key) {
+              <mat-option [value]="f.key">{{ f.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="operator-select">
+          <mat-label>Operator</mat-label>
+          <mat-select [(ngModel)]="filter.operator">
+            @for (op of operatorsFor(filter.field); track op) {
+              <mat-option [value]="op">{{ operatorLabel(op) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Value inputs depend on field type -->
+        @switch (fieldType(filter.field)) {
+          @case ('date') {
+            <mat-form-field appearance="outline" class="value-input">
+              <mat-label>{{ filter.operator === 'between' ? 'Van' : 'Datum' }}</mat-label>
+              <input matInput type="date" [(ngModel)]="filter.value">
+            </mat-form-field>
+            @if (filter.operator === 'between') {
+              <mat-form-field appearance="outline" class="value-input">
+                <mat-label>Tot</mat-label>
+                <input matInput type="date" [(ngModel)]="filter.value2">
+              </mat-form-field>
+            }
+          }
+          @case ('congregation') {
+            <mat-form-field appearance="outline" class="value-input">
+              <mat-label>Gemeente</mat-label>
+              <mat-select [(ngModel)]="filter.value">
+                @for (c of congregations(); track c.id) {
+                  <mat-option [value]="c.id">{{ c.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          @case ('preacher') {
+            <mat-form-field appearance="outline" class="value-input">
+              <mat-label>Voorganger</mat-label>
+              <mat-select [(ngModel)]="filter.value">
+                @for (p of preachers(); track p.id) {
+                  <mat-option [value]="p.id">{{ p.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          @case ('timeOfDay') {
+            <mat-form-field appearance="outline" class="value-input">
+              <mat-label>Dagdeel</mat-label>
+              <mat-select [(ngModel)]="filter.value">
+                @for (t of timeOfDayOptions; track t.value) {
+                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          @case ('bool') {
+            <span class="bool-hint">{{ filter.operator === 'isFalse' ? 'Nee' : 'Ja' }}</span>
+          }
+          @case ('song') {
+            <mat-form-field appearance="outline" class="value-input">
+              <mat-label>Bundel</mat-label>
+              <input matInput [(ngModel)]="filter.songBundleA" placeholder="bijv. Ps">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="value-input narrow">
+              <mat-label>Nummer</mat-label>
+              <input matInput type="number" [(ngModel)]="filter.songNumberA">
+            </mat-form-field>
+          }
+          @case ('songSequence') {
+            <div class="song-seq">
+              <mat-form-field appearance="outline" class="value-input narrow">
+                <mat-label>Bundel A</mat-label>
+                <input matInput [(ngModel)]="filter.songBundleA">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="value-input narrow">
+                <mat-label>Nr A</mat-label>
+                <input matInput type="number" [(ngModel)]="filter.songNumberA">
+              </mat-form-field>
+              <mat-icon class="seq-arrow">arrow_forward</mat-icon>
+              <mat-form-field appearance="outline" class="value-input narrow">
+                <mat-label>Bundel B</mat-label>
+                <input matInput [(ngModel)]="filter.songBundleB">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="value-input narrow">
+                <mat-label>Nr B</mat-label>
+                <input matInput type="number" [(ngModel)]="filter.songNumberB">
+              </mat-form-field>
+            </div>
+          }
+          @default {
+            <mat-form-field appearance="outline" class="value-input">
+              <mat-label>Waarde</mat-label>
+              <input matInput [(ngModel)]="filter.value">
+            </mat-form-field>
+          }
+        }
+
+        <button mat-icon-button color="warn" matTooltip="Filter verwijderen" (click)="removeFilter($index)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    }
+
+    <button mat-stroked-button class="add-filter" (click)="addFilter()">
+      <mat-icon>add</mat-icon> Filter toevoegen
+    </button>
+
+    <!-- Output options -->
+    <h3>Resultaat</h3>
+    <div class="output-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Weergave</mat-label>
+        <mat-select [(ngModel)]="activeQuery.outputMode">
+          <mat-option value="list">Lijst van diensten</mat-option>
+          <mat-option value="aggregate">Groeperen & tellen</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      @if (activeQuery.outputMode === 'aggregate') {
+        <mat-form-field appearance="outline">
+          <mat-label>Groeperen op</mat-label>
+          <mat-select [(ngModel)]="activeQuery.groupBy">
+            @for (g of schema()?.groupByFields ?? []; track g.key) {
+              <mat-option [value]="g.key">{{ g.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Grafiek</mat-label>
+          <mat-select [(ngModel)]="activeQuery.chartType">
+            @for (ct of chartTypes; track ct) {
+              <mat-option [value]="ct">{{ ct }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-row">
+      <button mat-raised-button color="primary" (click)="run()" [disabled]="loading()">
+        <mat-icon>play_arrow</mat-icon> Uitvoeren
+      </button>
+      @if (queries.length > 1) {
+        <button mat-raised-button color="accent" (click)="compare()" [disabled]="loading()">
+          <mat-icon>compare_arrows</mat-icon> Vergelijken
+        </button>
+      }
+      @if (result()) {
+        <button mat-stroked-button (click)="exportExcel()">
+          <mat-icon>download</mat-icon> Exporteren (Excel)
+        </button>
+      }
+      @if (isAuthenticated) {
+        <button mat-stroked-button (click)="saveCurrent()">
+          <mat-icon>save</mat-icon> Opslaan
+        </button>
+      }
+    </div>
+  </mat-card>
+
+  <!-- Saved queries (authenticated) -->
+  @if (isAuthenticated && savedQueries().length > 0) {
+    <mat-card class="saved-card">
+      <h3>Opgeslagen queries</h3>
+      <div class="saved-list">
+        @for (s of savedQueries(); track s.id) {
+          <div class="saved-item">
+            <button mat-button (click)="loadSaved(s)">
+              <mat-icon>folder_open</mat-icon> {{ s.name }}
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteSaved(s)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    </mat-card>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Bezig met zoeken...</p>
+    </div>
+  }
+
+  <!-- Results -->
+  @if (result() && !loading()) {
+    <div class="results-section">
+      <h2>{{ result()!.title }}</h2>
+      @if (result()!.description) {
+        <p class="result-description">{{ result()!.description }}</p>
+      }
+
+      @if (result()!.chart && result()!.chartType !== 'table') {
+        <mat-card class="chart-card">
+          <app-result-chart [chartType]="result()!.chartType" [data]="result()!.chart"></app-result-chart>
+        </mat-card>
+      }
+
+      @if (result()!.columns.length > 0 && result()!.rows.length > 0) {
+        <app-result-table
+          [columns]="result()!.columns"
+          [rows]="result()!.rows"
+          [totalCount]="result()!.totalCount"></app-result-table>
+      }
+    </div>
+  }
+</div>

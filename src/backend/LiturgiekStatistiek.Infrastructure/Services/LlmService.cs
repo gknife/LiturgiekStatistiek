@@ -13,21 +13,70 @@ public class LlmService : ILlmService
     private readonly ChatClient? _chatClient;
     private readonly ILogger<LlmService> _logger;
     private readonly bool _isConfigured;
+    private readonly bool _hasEndpoint;
+    private readonly bool _hasApiKey;
+    private readonly string _deployment;
+
+    public bool IsConfigured => _isConfigured;
 
     public LlmService(IConfiguration configuration, ILogger<LlmService> logger)
     {
         _logger = logger;
         var endpoint = configuration["AzureOpenAI:Endpoint"];
         var apiKey = configuration["AzureOpenAI:ApiKey"];
-        var deployment = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4o-mini";
+        _deployment = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4o-mini";
 
-        if (!string.IsNullOrEmpty(endpoint) && !string.IsNullOrEmpty(apiKey))
+        _hasEndpoint = !string.IsNullOrWhiteSpace(endpoint);
+        _hasApiKey = !string.IsNullOrWhiteSpace(apiKey);
+
+        if (_hasEndpoint && _hasApiKey)
         {
-            var client = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey));
-            _chatClient = client.GetChatClient(deployment);
+            var client = new AzureOpenAIClient(new Uri(endpoint!), new ApiKeyCredential(apiKey!));
+            _chatClient = client.GetChatClient(_deployment);
             _isConfigured = true;
+            _logger.LogInformation(
+                "Azure OpenAI configured (deployment '{Deployment}'). Natural-language and parsing features are enabled.",
+                _deployment);
+        }
+        else
+        {
+            var missing = new List<string>();
+            if (!_hasEndpoint) missing.Add("AzureOpenAI:Endpoint");
+            if (!_hasApiKey) missing.Add("AzureOpenAI:ApiKey");
+            _logger.LogWarning(
+                "Azure OpenAI is NOT configured. Missing/empty settings: {Missing}. " +
+                "Deployment name in use: '{Deployment}'. Set these via user-secrets or environment variables, e.g.: " +
+                "dotnet user-secrets set \"AzureOpenAI:Endpoint\" \"https://<resource>.openai.azure.com/\". " +
+                "Natural-language queries and paste-to-parse will be unavailable until configured.",
+                string.Join(", ", missing), _deployment);
         }
     }
+
+    public LlmStatus GetStatus()
+    {
+        var message = _isConfigured
+            ? $"Azure OpenAI is geconfigureerd (deployment '{_deployment}')."
+            : BuildMissingMessage();
+
+        return new LlmStatus
+        {
+            IsConfigured = _isConfigured,
+            HasEndpoint = _hasEndpoint,
+            HasApiKey = _hasApiKey,
+            DeploymentName = _deployment,
+            Message = message,
+        };
+    }
+
+    private string BuildMissingMessage()
+    {
+        var missing = new List<string>();
+        if (!_hasEndpoint) missing.Add("Endpoint");
+        if (!_hasApiKey) missing.Add("ApiKey");
+        return $"Azure OpenAI is niet geconfigureerd. Ontbrekend: {string.Join(", ", missing)}. " +
+               "Stel deze in via user-secrets of omgevingsvariabelen.";
+    }
+
 
     public async Task<LlmQueryParseResult> ParseNaturalLanguageQueryAsync(string query, CancellationToken ct = default)
     {
@@ -36,7 +85,7 @@ public class LlmService : ILlmService
             return new LlmQueryParseResult
             {
                 Success = false,
-                ErrorMessage = "Azure OpenAI is niet geconfigureerd. Gebruik de voorgedefinieerde sjablonen."
+                ErrorMessage = BuildMissingMessage() + " Gebruik de voorgedefinieerde sjablonen of de geavanceerde zoekfunctie."
             };
         }
 
@@ -114,7 +163,7 @@ Als de vraag niet past bij een sjabloon, antwoord met:
             return new LlmLiturgyParseResult
             {
                 Success = false,
-                ErrorMessage = "Azure OpenAI is niet geconfigureerd."
+                ErrorMessage = BuildMissingMessage()
             };
         }
 

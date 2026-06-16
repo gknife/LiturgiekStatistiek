@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from './core/auth/auth.service';
 import { AsyncPipe } from '@angular/common';
 
@@ -28,6 +29,7 @@ interface NavItem {
     MatSidenavModule,
     MatListModule,
     MatMenuModule,
+    MatTooltipModule,
     AsyncPipe,
   ],
   templateUrl: './app.html',
@@ -37,7 +39,7 @@ export class App implements OnInit {
   allNavItems: NavItem[] = [
     { path: '/', label: 'Home', icon: 'home' },
     { path: '/zoeken', label: 'Zoeken', icon: 'search' },
-    { path: '/toevoegen', label: 'Toevoegen', icon: 'add_circle', requiresAuth: true },
+    { path: '/diensten', label: 'Diensten', icon: 'church' },
     { path: '/lijsten', label: 'Lijsten', icon: 'list', requiresAuth: true },
     { path: '/liedcatalogus', label: 'Liedcatalogus', icon: 'music_note', requiresAuth: true },
     { path: '/contact', label: 'Contact', icon: 'mail' },

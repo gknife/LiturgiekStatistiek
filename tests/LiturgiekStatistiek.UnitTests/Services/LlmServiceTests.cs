@@ -40,4 +40,20 @@ public class LlmServiceTests
         Assert.That(result.Success, Is.False);
         Assert.That(result.ErrorMessage, Does.Contain("niet geconfigureerd"));
     }
+
+    [Test]
+    public void IsConfigured_WhenEndpointAndKeyMissing_IsFalse()
+    {
+        Assert.That(_sut.IsConfigured, Is.False);
+    }
+
+    [Test]
+    public void GetStatus_WhenNotConfigured_ReportsMissingSettings()
+    {
+        var status = _sut.GetStatus();
+        Assert.That(status.IsConfigured, Is.False);
+        Assert.That(status.HasEndpoint, Is.False);
+        Assert.That(status.HasApiKey, Is.False);
+        Assert.That(status.Message, Does.Contain("niet geconfigureerd"));
+    }
 }

@@ -23,7 +23,12 @@ public record ServiceDto(
     List<string> Bundles,
     List<ServiceElementDto> Elements,
     DateTime CreatedAt,
-    string? CreatedBy
+    string? CreatedBy,
+    int TimeOfDayValue,
+    Guid? ChurchCalendarSundayId,
+    Guid? BibleTranslationId,
+    Guid? MusicalAccompanimentId,
+    Guid? SpecialOccasionId
 );
 
 public record ServiceSummaryDto(
@@ -79,5 +84,24 @@ public record UpdateServiceRequest(
     string? SermonText,
     string? SermonTheme,
     string? Notes,
-    List<Guid>? BundleIds
+    List<Guid>? BundleIds,
+    List<CreateServiceElementRequest>? Elements
+);
+
+/// <summary>
+/// Applies a single flat-field change to many services at once. <see cref="Field"/>
+/// is whitelisted server-side.
+/// </summary>
+public record BulkUpdateServicesRequest(
+    List<Guid> ServiceIds,
+    string Field,
+    string? Value
+);
+
+public record BulkDeleteServicesRequest(
+    List<Guid> ServiceIds
+);
+
+public record BulkOperationResult(
+    int Affected
 );
