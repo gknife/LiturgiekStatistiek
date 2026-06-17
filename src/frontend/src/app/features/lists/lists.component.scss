@@ -3,7 +3,7 @@
 }
 
 .page-description {
-  color: #4a5568;
+  color: var(--mat-sys-on-surface-variant);
   margin-bottom: 1.5rem;
 }
 
@@ -28,7 +28,7 @@ mat-chip {
   align-items: center;
   margin-top: 1rem;
   padding: 0.5rem;
-  background: #f7fafc;
+  background: var(--mat-sys-surface-container);
   border-radius: 4px;
   flex-wrap: wrap;
 

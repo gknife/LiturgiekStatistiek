@@ -3,7 +3,7 @@
 }
 
 .page-description {
-  color: #4a5568;
+  color: var(--mat-sys-on-surface-variant);
   margin-bottom: 1.5rem;
 }
 
@@ -30,11 +30,11 @@
     font-size: 3rem;
     width: 3rem;
     height: 3rem;
-    color: #a0aec0;
+    color: var(--mat-sys-on-surface-variant);
     margin-bottom: 1rem;
   }
 
   p {
-    color: #4a5568;
+    color: var(--mat-sys-on-surface-variant);
   }
 }

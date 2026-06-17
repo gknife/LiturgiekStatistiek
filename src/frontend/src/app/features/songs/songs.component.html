@@ -7,7 +7,7 @@
     <mat-select [(ngModel)]="selectedBundleId" (selectionChange)="onBundleChange()">
       @for (bundle of bundles(); track bundle.id) {
         <mat-option [value]="bundle.id">
-          {{ bundle.abbreviation ? bundle.abbreviation + ' — ' : '' }}{{ bundle.value }}
+          {{ bundle.value }}
         </mat-option>
       }
     </mat-select>

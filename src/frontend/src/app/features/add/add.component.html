@@ -32,7 +32,7 @@
               <mat-autocomplete #congAuto="matAutocomplete">
                 @for (c of congregationSuggestions; track c.id) {
                   <mat-option [value]="c.name" (onSelectionChange)="selectCongregation(c)">
-                    {{ c.name }} � {{ c.city }} ({{ c.denominationAbbreviation }})
+                    {{ c.name }} &mdash; {{ c.city }} ({{ c.denominationAbbreviation }})
                   </mat-option>
                 }
               </mat-autocomplete>
@@ -54,7 +54,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Zondag kerkelijk jaar</mat-label>
               <mat-select formControlName="churchCalendarSundayId">
-                <mat-option [value]="''">� Geen �</mat-option>
+                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
                 @for (s of churchCalendarSundays; track s.id) {
                   <mat-option [value]="s.id">{{ s.value }}</mat-option>
                 }
@@ -64,7 +64,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Bijbelvertaling</mat-label>
               <mat-select formControlName="bibleTranslationId">
-                <mat-option [value]="''">� Geen �</mat-option>
+                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
                 @for (bt of bibleTranslations; track bt.id) {
                   <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
                 }
@@ -74,7 +74,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Muzikale begeleiding</mat-label>
               <mat-select formControlName="musicalAccompanimentId">
-                <mat-option [value]="''">� Geen �</mat-option>
+                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
                 @for (m of musicalAccompaniments; track m.id) {
                   <mat-option [value]="m.id">{{ m.value }}</mat-option>
                 }
@@ -84,7 +84,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Bijzonderheden</mat-label>
               <mat-select formControlName="specialOccasionId">
-                <mat-option [value]="''">� Geen �</mat-option>
+                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
                 @for (o of specialOccasions; track o.id) {
                   <mat-option [value]="o.id">{{ o.value }}</mat-option>
                 }
@@ -186,7 +186,8 @@
     </div>
   </mat-tab>
 
-  <!-- Tab 2: Paste to parse -->
+  <!-- Tab 2: Paste to parse (add only) -->
+  @if (!isEditMode) {
   <mat-tab label="Plakken & verwerken">
     <div class="tab-content">
       <mat-card>
@@ -216,7 +217,7 @@
     </div>
   </mat-tab>
 
-  <!-- Tab 3: URL import -->
+  <!-- Tab 3: URL import (add only) -->
   <mat-tab label="URL importeren">
     <div class="tab-content">
       <mat-card>
@@ -238,4 +239,5 @@
       </mat-card>
     </div>
   </mat-tab>
+  }
 </mat-tab-group>

@@ -310,6 +310,45 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
         });
 
         await db.SaveChangesAsync();
+
+        await SeedSongCatalogAsync(db, ps1773);
+    }
+
+    private static async Task SeedSongCatalogAsync(ApplicationDbContext db, ListItem ps1773Bundle)
+    {
+        if (await db.Songs.AnyAsync()) return;
+
+        var assembly = typeof(DataSeeder).Assembly;
+        var resourceName = "LiturgiekStatistiek.Infrastructure.SeedData.psalmen-1773.json";
+        await using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream is null) return;
+
+        using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+        var json = await reader.ReadToEndAsync();
+        var entries = System.Text.Json.JsonSerializer.Deserialize<List<SeedSong>>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (entries is null) return;
+
+        foreach (var entry in entries.OrderBy(e => e.Number))
+        {
+            db.Songs.Add(new Song
+            {
+                Id = Guid.NewGuid(),
+                BundleId = ps1773Bundle.Id,
+                Number = entry.Number,
+                Title = entry.Title,
+                NumberOfVerses = entry.NumberOfVerses
+            });
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private sealed class SeedSong
+    {
+        public int Number { get; set; }
+        public string? Title { get; set; }
+        public int? NumberOfVerses { get; set; }
     }
 }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, Optional, Inject } from '@angular/core';
+import { Component, OnInit, Optional, Inject, HostBinding } from '@angular/core';
 import { DatePipe, JsonPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -86,6 +86,10 @@ export class AddComponent implements OnInit {
 
   get isInDialog(): boolean {
     return this.dialogRef !== null;
+  }
+
+  @HostBinding('class.in-dialog') get inDialogClass(): boolean {
+    return this.isInDialog;
   }
 
   constructor(

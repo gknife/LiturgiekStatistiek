@@ -3,7 +3,7 @@
 }
 
 .page-description {
-  color: #4a5568;
+  color: var(--mat-sys-on-surface-variant);
   margin-bottom: 2rem;
 }
 
@@ -21,18 +21,18 @@
     font-size: 2.5rem;
     width: 2.5rem;
     height: 2.5rem;
-    color: #2c5282;
+    color: var(--app-accent);
     margin-bottom: 1rem;
   }
 
   h3 {
     font-family: "Merriweather", serif;
-    color: #1a365d;
+    color: var(--app-heading);
     margin-bottom: 0.75rem;
   }
 
   p {
-    color: #4a5568;
+    color: var(--mat-sys-on-surface-variant);
     margin-bottom: 1rem;
     font-size: 0.9rem;
     line-height: 1.5;

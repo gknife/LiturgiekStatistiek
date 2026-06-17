@@ -99,7 +99,7 @@ $border: #e2e8f0;
 }
 
 .app-footer {
-  background: $primary-dark;
+  background: var(--app-accent-dark, #1a365d);
   color: white;
   padding: 1rem 2rem;
 

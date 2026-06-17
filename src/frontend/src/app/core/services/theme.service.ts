@@ -70,12 +70,25 @@ export class ThemeService {
     // Font size scales the root rem unit.
     root.style.fontSize = FONT_SIZES[prefs.fontSize];
 
-    // Accent overrides Material's primary system colour plus a convenience
-    // variable used by bespoke elements (links, active nav underline, …).
-    const accent = prefs.accentColor;
+    // Accent drives every "blue" element through CSS custom properties. The raw
+    // accent is contrast-adjusted per theme: in dark mode it is lightened so it
+    // stays legible against dark surfaces, and headings get an even lighter
+    // shade. A consistently dark shade is exposed for surfaces that always carry
+    // white text (footer, badges).
+    const base = prefs.accentColor;
+    const isDark = prefs.theme === 'dark';
+
+    const accent = isDark ? lighten(base, 0.34) : base;
+    const heading = isDark ? lighten(base, 0.5) : darken(base, 0.12);
+    const accentDark = darken(base, 0.18);
+
     root.style.setProperty('--app-accent', accent);
+    root.style.setProperty('--app-accent-dark', accentDark);
+    root.style.setProperty('--app-heading', heading);
+    root.style.setProperty('--app-on-accent', readableOn(accent));
     root.style.setProperty('--mat-sys-primary', accent);
-    root.style.setProperty('--mat-sys-on-primary', '#ffffff');
+    root.style.setProperty('--mat-sys-on-primary', readableOn(accent));
+    root.style.setProperty('--mat-sys-on-primary-container', isDark ? lighten(base, 0.6) : darken(base, 0.25));
   }
 
   private load(): UserPreferences {
@@ -97,4 +110,40 @@ export class ThemeService {
       // Ignore storage write failures (e.g. private mode quota).
     }
   }
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  return [
+    parseInt(full.slice(0, 2), 16),
+    parseInt(full.slice(2, 4), 16),
+    parseInt(full.slice(4, 6), 16),
+  ];
+}
+
+function rgbToHex(rgb: [number, number, number]): string {
+  return '#' + rgb.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+
+/** Mix the colour toward white by `amount` (0..1). */
+function lighten(hex: string, amount: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return rgbToHex([r + (255 - r) * amount, g + (255 - g) * amount, b + (255 - b) * amount]);
+}
+
+/** Mix the colour toward black by `amount` (0..1). */
+function darken(hex: string, amount: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return rgbToHex([r * (1 - amount), g * (1 - amount), b * (1 - amount)]);
+}
+
+/** Pick a readable foreground (near-black or white) for the given background. */
+function readableOn(hex: string): string {
+  const [r, g, b] = hexToRgb(hex).map(v => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.45 ? '#1a1a1a' : '#ffffff';
 }

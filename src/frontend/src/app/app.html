@@ -41,10 +41,6 @@
             <mat-icon>email</mat-icon>
             <span>{{ (auth.user$ | async)?.email }}</span>
           </button>
-          <a mat-menu-item routerLink="/instellingen">
-            <mat-icon>settings</mat-icon>
-            <span>Instellingen</span>
-          </a>
           <button mat-menu-item (click)="logout()">
             <mat-icon>logout</mat-icon>
             <span>Uitloggen</span>
@@ -67,7 +63,7 @@
         <span>&copy; 2026 Liturgiek Statistiek &mdash; Onderzoeksproject</span>
         <div class="footer-links">
           <a routerLink="/contact">Contact</a>
-          <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/gknife/liturgiek-statistiek" target="_blank" rel="noopener">GitHub</a>
         </div>
       </div>
     </footer>

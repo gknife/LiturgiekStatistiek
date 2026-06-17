@@ -1,6 +1,6 @@
 :host { display: block; }
 
-.page-description { color: #4a5568; margin-bottom: 1.5rem; }
+.page-description { color: var(--mat-sys-on-surface-variant); margin-bottom: 1.5rem; }
 .tab-content { padding: 1.5rem 0; }
 
 .edit-card {
@@ -11,7 +11,7 @@
     align-items: center;
     gap: 0.5rem;
     font-family: "Merriweather", serif;
-    color: #1a365d;
+    color: var(--app-heading);
     margin-bottom: 1rem;
   }
 

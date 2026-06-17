@@ -7,9 +7,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
+import { ListItem, Song } from '../../core/models/api.models';
 import { environment } from '../../../environments/environment';
 import { ResultChartComponent, ChartData } from '../../shared/components/result-chart/result-chart.component';
 import { ResultTableComponent } from '../../shared/components/result-table/result-table.component';
@@ -40,7 +43,8 @@ interface QueryResult {
   standalone: true,
   imports: [
     CommonModule, MatCardModule, MatTabsModule, MatIconModule, MatButtonModule,
-    MatInputModule, MatFormFieldModule, MatSelectModule, MatProgressSpinnerModule,
+    MatInputModule, MatFormFieldModule, MatSelectModule, MatAutocompleteModule,
+    MatProgressSpinnerModule,
     FormsModule, ResultChartComponent, ResultTableComponent, ResultMapComponent,
     AdvancedQueryComponent,
   ],
@@ -49,6 +53,7 @@ interface QueryResult {
 })
 export class QueryComponent implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiService);
 
   naturalLanguageQuery = '';
   readonly queryTemplates = signal<QueryTemplate[]>([]);
@@ -57,6 +62,19 @@ export class QueryComponent implements OnInit {
   readonly loading = signal(false);
   readonly result = signal<QueryResult | null>(null);
   readonly aiStatus = signal<AiStatus | null>(null);
+
+  readonly congregations = signal<{ id: string; label: string }[]>([]);
+  readonly bundles = signal<ListItem[]>([]);
+  readonly songsByBundle = signal<Record<string, Song[]>>({});
+  readonly years = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString());
+  readonly months = [
+    { value: '1', label: 'Januari' }, { value: '2', label: 'Februari' },
+    { value: '3', label: 'Maart' }, { value: '4', label: 'April' },
+    { value: '5', label: 'Mei' }, { value: '6', label: 'Juni' },
+    { value: '7', label: 'Juli' }, { value: '8', label: 'Augustus' },
+    { value: '9', label: 'September' }, { value: '10', label: 'Oktober' },
+    { value: '11', label: 'November' }, { value: '12', label: 'December' },
+  ];
 
   exampleQueries = [
     'Welk lied wordt het meest gezongen in de GG?',
@@ -77,6 +95,18 @@ export class QueryComponent implements OnInit {
     this.http.get<AiStatus>(`${this.apiUrl}/queries/ai-status`).subscribe({
       next: status => this.aiStatus.set(status),
     });
+
+    this.api.getCongregations({ page: 1, pageSize: 500 }).subscribe({
+      next: res => this.congregations.set(
+        res.items
+          .map(c => ({ id: c.id, label: c.city ? `${c.name} — ${c.city}` : c.name }))
+          .sort((a, b) => a.label.localeCompare(b.label, 'nl')),
+      ),
+    });
+
+    this.api.getListByName('SongBundles').subscribe({
+      next: list => this.bundles.set(list.items),
+    });
   }
 
   selectTemplate(template: QueryTemplate): void {
@@ -85,7 +115,48 @@ export class QueryComponent implements OnInit {
     template.parameters.forEach(p => {
       if (p.defaultValue) this.templateParams[p.name] = p.defaultValue;
     });
+    template.parameters
+      .filter(p => p.type === 'bundle' && this.templateParams[p.name])
+      .forEach(p => this.loadSongsForBundle(this.templateParams[p.name]));
   }
+
+  isCongregation(p: { type: string }): boolean { return p.type === 'congregation'; }
+  isBundle(p: { type: string }): boolean { return p.type === 'bundle'; }
+  isDate(p: { type: string }): boolean { return p.type === 'date'; }
+  isSongNumber(p: { name: string }): boolean { return p.name.toLowerCase().includes('songnumber'); }
+  isYear(p: { name: string }): boolean { return p.name === 'year'; }
+  isMonth(p: { name: string }): boolean { return p.name === 'month'; }
+
+  isPlainText(p: { name: string; type: string }): boolean {
+    return !this.isCongregation(p) && !this.isBundle(p) && !this.isDate(p)
+      && !this.isSongNumber(p) && !this.isYear(p) && !this.isMonth(p);
+  }
+
+  private bundleParamFor(p: { name: string }): string {
+    return p.name.replace(/songNumber/i, 'bundleId');
+  }
+
+  loadSongsForBundle(bundleId: string): void {
+    if (!bundleId || this.songsByBundle()[bundleId]) return;
+    this.api.getSongsByBundle(bundleId, 1, 2000).subscribe({
+      next: res => this.songsByBundle.update(m => ({ ...m, [bundleId]: res.items })),
+    });
+  }
+
+  onBundleParamChange(p: { name: string }): void {
+    this.loadSongsForBundle(this.templateParams[p.name]);
+  }
+
+  filteredSongs(p: { name: string }): Song[] {
+    const bundleId = this.templateParams[this.bundleParamFor(p)];
+    const songs = bundleId ? (this.songsByBundle()[bundleId] || []) : [];
+    const q = (this.templateParams[p.name] || '').toString().toLowerCase();
+    const matches = q
+      ? songs.filter(s => s.number.toString().includes(q) || (s.title || '').toLowerCase().includes(q))
+      : songs;
+    return matches.slice(0, 50);
+  }
+
 
   clearTemplate(): void {
     this.selectedTemplate = null;

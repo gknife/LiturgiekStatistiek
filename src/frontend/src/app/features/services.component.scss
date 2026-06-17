@@ -11,7 +11,7 @@
 }
 
 .page-description {
-  color: #4a5568;
+  color: var(--mat-sys-on-surface-variant);
   margin-bottom: 1rem;
 }
 
@@ -56,6 +56,6 @@
   .empty {
     text-align: center;
     padding: 1.5rem;
-    color: #4a5568;
+    color: var(--mat-sys-on-surface-variant);
   }
 }

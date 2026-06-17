@@ -26,12 +26,72 @@
 
           <div class="params-form">
             @for (param of selectedTemplate.parameters; track param.name) {
-              <mat-form-field appearance="outline">
-                <mat-label>{{ param.label }}</mat-label>
-                <input matInput [(ngModel)]="templateParams[param.name]"
-                  [required]="param.required"
-                  [placeholder]="param.defaultValue || ''">
-              </mat-form-field>
+              @if (isCongregation(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select [(ngModel)]="templateParams[param.name]" [required]="param.required">
+                    @if (!param.required) { <mat-option [value]="''">&mdash; Alle &mdash;</mat-option> }
+                    @for (c of congregations(); track c.id) {
+                      <mat-option [value]="c.id">{{ c.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else if (isBundle(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select [(ngModel)]="templateParams[param.name]" [required]="param.required"
+                    (selectionChange)="onBundleParamChange(param)">
+                    @if (!param.required) { <mat-option [value]="''">&mdash; Alle &mdash;</mat-option> }
+                    @for (b of bundles(); track b.id) {
+                      <mat-option [value]="b.id">{{ b.value }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else if (isSongNumber(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <input matInput [(ngModel)]="templateParams[param.name]"
+                    [required]="param.required" [matAutocomplete]="songAuto"
+                    placeholder="Zoek op nummer of titel...">
+                  <mat-autocomplete #songAuto="matAutocomplete">
+                    @for (s of filteredSongs(param); track s.id) {
+                      <mat-option [value]="s.number">{{ s.number }}{{ s.title ? ' — ' + s.title : '' }}</mat-option>
+                    }
+                  </mat-autocomplete>
+                </mat-form-field>
+              } @else if (isDate(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <input matInput type="date" [(ngModel)]="templateParams[param.name]"
+                    [required]="param.required">
+                </mat-form-field>
+              } @else if (isYear(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select [(ngModel)]="templateParams[param.name]" [required]="param.required">
+                    @for (y of years; track y) {
+                      <mat-option [value]="y">{{ y }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else if (isMonth(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select [(ngModel)]="templateParams[param.name]" [required]="param.required">
+                    @if (!param.required) { <mat-option [value]="''">&mdash; Alle &mdash;</mat-option> }
+                    @for (m of months; track m.value) {
+                      <mat-option [value]="m.value">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <input matInput [(ngModel)]="templateParams[param.name]"
+                    [required]="param.required"
+                    [placeholder]="param.defaultValue || ''">
+                </mat-form-field>
+              }
             }
           </div>
 

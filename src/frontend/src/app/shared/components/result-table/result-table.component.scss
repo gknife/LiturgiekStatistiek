@@ -8,14 +8,14 @@
 
   th {
     font-weight: bold;
-    background: #f7fafc;
-    color: #1a365d;
+    background: var(--mat-sys-surface-container);
+    color: var(--app-heading);
   }
 }
 
 .total-count {
   text-align: right;
   font-size: 0.85rem;
-  color: #718096;
+  color: var(--mat-sys-on-surface-variant);
   margin-top: 0.5rem;
 }

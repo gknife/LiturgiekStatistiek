@@ -10,13 +10,13 @@
     font-family: "Merriweather", serif;
     font-size: 2.5rem;
     font-weight: 700;
-    color: #1a365d;
+    color: var(--app-heading);
     margin-bottom: 0.75rem;
   }
 
   .subtitle {
     font-size: 1.1rem;
-    color: #4a5568;
+    color: var(--mat-sys-on-surface-variant);
     max-width: 650px;
     margin: 0 auto;
     line-height: 1.6;
@@ -40,19 +40,19 @@
     font-size: 2rem;
     width: 2rem;
     height: 2rem;
-    color: #2c5282;
+    color: var(--app-accent);
     margin-bottom: 0.5rem;
   }
 
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #1a365d;
+    color: var(--app-heading);
   }
 
   .stat-label {
     font-size: 0.9rem;
-    color: #4a5568;
+    color: var(--mat-sys-on-surface-variant);
     margin-top: 0.25rem;
   }
 }
@@ -91,12 +91,12 @@
     font-family: "Merriweather", serif;
     font-size: 1.1rem;
     margin: 0 0 0.5rem;
-    color: #1a365d;
+    color: var(--app-heading);
   }
 
   p {
     font-size: 0.9rem;
-    color: #4a5568;
+    color: var(--mat-sys-on-surface-variant);
     margin: 0;
     line-height: 1.4;
   }
@@ -112,7 +112,7 @@
     ::ng-deep {
       h1, h2, h3 {
         font-family: "Merriweather", serif;
-        color: #1a365d;
+        color: var(--app-heading);
       }
 
       h2 { margin-top: 1.5rem; }
