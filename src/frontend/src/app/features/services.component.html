@@ -109,7 +109,7 @@
   <!-- Table -->
   @if (!loading()) {
     <mat-card class="table-card">
-      <table mat-table [dataSource]="services()">
+      <table mat-table [dataSource]="services()" multiTemplateDataRows>
         @if (isAuthenticated) {
           <ng-container matColumnDef="select">
             <th mat-header-cell *matHeaderCellDef>
@@ -153,7 +153,15 @@
 
         <ng-container matColumnDef="elementCount">
           <th mat-header-cell *matHeaderCellDef>Onderdelen</th>
-          <td mat-cell *matCellDef="let row">{{ row.elementCount }}</td>
+          <td mat-cell *matCellDef="let row">
+            <button mat-button type="button" class="onderdelen-toggle"
+              [disabled]="!row.elementCount" (click)="toggleExpand(row)">
+              <span>{{ row.elementCount }}</span>
+              @if (row.elementCount) {
+                <mat-icon>{{ expandedId() === row.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+              }
+            </button>
+          </td>
         </ng-container>
 
         @if (isAuthenticated) {
@@ -167,8 +175,42 @@
           </ng-container>
         }
 
+        <!-- Expandable Onderdelen detail -->
+        <ng-container matColumnDef="onderdelenDetail">
+          <td mat-cell *matCellDef="let row" [attr.colspan]="displayedColumns.length">
+            <div class="onderdelen-detail">
+              @if (loadingDetailId() === row.id) {
+                <mat-spinner diameter="24"></mat-spinner>
+              } @else if (detailFor(row.id); as detail) {
+                @if (detail.elements.length) {
+                  <ol class="element-list">
+                    @for (el of detail.elements; track el.id) {
+                      <li>
+                        <span class="el-heading">{{ elementHeading(el) }}</span>
+                        @if (el.scriptureReference) {
+                          <span class="el-ref">{{ el.scriptureReference }}</span>
+                        }
+                        @for (song of el.songs; track song.id) {
+                          <span class="el-song">{{ songLabel(song) }}</span>
+                        }
+                        @if (el.notes) {
+                          <span class="el-notes">{{ el.notes }}</span>
+                        }
+                      </li>
+                    }
+                  </ol>
+                } @else {
+                  <p class="el-empty">Geen onderdelen vastgelegd.</p>
+                }
+              }
+            </div>
+          </td>
+        </ng-container>
+
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr mat-row *matRowDef="let row; columns: ['onderdelenDetail']; when: isExpandedRow"
+          class="detail-row"></tr>
       </table>
 
       @if (services().length === 0) {

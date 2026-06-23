@@ -1,8 +1,8 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../core/services/api.service';
 import { AuthService } from '../core/auth/auth.service';
-import { ServiceSummary } from '../core/models/api.models';
+import { ServiceSummary, ServiceDetail, ServiceElement, ServiceElementSong } from '../core/models/api.models';
 import { AddComponent, AddDialogData } from './add/add.component';
 
 interface Option {
@@ -40,11 +40,17 @@ export class ServicesComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
 
+  @ViewChild(MatTable) private table?: MatTable<ServiceSummary>;
+
   readonly services = signal<ServiceSummary[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
   readonly congregations = signal<Option[]>([]);
   readonly selectedIds = signal<Set<string>>(new Set());
+
+  readonly expandedId = signal<string | null>(null);
+  readonly loadingDetailId = signal<string | null>(null);
+  private readonly detailCache = signal<Record<string, ServiceDetail>>({});
 
   page = 1;
   pageSize = 20;
@@ -92,6 +98,7 @@ export class ServicesComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.selectedIds.set(new Set());
+    this.expandedId.set(null);
     this.api.getServices({
       page: this.page,
       pageSize: this.pageSize,
@@ -162,6 +169,45 @@ export class ServicesComponent implements OnInit {
 
   get allSelected(): boolean {
     return this.services().length > 0 && this.selectedIds().size === this.services().length;
+  }
+
+  // --- Expandable Onderdelen detail ---
+  readonly isExpandedRow = (_index: number, row: ServiceSummary): boolean =>
+    this.expandedId() === row.id;
+
+  toggleExpand(row: ServiceSummary): void {
+    if (this.expandedId() === row.id) {
+      this.expandedId.set(null);
+      this.table?.renderRows();
+      return;
+    }
+    this.expandedId.set(row.id);
+    this.table?.renderRows();
+    if (!this.detailCache()[row.id]) {
+      this.loadingDetailId.set(row.id);
+      this.api.getService(row.id).subscribe({
+        next: detail => {
+          this.detailCache.update(c => ({ ...c, [row.id]: detail }));
+          this.loadingDetailId.set(null);
+        },
+        error: () => this.loadingDetailId.set(null),
+      });
+    }
+  }
+
+  detailFor(id: string): ServiceDetail | null {
+    return this.detailCache()[id] ?? null;
+  }
+
+  songLabel(song: ServiceElementSong): string {
+    const bundle = song.bundleAbbreviation || song.bundleName;
+    const section = song.section ? `${song.section} ` : '';
+    const verses = song.verses?.length ? `:${song.verses.join(',')}` : '';
+    return `${bundle} ${section}${song.songNumber}${verses}`;
+  }
+
+  elementHeading(el: ServiceElement): string {
+    return el.label || el.elementType || 'Onderdeel';
   }
 
   // --- Add / edit overlay ---
