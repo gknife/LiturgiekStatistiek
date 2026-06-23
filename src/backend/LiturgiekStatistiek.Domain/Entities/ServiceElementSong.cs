@@ -7,6 +7,7 @@ public class ServiceElementSong
     public ServiceElement ServiceElement { get; set; } = null!;
     public Guid BundleId { get; set; }
     public ListItem Bundle { get; set; } = null!;
+    public string Section { get; set; } = "";
     public int SongNumber { get; set; }
     public int Position { get; set; }
 

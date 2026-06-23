@@ -22,6 +22,104 @@
   width: 100%;
 }
 
+.detail-row {
+  height: 0;
+
+  td {
+    padding: 0;
+    border-bottom: none;
+  }
+}
+
+.verse-detail {
+  padding: 0.5rem 1rem 1rem 1.5rem;
+  background: var(--mat-sys-surface-container, #f7fafc);
+}
+
+.verse-list {
+  margin: 0;
+  padding-left: 1rem;
+  list-style: none;
+  columns: 2;
+  column-gap: 2rem;
+
+  li {
+    margin: 0.15rem 0;
+    break-inside: avoid;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .verse-num {
+    display: inline-block;
+    min-width: 1.8rem;
+    font-weight: 600;
+    color: var(--app-accent);
+  }
+}
+
+.verse-empty {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .verse-list { columns: 1; }
+}
+
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.edit-card {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  .grow { flex: 1 1 240px; }
+  .small { flex: 0 0 140px; }
+}
+
+.verses-editor {
+  margin-top: 0.5rem;
+
+  .verses-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .verse-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+
+    .verse-num-field { flex: 0 0 90px; }
+    .grow { flex: 1 1 auto; }
+  }
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .empty-state {
   text-align: center;
   padding: 3rem;

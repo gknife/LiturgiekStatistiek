@@ -4,6 +4,7 @@ using LiturgiekStatistiek.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260623143738_AddSongCatalogVerseAndSection")]
+    partial class AddSongCatalogVerseAndSection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -470,13 +473,6 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.Property<int>("Position")
                         .HasColumnType("int");
 
-                    b.Property<string>("Section")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("");
-
                     b.Property<Guid>("ServiceElementId")
                         .HasColumnType("uniqueidentifier");
 
@@ -487,7 +483,7 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ServiceElementId");
 
-                    b.HasIndex("BundleId", "Section", "SongNumber");
+                    b.HasIndex("BundleId", "SongNumber");
 
                     b.ToTable("ServiceElementSongs");
                 });

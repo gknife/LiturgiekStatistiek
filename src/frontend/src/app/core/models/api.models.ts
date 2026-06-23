@@ -64,6 +64,7 @@ export interface ServiceElementSong {
   id: string;
   bundleName: string;
   bundleAbbreviation: string | null;
+  section: string;
   songNumber: number;
   position: number;
   verses: string[];
@@ -118,14 +119,21 @@ export interface ListItem {
   isActive: boolean;
 }
 
+export interface SongVerse {
+  number: number;
+  title: string | null;
+}
+
 export interface Song {
   id: string;
   bundleId: string;
   bundleName: string;
   bundleAbbreviation: string | null;
+  section: string;
   number: number;
   title: string | null;
   numberOfVerses: number | null;
+  verses?: SongVerse[] | null;
 }
 
 export interface ContentPage {

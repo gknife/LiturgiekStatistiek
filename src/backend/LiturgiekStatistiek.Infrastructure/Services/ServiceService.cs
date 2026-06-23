@@ -135,6 +135,7 @@ public class ServiceService : IServiceService
                             sg.Id,
                             sg.Bundle.Value,
                             sg.Bundle.Abbreviation,
+                            sg.Section,
                             sg.SongNumber,
                             sg.Position,
                             sg.Verses
@@ -217,6 +218,7 @@ public class ServiceService : IServiceService
                             Id = Guid.NewGuid(),
                             ServiceElementId = element.Id,
                             BundleId = songRequest.BundleId,
+                            Section = songRequest.Section ?? "",
                             SongNumber = songRequest.SongNumber,
                             Position = songRequest.Position
                         };
@@ -337,6 +339,7 @@ public class ServiceService : IServiceService
                             Id = Guid.NewGuid(),
                             ServiceElementId = element.Id,
                             BundleId = songRequest.BundleId,
+                            Section = songRequest.Section ?? "",
                             SongNumber = songRequest.SongNumber,
                             Position = songRequest.Position
                         };

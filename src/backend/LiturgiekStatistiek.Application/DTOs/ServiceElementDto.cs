@@ -23,6 +23,7 @@ public record ServiceElementSongDto(
     Guid Id,
     string BundleName,
     string? BundleAbbreviation,
+    string Section,
     int SongNumber,
     int Position,
     List<string> Verses
@@ -30,6 +31,7 @@ public record ServiceElementSongDto(
 
 public record CreateServiceElementSongRequest(
     Guid BundleId,
+    string? Section,
     int SongNumber,
     int Position,
     List<string>? Verses

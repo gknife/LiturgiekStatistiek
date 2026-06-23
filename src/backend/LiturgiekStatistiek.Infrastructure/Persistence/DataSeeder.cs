@@ -14,14 +14,12 @@ public static class DataSeeder
         db.ListDefinitions.Add(bundleList);
 
         var ps1773 = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Psalmen 1773", Abbreviation = "Ps1773", SortOrder = 1 };
-        var psOB = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Psalmen Onberijmd", Abbreviation = "PsOB", SortOrder = 2 };
-        var lvdK = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Liedboek voor de Kerken", Abbreviation = "LvdK", SortOrder = 3 };
-        var wk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Weerklank", Abbreviation = "WK", SortOrder = 4 };
-        var wkPs = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Weerklank Psalmen", Abbreviation = "WKPs", SortOrder = 5 };
-        var opw = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Opwekking", Abbreviation = "Opw", SortOrder = 6 };
-        var gk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Gereformeerd Kerkboek", Abbreviation = "GK", SortOrder = 7 };
-        var eg = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Evangelische Gezangen", Abbreviation = "EG", SortOrder = 8 };
-        db.ListItems.AddRange(ps1773, psOB, lvdK, wk, wkPs, opw, gk, eg);
+        var lvdK = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Liedboek voor de Kerken", Abbreviation = "LvdK", SortOrder = 2 };
+        var wk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Weerklank", Abbreviation = "WK", SortOrder = 3 };
+        var wkPs = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Weerklank Psalmen", Abbreviation = "WKPs", SortOrder = 4 };
+        var opw = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Opwekking", Abbreviation = "Opw", SortOrder = 5 };
+        var gk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Gereformeerd Kerkboek", Abbreviation = "GK", SortOrder = 6 };
+        db.ListItems.AddRange(ps1773, lvdK, wk, wkPs, opw, gk);
 
         // --- Denominations ---
         var denomList = new ListDefinition { Id = Guid.NewGuid(), Name = "Denominations", Description = "Kerkgenootschappen", IsSystemList = true };
@@ -189,15 +187,15 @@ public static class DataSeeder
         var el2_5 = new ServiceElement { Id = Guid.NewGuid(), ServiceId = svc2.Id, Position = 5, LabelId = label_slotlied?.Id, ElementType = ElementType.Song };
         db.ServiceElements.AddRange(el2_1, el2_2, el2_3, el2_4, el2_5);
 
-        var s2_1 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_1.Id, BundleId = ps1773.Id, SongNumber = 63, Position = 1 };
+        var s2_1 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_1.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = 63, Position = 1 };
         db.ServiceElementSongs.Add(s2_1);
         db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s2_1.Id, VerseLabel = "2", Position = 1 });
 
-        var s2_2 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_2.Id, BundleId = ps1773.Id, SongNumber = 143, Position = 1 };
+        var s2_2 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_2.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = 143, Position = 1 };
         db.ServiceElementSongs.Add(s2_2);
         db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s2_2.Id, VerseLabel = "2", Position = 1 });
 
-        var s2_3 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_3.Id, BundleId = ps1773.Id, SongNumber = 145, Position = 1 };
+        var s2_3 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_3.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = 145, Position = 1 };
         db.ServiceElementSongs.Add(s2_3);
         db.SongVerses.AddRange(
             new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s2_3.Id, VerseLabel = "2", Position = 1 },
@@ -205,11 +203,11 @@ public static class DataSeeder
             new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s2_3.Id, VerseLabel = "6", Position = 3 }
         );
 
-        var s2_4 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_4.Id, BundleId = ps1773.Id, SongNumber = 146, Position = 1 };
+        var s2_4 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_4.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = 146, Position = 1 };
         db.ServiceElementSongs.Add(s2_4);
         db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s2_4.Id, VerseLabel = "6", Position = 1 });
 
-        var s2_5 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_5.Id, BundleId = ps1773.Id, SongNumber = 18, Position = 1 };
+        var s2_5 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el2_5.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = 18, Position = 1 };
         db.ServiceElementSongs.Add(s2_5);
         db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s2_5.Id, VerseLabel = "9", Position = 1 });
 
@@ -231,8 +229,8 @@ public static class DataSeeder
         var el3_6 = new ServiceElement { Id = Guid.NewGuid(), ServiceId = svc3.Id, Position = 6, LabelId = label_slotlied?.Id, ElementType = ElementType.Song };
         db.ServiceElements.AddRange(el3_1, el3_2, el3_3, el3_4, el3_5, el3_6);
 
-        // Voorzang: EG 9:1,7 + WK 73:1
-        var s3_1a = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el3_1.Id, BundleId = eg.Id, SongNumber = 9, Position = 1 };
+        // Voorzang: Ps1773 Gezang 9:1,7 + WK 73:1
+        var s3_1a = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el3_1.Id, BundleId = ps1773.Id, Section = "Gezang", SongNumber = 9, Position = 1 };
         db.ServiceElementSongs.Add(s3_1a);
         db.SongVerses.AddRange(
             new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s3_1a.Id, VerseLabel = "1", Position = 1 },
@@ -255,8 +253,8 @@ public static class DataSeeder
         db.ServiceElementSongs.Add(s3_3);
         db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s3_3.Id, VerseLabel = "3", Position = 1 });
 
-        // Voor de preek: PsOB 133:1,2,3
-        var s3_4 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el3_4.Id, BundleId = psOB.Id, SongNumber = 133, Position = 1 };
+        // Voor de preek: Ps1773 133:1,2,3
+        var s3_4 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el3_4.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = 133, Position = 1 };
         db.ServiceElementSongs.Add(s3_4);
         db.SongVerses.AddRange(
             new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s3_4.Id, VerseLabel = "1", Position = 1 },
@@ -311,34 +309,62 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
 
         await db.SaveChangesAsync();
 
-        await SeedSongCatalogAsync(db, ps1773);
+        await SeedSongCatalogAsync(db, new (ListItem, string, string)[]
+        {
+            (ps1773, "Psalm", "psalmen-1773.json"),
+            (ps1773, "Gezang", "enige-gezangen.json"),
+            (lvdK, "", "liedboek-1973.json"),
+            (wk, "", "weerklank.json"),
+            (opw, "", "opwekking.json"),
+            (gk, "", "gereformeerd-kerkboek.json"),
+        });
     }
 
-    private static async Task SeedSongCatalogAsync(ApplicationDbContext db, ListItem ps1773Bundle)
+    private static async Task SeedSongCatalogAsync(ApplicationDbContext db, (ListItem Bundle, string Section, string ResourceFile)[] sources)
     {
         if (await db.Songs.AnyAsync()) return;
 
         var assembly = typeof(DataSeeder).Assembly;
-        var resourceName = "LiturgiekStatistiek.Infrastructure.SeedData.psalmen-1773.json";
-        await using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream is null) return;
+        var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-        using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
-        var json = await reader.ReadToEndAsync();
-        var entries = System.Text.Json.JsonSerializer.Deserialize<List<SeedSong>>(json,
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        if (entries is null) return;
-
-        foreach (var entry in entries.OrderBy(e => e.Number))
+        foreach (var (bundle, section, resourceFile) in sources)
         {
-            db.Songs.Add(new Song
+            var resourceName = $"LiturgiekStatistiek.Infrastructure.SeedData.{resourceFile}";
+            await using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream is null) continue;
+
+            using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+            var json = await reader.ReadToEndAsync();
+            var entries = System.Text.Json.JsonSerializer.Deserialize<List<SeedSong>>(json, options);
+            if (entries is null) continue;
+
+            foreach (var entry in entries.OrderBy(e => e.Number))
             {
-                Id = Guid.NewGuid(),
-                BundleId = ps1773Bundle.Id,
-                Number = entry.Number,
-                Title = entry.Title,
-                NumberOfVerses = entry.NumberOfVerses
-            });
+                var song = new Song
+                {
+                    Id = Guid.NewGuid(),
+                    BundleId = bundle.Id,
+                    Section = section,
+                    Number = entry.Number,
+                    Title = entry.Title,
+                    NumberOfVerses = entry.NumberOfVerses ?? entry.Verses?.Count
+                };
+                db.Songs.Add(song);
+
+                if (entry.Verses is { Count: > 0 })
+                {
+                    foreach (var v in entry.Verses)
+                    {
+                        db.SongCatalogVerses.Add(new SongCatalogVerse
+                        {
+                            Id = Guid.NewGuid(),
+                            SongId = song.Id,
+                            Number = v.Number,
+                            Title = v.Title
+                        });
+                    }
+                }
+            }
         }
 
         await db.SaveChangesAsync();
@@ -349,6 +375,13 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
         public int Number { get; set; }
         public string? Title { get; set; }
         public int? NumberOfVerses { get; set; }
+        public List<SeedVerse>? Verses { get; set; }
+    }
+
+    private sealed class SeedVerse
+    {
+        public int Number { get; set; }
+        public string? Title { get; set; }
     }
 }
 

@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     DbSet<ListDefinition> ListDefinitions { get; }
     DbSet<ListItem> ListItems { get; }
     DbSet<Song> Songs { get; }
+    DbSet<SongCatalogVerse> SongCatalogVerses { get; }
     DbSet<ContentPage> ContentPages { get; }
     DbSet<SavedQuery> SavedQueries { get; }
     DbSet<ChangeHistory> ChangeHistory { get; }

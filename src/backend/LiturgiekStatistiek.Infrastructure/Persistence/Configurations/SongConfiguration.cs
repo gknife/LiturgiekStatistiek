@@ -10,8 +10,9 @@ public class SongConfiguration : IEntityTypeConfiguration<Song>
     {
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Number).IsRequired();
+        builder.Property(s => s.Section).IsRequired().HasMaxLength(50).HasDefaultValue("");
         builder.Property(s => s.Title).HasMaxLength(300);
 
-        builder.HasIndex(s => new { s.BundleId, s.Number }).IsUnique();
+        builder.HasIndex(s => new { s.BundleId, s.Section, s.Number }).IsUnique();
     }
 }

@@ -14,6 +14,9 @@ public class QueryService : IQueryService
         _db = db;
     }
 
+    private static string SongLabel(string bundleName, string? section, int number)
+        => string.IsNullOrEmpty(section) ? $"{bundleName} {number}" : $"{bundleName} {section} {number}";
+
     public Task<List<QueryTemplate>> GetTemplatesAsync()
     {
         var templates = new List<QueryTemplate>
@@ -90,6 +93,7 @@ public class QueryService : IQueryService
                 {
                     new() { Name = "bundleId", Label = "Bundel", Type = "bundle", Required = true },
                     new() { Name = "songNumber", Label = "Liednummer", Type = "string", Required = true },
+                    new() { Name = "verse", Label = "Couplet (optioneel)", Type = "verse", Required = false },
                     new() { Name = "fromDate", Label = "Vanaf", Type = "date", Required = false },
                     new() { Name = "toDate", Label = "Tot", Type = "date", Required = false },
                 }
@@ -116,6 +120,7 @@ public class QueryService : IQueryService
                 {
                     new() { Name = "bundleId", Label = "Bundel", Type = "bundle", Required = true },
                     new() { Name = "songNumber", Label = "Liednummer", Type = "string", Required = true },
+                    new() { Name = "verse", Label = "Couplet (optioneel)", Type = "verse", Required = false },
                 }
             },
             new()
@@ -142,6 +147,7 @@ public class QueryService : IQueryService
                 {
                     new() { Name = "bundleId", Label = "Bundel", Type = "bundle", Required = true },
                     new() { Name = "songNumber", Label = "Liednummer", Type = "string", Required = true },
+                    new() { Name = "verse", Label = "Couplet (optioneel)", Type = "verse", Required = false },
                 }
             },
         };
@@ -194,8 +200,8 @@ public class QueryService : IQueryService
             query = query.Where(ses => ses.ServiceElement.Service.Date <= toDate);
 
         var results = await query
-            .GroupBy(ses => new { ses.BundleId, ses.SongNumber, BundleName = ses.Bundle!.Abbreviation ?? ses.Bundle.Value })
-            .Select(g => new { g.Key.BundleName, g.Key.SongNumber, Count = g.Count() })
+            .GroupBy(ses => new { ses.BundleId, ses.Section, ses.SongNumber, BundleName = ses.Bundle!.Abbreviation ?? ses.Bundle.Value })
+            .Select(g => new { g.Key.BundleName, g.Key.Section, g.Key.SongNumber, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(20)
             .ToListAsync(ct);
@@ -207,13 +213,13 @@ public class QueryService : IQueryService
             Columns = new() { "Lied", "Aantal" },
             Rows = results.Select(r => new Dictionary<string, object?>
             {
-                ["Lied"] = $"{r.BundleName} {r.SongNumber}",
+                ["Lied"] = SongLabel(r.BundleName, r.Section, r.SongNumber),
                 ["Aantal"] = r.Count
             }).ToList(),
             TotalCount = results.Count,
             Chart = new ChartData
             {
-                Labels = results.Select(r => $"{r.BundleName} {r.SongNumber}").ToList(),
+                Labels = results.Select(r => SongLabel(r.BundleName, r.Section, r.SongNumber)).ToList(),
                 Datasets = new() { new() { Label = "Aantal keer gezongen", Data = results.Select(r => (double)r.Count).ToList() } }
             }
         };
@@ -232,15 +238,18 @@ public class QueryService : IQueryService
 
         if (parameters.TryGetValue("bundleId", out var bundleIdStr) && Guid.TryParse(bundleIdStr, out var bundleId))
             query = query.Where(sv => sv.ServiceElementSong.BundleId == bundleId);
+        if (parameters.TryGetValue("section", out var sectionFilter) && !string.IsNullOrWhiteSpace(sectionFilter))
+            query = query.Where(sv => sv.ServiceElementSong.Section == sectionFilter);
 
         var results = await query
             .GroupBy(sv => new
             {
                 BundleName = sv.ServiceElementSong.Bundle!.Abbreviation ?? sv.ServiceElementSong.Bundle.Value,
+                sv.ServiceElementSong.Section,
                 sv.ServiceElementSong.SongNumber,
                 sv.VerseLabel
             })
-            .Select(g => new { g.Key.BundleName, g.Key.SongNumber, g.Key.VerseLabel, Count = g.Count() })
+            .Select(g => new { g.Key.BundleName, g.Key.Section, g.Key.SongNumber, g.Key.VerseLabel, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(20)
             .ToListAsync(ct);
@@ -252,13 +261,13 @@ public class QueryService : IQueryService
             Columns = new() { "Couplet", "Aantal" },
             Rows = results.Select(r => new Dictionary<string, object?>
             {
-                ["Couplet"] = $"{r.BundleName} {r.SongNumber}:{r.VerseLabel}",
+                ["Couplet"] = $"{SongLabel(r.BundleName, r.Section, r.SongNumber)}:{r.VerseLabel}",
                 ["Aantal"] = r.Count
             }).ToList(),
             TotalCount = results.Count,
             Chart = new ChartData
             {
-                Labels = results.Select(r => $"{r.BundleName} {r.SongNumber}:{r.VerseLabel}").ToList(),
+                Labels = results.Select(r => $"{SongLabel(r.BundleName, r.Section, r.SongNumber)}:{r.VerseLabel}").ToList(),
                 Datasets = new() { new() { Label = "Aantal", Data = results.Select(r => (double)r.Count).ToList() } }
             }
         };
@@ -278,8 +287,8 @@ public class QueryService : IQueryService
             query = query.Where(ses => ses.ServiceElement.Service.Date <= toDate);
 
         var results = await query
-            .GroupBy(ses => new { ses.BundleId, ses.SongNumber, BundleName = ses.Bundle!.Abbreviation ?? ses.Bundle.Value })
-            .Select(g => new { g.Key.BundleName, g.Key.SongNumber, Count = g.Count() })
+            .GroupBy(ses => new { ses.BundleId, ses.Section, ses.SongNumber, BundleName = ses.Bundle!.Abbreviation ?? ses.Bundle.Value })
+            .Select(g => new { g.Key.BundleName, g.Key.Section, g.Key.SongNumber, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(15)
             .ToListAsync(ct);
@@ -291,13 +300,13 @@ public class QueryService : IQueryService
             Columns = new() { "Lied", "Aantal" },
             Rows = results.Select(r => new Dictionary<string, object?>
             {
-                ["Lied"] = $"{r.BundleName} {r.SongNumber}",
+                ["Lied"] = SongLabel(r.BundleName, r.Section, r.SongNumber),
                 ["Aantal"] = r.Count
             }).ToList(),
             TotalCount = results.Count,
             Chart = new ChartData
             {
-                Labels = results.Select(r => $"{r.BundleName} {r.SongNumber}").ToList(),
+                Labels = results.Select(r => SongLabel(r.BundleName, r.Section, r.SongNumber)).ToList(),
                 Datasets = new() { new() { Label = "Aantal", Data = results.Select(r => (double)r.Count).ToList() } }
             }
         };
@@ -435,6 +444,12 @@ public class QueryService : IQueryService
                     .ThenInclude(s => s!.Congregation)
             .Where(ses => ses.BundleId == bundleId && ses.SongNumber == songNumber);
 
+        if (parameters.TryGetValue("section", out var sectionFilter) && !string.IsNullOrWhiteSpace(sectionFilter))
+            query = query.Where(ses => ses.Section == sectionFilter);
+
+        if (parameters.TryGetValue("verse", out var verseFilter) && !string.IsNullOrWhiteSpace(verseFilter))
+            query = query.Where(ses => ses.Verses.Any(v => v.VerseLabel == verseFilter));
+
         if (parameters.TryGetValue("fromDate", out var from) && DateOnly.TryParse(from, out var fromDate))
             query = query.Where(ses => ses.ServiceElement.Service.Date >= fromDate);
         if (parameters.TryGetValue("toDate", out var to) && DateOnly.TryParse(to, out var toDate))
@@ -480,8 +495,8 @@ public class QueryService : IQueryService
             query = query.Where(ses => ses.ServiceElement.Service.Date.Month == month);
 
         var results = await query
-            .GroupBy(ses => new { ses.BundleId, ses.SongNumber, BundleName = ses.Bundle!.Abbreviation ?? ses.Bundle.Value })
-            .Select(g => new { g.Key.BundleName, g.Key.SongNumber, Count = g.Count() })
+            .GroupBy(ses => new { ses.BundleId, ses.Section, ses.SongNumber, BundleName = ses.Bundle!.Abbreviation ?? ses.Bundle.Value })
+            .Select(g => new { g.Key.BundleName, g.Key.Section, g.Key.SongNumber, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(20)
             .ToListAsync(ct);
@@ -493,13 +508,13 @@ public class QueryService : IQueryService
             Columns = new() { "Lied", "Aantal" },
             Rows = results.Select(r => new Dictionary<string, object?>
             {
-                ["Lied"] = $"{r.BundleName} {r.SongNumber}",
+                ["Lied"] = SongLabel(r.BundleName, r.Section, r.SongNumber),
                 ["Aantal"] = r.Count
             }).ToList(),
             TotalCount = results.Count,
             Chart = new ChartData
             {
-                Labels = results.Select(r => $"{r.BundleName} {r.SongNumber}").ToList(),
+                Labels = results.Select(r => SongLabel(r.BundleName, r.Section, r.SongNumber)).ToList(),
                 Datasets = new() { new() { Label = "Aantal", Data = results.Select(r => (double)r.Count).ToList() } }
             }
         };
@@ -510,14 +525,22 @@ public class QueryService : IQueryService
         var bundleId = Guid.Parse(parameters["bundleId"]);
         var songNumber = int.Parse(parameters["songNumber"]);
 
-        var results = await _db.ServiceElementSongs
+        var query = _db.ServiceElementSongs
             .Include(ses => ses.ServiceElement)
                 .ThenInclude(se => se.Service)
                     .ThenInclude(s => s!.Congregation)
             .Include(ses => ses.ServiceElement)
                 .ThenInclude(se => se.Service)
                     .ThenInclude(s => s!.Preacher)
-            .Where(ses => ses.BundleId == bundleId && ses.SongNumber == songNumber)
+            .Where(ses => ses.BundleId == bundleId && ses.SongNumber == songNumber);
+
+        if (parameters.TryGetValue("section", out var sectionFilter) && !string.IsNullOrWhiteSpace(sectionFilter))
+            query = query.Where(ses => ses.Section == sectionFilter);
+
+        if (parameters.TryGetValue("verse", out var verseFilter) && !string.IsNullOrWhiteSpace(verseFilter))
+            query = query.Where(ses => ses.Verses.Any(v => v.VerseLabel == verseFilter));
+
+        var results = await query
             .Select(ses => new
             {
                 Date = ses.ServiceElement.Service.Date,
@@ -555,13 +578,16 @@ public class QueryService : IQueryService
         var songNumberA = int.Parse(parameters["songNumberA"]);
         var bundleIdB = Guid.Parse(parameters["bundleIdB"]);
         var songNumberB = int.Parse(parameters["songNumberB"]);
+        parameters.TryGetValue("sectionA", out var sectionA);
+        parameters.TryGetValue("sectionB", out var sectionB);
 
         // Find services where song B is followed by song A at the next position
         var servicesWithA = await _db.ServiceElementSongs
             .Include(ses => ses.ServiceElement)
                 .ThenInclude(se => se.Service)
                     .ThenInclude(s => s!.Congregation)
-            .Where(ses => ses.BundleId == bundleIdB && ses.SongNumber == songNumberB)
+            .Where(ses => ses.BundleId == bundleIdB && ses.SongNumber == songNumberB
+                && (string.IsNullOrWhiteSpace(sectionB) || ses.Section == sectionB))
             .Select(ses => new { ses.ServiceElement.ServiceId, PositionB = ses.ServiceElement.Position })
             .ToListAsync(ct);
 
@@ -572,6 +598,7 @@ public class QueryService : IQueryService
                 .ThenInclude(se => se.Service)
                     .ThenInclude(s => s!.Congregation)
             .Where(ses => ses.BundleId == bundleIdA && ses.SongNumber == songNumberA
+                && (string.IsNullOrWhiteSpace(sectionA) || ses.Section == sectionA)
                 && serviceIds.Contains(ses.ServiceElement.ServiceId))
             .Select(ses => new
             {
@@ -609,10 +636,18 @@ public class QueryService : IQueryService
         var bundleId = Guid.Parse(parameters["bundleId"]);
         var songNumber = int.Parse(parameters["songNumber"]);
 
-        var results = await _db.ServiceElementSongs
+        var query = _db.ServiceElementSongs
             .Include(ses => ses.ServiceElement)
                 .ThenInclude(se => se.Service)
-            .Where(ses => ses.BundleId == bundleId && ses.SongNumber == songNumber)
+            .Where(ses => ses.BundleId == bundleId && ses.SongNumber == songNumber);
+
+        if (parameters.TryGetValue("section", out var sectionFilter) && !string.IsNullOrWhiteSpace(sectionFilter))
+            query = query.Where(ses => ses.Section == sectionFilter);
+
+        if (parameters.TryGetValue("verse", out var verseFilter) && !string.IsNullOrWhiteSpace(verseFilter))
+            query = query.Where(ses => ses.Verses.Any(v => v.VerseLabel == verseFilter));
+
+        var results = await query
             .GroupBy(ses => ses.ServiceElement.Service.Date.Year)
             .Select(g => new { Year = g.Key, Count = g.Count() })
             .OrderBy(x => x.Year)

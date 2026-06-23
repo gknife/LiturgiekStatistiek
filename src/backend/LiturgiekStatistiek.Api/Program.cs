@@ -1,5 +1,6 @@
 using LiturgiekStatistiek.Infrastructure;
 using LiturgiekStatistiek.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,12 +50,18 @@ else
 
 var app = builder.Build();
 
-// Seed data in development
-if (app.Environment.IsDevelopment())
+// Apply migrations and seed data (all environments)
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated();
+    if (useInMemory)
+    {
+        db.Database.EnsureCreated();
+    }
+    else
+    {
+        await db.Database.MigrateAsync();
+    }
     await DataSeeder.SeedAsync(db);
 }
 

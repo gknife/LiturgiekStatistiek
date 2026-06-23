@@ -66,6 +66,7 @@ export class QueryComponent implements OnInit {
   readonly congregations = signal<{ id: string; label: string }[]>([]);
   readonly bundles = signal<ListItem[]>([]);
   readonly songsByBundle = signal<Record<string, Song[]>>({});
+  readonly songVerses = signal<Record<string, { number: number; title: string | null }[]>>({});
   readonly years = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString());
   readonly months = [
     { value: '1', label: 'Januari' }, { value: '2', label: 'Februari' },
@@ -123,17 +124,30 @@ export class QueryComponent implements OnInit {
   isCongregation(p: { type: string }): boolean { return p.type === 'congregation'; }
   isBundle(p: { type: string }): boolean { return p.type === 'bundle'; }
   isDate(p: { type: string }): boolean { return p.type === 'date'; }
+  isVerse(p: { type: string }): boolean { return p.type === 'verse'; }
   isSongNumber(p: { name: string }): boolean { return p.name.toLowerCase().includes('songnumber'); }
   isYear(p: { name: string }): boolean { return p.name === 'year'; }
   isMonth(p: { name: string }): boolean { return p.name === 'month'; }
 
   isPlainText(p: { name: string; type: string }): boolean {
     return !this.isCongregation(p) && !this.isBundle(p) && !this.isDate(p)
-      && !this.isSongNumber(p) && !this.isYear(p) && !this.isMonth(p);
+      && !this.isSongNumber(p) && !this.isYear(p) && !this.isMonth(p) && !this.isVerse(p);
   }
 
   private bundleParamFor(p: { name: string }): string {
     return p.name.replace(/songNumber/i, 'bundleId');
+  }
+
+  private sectionParamFor(p: { name: string }): string {
+    return p.name.replace(/songNumber/i, 'section');
+  }
+
+  sectionParamName(p: { name: string }): string {
+    return this.sectionParamFor(p);
+  }
+
+  private verseKey(bundleId: string, section: string, number: number): string {
+    return `${bundleId}:${section}:${number}`;
   }
 
   loadSongsForBundle(bundleId: string): void {
@@ -144,12 +158,66 @@ export class QueryComponent implements OnInit {
   }
 
   onBundleParamChange(p: { name: string }): void {
+    const suffix = p.name.replace(/bundleId/i, '');
+    delete this.templateParams['section' + suffix];
+    delete this.templateParams['songNumber' + suffix];
+    delete this.templateParams['verse' + suffix];
     this.loadSongsForBundle(this.templateParams[p.name]);
+  }
+
+  /** Distinct, non-empty sections (e.g. Psalm / Gezang) for the bundle tied to a songNumber param. */
+  sectionsFor(p: { name: string }): string[] {
+    const bundleId = this.templateParams[this.bundleParamFor(p)];
+    const songs = bundleId ? (this.songsByBundle()[bundleId] || []) : [];
+    return Array.from(new Set(songs.map(s => s.section).filter(s => !!s))).sort((a, b) => a.localeCompare(b, 'nl'));
+  }
+
+  hasSections(p: { name: string }): boolean {
+    return this.sectionsFor(p).length > 1;
+  }
+
+  onSectionChange(p: { name: string }): void {
+    const suffix = p.name.replace(/songNumber/i, '');
+    delete this.templateParams['songNumber' + suffix];
+    delete this.templateParams['verse' + suffix];
+  }
+
+  onSongNumberChange(p: { name: string }): void {
+    const bundleId = this.templateParams[this.bundleParamFor(p)];
+    const section = this.templateParams[this.sectionParamFor(p)] || '';
+    const suffix = p.name.replace(/songNumber/i, '');
+    delete this.templateParams['verse' + suffix];
+
+    const num = parseInt((this.templateParams[p.name] || '').toString(), 10);
+    if (!bundleId || isNaN(num)) return;
+    const key = this.verseKey(bundleId, section, num);
+    if (this.songVerses()[key]) return;
+
+    const songs = this.songsByBundle()[bundleId] || [];
+    const match = songs.find(s => s.number === num && (section ? s.section === section : true));
+    const load$ = match
+      ? this.api.getSong(match.id)
+      : this.api.getSongByNumber(bundleId, num);
+    load$.subscribe({
+      next: song => this.songVerses.update(m => ({ ...m, [key]: song.verses ?? [] })),
+      error: () => this.songVerses.update(m => ({ ...m, [key]: [] })),
+    });
+  }
+
+  versesFor(p: { name: string }): { number: number; title: string | null }[] {
+    const suffix = p.name.replace(/verse/i, '');
+    const bundleId = this.templateParams['bundleId' + suffix];
+    const section = this.templateParams['section' + suffix] || '';
+    const num = parseInt((this.templateParams['songNumber' + suffix] || '').toString(), 10);
+    if (!bundleId || isNaN(num)) return [];
+    return this.songVerses()[this.verseKey(bundleId, section, num)] || [];
   }
 
   filteredSongs(p: { name: string }): Song[] {
     const bundleId = this.templateParams[this.bundleParamFor(p)];
-    const songs = bundleId ? (this.songsByBundle()[bundleId] || []) : [];
+    const section = this.templateParams[this.sectionParamFor(p)] || '';
+    let songs = bundleId ? (this.songsByBundle()[bundleId] || []) : [];
+    if (section) songs = songs.filter(s => s.section === section);
     const q = (this.templateParams[p.name] || '').toString().toLowerCase();
     const matches = q
       ? songs.filter(s => s.number.toString().includes(q) || (s.title || '').toLowerCase().includes(q))

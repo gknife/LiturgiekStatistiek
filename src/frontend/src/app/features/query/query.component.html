@@ -48,16 +48,41 @@
                   </mat-select>
                 </mat-form-field>
               } @else if (isSongNumber(param)) {
+                @if (hasSections(param)) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Categorie</mat-label>
+                    <mat-select [(ngModel)]="templateParams[sectionParamName(param)]"
+                      (selectionChange)="onSectionChange(param)">
+                      <mat-option [value]="''">&mdash; Alle &mdash;</mat-option>
+                      @for (sec of sectionsFor(param); track sec) {
+                        <mat-option [value]="sec">{{ sec }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                }
                 <mat-form-field appearance="outline">
                   <mat-label>{{ param.label }}</mat-label>
                   <input matInput [(ngModel)]="templateParams[param.name]"
                     [required]="param.required" [matAutocomplete]="songAuto"
+                    (ngModelChange)="onSongNumberChange(param)"
                     placeholder="Zoek op nummer of titel...">
-                  <mat-autocomplete #songAuto="matAutocomplete">
+                  <mat-autocomplete #songAuto="matAutocomplete"
+                    (optionSelected)="onSongNumberChange(param)">
                     @for (s of filteredSongs(param); track s.id) {
                       <mat-option [value]="s.number">{{ s.number }}{{ s.title ? ' — ' + s.title : '' }}</mat-option>
                     }
                   </mat-autocomplete>
+                </mat-form-field>
+              } @else if (isVerse(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select [(ngModel)]="templateParams[param.name]" [required]="param.required"
+                    [disabled]="versesFor(param).length === 0">
+                    <mat-option [value]="''">&mdash; Alle coupletten &mdash;</mat-option>
+                    @for (v of versesFor(param); track v.number) {
+                      <mat-option [value]="v.number.toString()">{{ v.number }}{{ v.title ? ' — ' + v.title : '' }}</mat-option>
+                    }
+                  </mat-select>
                 </mat-form-field>
               } @else if (isDate(param)) {
                 <mat-form-field appearance="outline">

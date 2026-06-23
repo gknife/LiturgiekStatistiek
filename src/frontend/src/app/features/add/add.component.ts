@@ -74,7 +74,7 @@ export class AddComponent implements OnInit {
     position: number;
     elementType: number;
     label: string;
-    songs: Array<{ bundle: string; number: number; verses: string[] }>;
+    songs: Array<{ bundle: string; section: string; number: number; verses: string[] }>;
     notes: string;
   }> = [];
 
@@ -177,6 +177,7 @@ export class AddComponent implements OnInit {
         notes: e.notes ?? '',
         songs: e.songs.map(s => ({
           bundle: s.bundleAbbreviation ?? s.bundleName,
+          section: s.section,
           number: s.songNumber,
           verses: s.verses,
         })),

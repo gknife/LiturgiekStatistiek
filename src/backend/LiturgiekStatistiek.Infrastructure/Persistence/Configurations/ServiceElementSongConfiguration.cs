@@ -11,12 +11,13 @@ public class ServiceElementSongConfiguration : IEntityTypeConfiguration<ServiceE
         builder.HasKey(s => s.Id);
         builder.Property(s => s.SongNumber).IsRequired();
         builder.Property(s => s.Position).IsRequired();
+        builder.Property(s => s.Section).IsRequired().HasMaxLength(50).HasDefaultValue("");
 
         builder.HasOne(s => s.ServiceElement)
             .WithMany(e => e.Songs)
             .HasForeignKey(s => s.ServiceElementId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(s => new { s.BundleId, s.SongNumber });
+        builder.HasIndex(s => new { s.BundleId, s.Section, s.SongNumber });
     }
 }

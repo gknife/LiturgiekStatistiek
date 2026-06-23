@@ -12,6 +12,7 @@ import {
   PreacherSummary,
   ListDefinition,
   Song,
+  SongVerse,
   ContentPage,
   ListItem,
   AiStatus,
@@ -132,8 +133,24 @@ export class ApiService {
     return this.http.get<PaginatedResult<Song>>(`${this.baseUrl}/songs/bundle/${bundleId}`, { params });
   }
 
-  createSong(request: { bundleId: string; number: number; title?: string; numberOfVerses?: number }): Observable<Song> {
+  getSongByNumber(bundleId: string, number: number): Observable<Song> {
+    return this.http.get<Song>(`${this.baseUrl}/songs/bundle/${bundleId}/number/${number}`);
+  }
+
+  getSong(id: string): Observable<Song> {
+    return this.http.get<Song>(`${this.baseUrl}/songs/${id}`);
+  }
+
+  createSong(request: { bundleId: string; section?: string; number: number; title?: string; numberOfVerses?: number; verses?: SongVerse[] }): Observable<Song> {
     return this.http.post<Song>(`${this.baseUrl}/songs`, request);
+  }
+
+  updateSong(id: string, request: { section?: string; number?: number; title?: string; numberOfVerses?: number; verses?: SongVerse[] }): Observable<Song> {
+    return this.http.put<Song>(`${this.baseUrl}/songs/${id}`, request);
+  }
+
+  deleteSong(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/songs/${id}`);
   }
 
   // Content

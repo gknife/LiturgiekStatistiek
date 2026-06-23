@@ -41,7 +41,7 @@ public class ListsController : ControllerBase
     }
 
     [HttpPost("items")]
-    [Authorize]
+    [Authorize(Roles = "Admin,Researcher")]
     public async Task<ActionResult<ListItemDto>> AddListItem([FromBody] CreateListItemRequest request)
     {
         var userId = User.Identity?.Name ?? "unknown";
@@ -50,7 +50,7 @@ public class ListsController : ControllerBase
     }
 
     [HttpPut("items/{id:guid}")]
-    [Authorize]
+    [Authorize(Roles = "Admin,Researcher")]
     public async Task<ActionResult<ListItemDto>> UpdateListItem(Guid id, [FromBody] UpdateListItemRequest request)
     {
         var userId = User.Identity?.Name ?? "unknown";
@@ -60,7 +60,7 @@ public class ListsController : ControllerBase
     }
 
     [HttpDelete("items/{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Researcher")]
     public async Task<IActionResult> DeleteListItem(Guid id)
     {
         var success = await _listService.DeleteListItemAsync(id);
