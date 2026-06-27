@@ -17,6 +17,7 @@ export interface ServiceSummary {
   preacherName: string | null;
   specialOccasion: string | null;
   elementCount: number;
+  broadcastUrl: string | null;
 }
 
 export interface ServiceDetail {

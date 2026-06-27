@@ -164,6 +164,19 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="broadcast">
+          <th mat-header-cell *matHeaderCellDef>Uitzending</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.broadcastUrl) {
+              <a mat-icon-button [href]="row.broadcastUrl" target="_blank" rel="noopener noreferrer"
+                matTooltip="Bekijk uitzending" aria-label="Bekijk uitzending"
+                (click)="$event.stopPropagation()">
+                <mat-icon>live_tv</mat-icon>
+              </a>
+            }
+          </td>
+        </ng-container>
+
         @if (isAuthenticated) {
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>

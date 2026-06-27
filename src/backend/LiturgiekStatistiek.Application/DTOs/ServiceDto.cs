@@ -58,7 +58,8 @@ public record ServiceSummaryDto(
     string? City,
     string? PreacherName,
     string? SpecialOccasion,
-    int ElementCount
+    int ElementCount,
+    string? BroadcastUrl
 );
 
 public record CreateServiceRequest(

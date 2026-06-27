@@ -57,7 +57,8 @@ public class ServiceService : IServiceService
                 s.Congregation.City,
                 s.Preacher != null ? s.Preacher.FullName : null,
                 s.SpecialOccasion != null ? s.SpecialOccasion.Value : null,
-                s.Elements.Count))
+                s.Elements.Count,
+                s.BroadcastUrl))
             .ToListAsync();
 
         return new PaginatedResult<ServiceSummaryDto>(items, totalCount, page, pageSize);

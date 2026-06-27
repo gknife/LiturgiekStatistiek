@@ -83,7 +83,7 @@ export class ServicesComponent implements OnInit {
   }
 
   get displayedColumns(): string[] {
-    const base = ['date', 'timeOfDay', 'congregation', 'city', 'preacher', 'specialOccasion', 'elementCount'];
+    const base = ['date', 'timeOfDay', 'congregation', 'city', 'preacher', 'specialOccasion', 'elementCount', 'broadcast'];
     if (this.isAuthenticated) return ['select', ...base, 'actions'];
     return base;
   }
