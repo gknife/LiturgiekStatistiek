@@ -87,8 +87,17 @@
               } @else if (isDate(param)) {
                 <mat-form-field appearance="outline">
                   <mat-label>{{ param.label }}</mat-label>
-                  <input matInput type="date" [(ngModel)]="templateParams[param.name]"
-                    [required]="param.required">
+                  <input matInput [matDatepicker]="dp" [(ngModel)]="templateDates[param.name]"
+                    [required]="param.required" placeholder="dd-mm-jjjj">
+                  @if (templateDates[param.name]) {
+                    <button matIconSuffix mat-icon-button type="button"
+                      (click)="clearDate(param.name)" aria-label="Datum wissen">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                  <mat-datepicker-toggle matIconSuffix [for]="dp"></mat-datepicker-toggle>
+                  <mat-datepicker #dp></mat-datepicker>
+                  <mat-hint>Leeg laten voor alle datums</mat-hint>
                 </mat-form-field>
               } @else if (isYear(param)) {
                 <mat-form-field appearance="outline">

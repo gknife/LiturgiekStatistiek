@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -45,7 +46,7 @@ interface QueryResult {
   imports: [
     CommonModule, MatCardModule, MatTabsModule, MatIconModule, MatButtonModule,
     MatInputModule, MatFormFieldModule, MatSelectModule, MatAutocompleteModule,
-    MatProgressSpinnerModule,
+    MatDatepickerModule, MatProgressSpinnerModule,
     FormsModule, ResultChartComponent, ResultTableComponent, ResultMapComponent,
     AdvancedQueryComponent,
   ],
@@ -62,6 +63,7 @@ export class QueryComponent implements OnInit {
   readonly queryTemplates = signal<QueryTemplate[]>([]);
   selectedTemplate: QueryTemplate | null = null;
   templateParams: Record<string, string> = {};
+  templateDates: Record<string, Date | null> = {};
   readonly loading = signal(false);
   readonly result = signal<QueryResult | null>(null);
   readonly aiStatus = signal<AiStatus | null>(null);
@@ -146,12 +148,24 @@ export class QueryComponent implements OnInit {
   selectTemplate(template: QueryTemplate): void {
     this.selectedTemplate = template;
     this.templateParams = {};
+    this.templateDates = {};
     template.parameters.forEach(p => {
-      if (p.defaultValue) this.templateParams[p.name] = p.defaultValue;
+      if (p.defaultValue) {
+        if (this.isDate(p)) {
+          const d = new Date(p.defaultValue);
+          this.templateDates[p.name] = isNaN(d.getTime()) ? null : d;
+        } else {
+          this.templateParams[p.name] = p.defaultValue;
+        }
+      }
     });
     template.parameters
       .filter(p => p.type === 'bundle' && this.templateParams[p.name])
       .forEach(p => this.loadSongsForBundle(this.templateParams[p.name]));
+  }
+
+  clearDate(name: string): void {
+    this.templateDates[name] = null;
   }
 
   isCongregation(p: { type: string }): boolean { return p.type === 'congregation'; }
@@ -269,13 +283,35 @@ export class QueryComponent implements OnInit {
     this.loading.set(true);
     this.result.set(null);
 
+    const parameters: Record<string, string> = this.buildParameters();
+
     this.http.post<QueryResult>(`${this.apiUrl}/queries/execute`, {
       templateId: this.selectedTemplate.id,
-      parameters: this.templateParams,
+      parameters,
     }).subscribe({
       next: res => { this.result.set(res); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
+  }
+
+  /** Merge text params with the picked dates (as yyyy-MM-dd); omit empty dates so the backend returns all results. */
+  private buildParameters(): Record<string, string> {
+    const parameters: Record<string, string> = { ...this.templateParams };
+    for (const [name, d] of Object.entries(this.templateDates)) {
+      if (d instanceof Date && !isNaN(d.getTime())) {
+        parameters[name] = this.formatDate(d);
+      } else {
+        delete parameters[name];
+      }
+    }
+    return parameters;
+  }
+
+  private formatDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   submitNaturalLanguageQuery(): void {
@@ -301,7 +337,7 @@ export class QueryComponent implements OnInit {
     if (!this.selectedTemplate) return;
     this.http.post(`${this.apiUrl}/export/excel`, {
       templateId: this.selectedTemplate.id,
-      parameters: this.templateParams,
+      parameters: this.buildParameters(),
     }, { responseType: 'blob' }).subscribe(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
