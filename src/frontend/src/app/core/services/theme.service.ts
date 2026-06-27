@@ -1,4 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { ApiService } from './api.service';
+import { AuthService } from '../auth/auth.service';
 
 export type ThemeMode = 'light' | 'dark';
 export type FontSize = 'small' | 'medium' | 'large';
@@ -31,12 +33,38 @@ const FONT_SIZES: Record<FontSize, string> = {
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
   private readonly _preferences = signal<UserPreferences>(this.load());
   readonly preferences = this._preferences.asReadonly();
 
   /** Apply the persisted preferences. Call once during app initialization. */
   initialize(): void {
     this.apply(this._preferences());
+  }
+
+  /**
+   * When a user is logged in, the database is the source of truth. Load their
+   * stored settings, merge over the local defaults, and apply. Settings are
+   * stored as a generic JSON blob so new preference keys can be added without a
+   * schema change.
+   */
+  loadFromDb(): void {
+    if (!this.auth.isAuthenticated) return;
+    this.api.getUserSettings().subscribe({
+      next: res => {
+        try {
+          const parsed = res?.settingsJson ? JSON.parse(res.settingsJson) : {};
+          const next = { ...this._preferences(), ...parsed } as UserPreferences;
+          this._preferences.set(next);
+          this.persist(next);
+          this.apply(next);
+        } catch {
+          // Ignore malformed stored settings.
+        }
+      },
+      error: () => { /* not logged in / unavailable — keep local */ },
+    });
   }
 
   setTheme(theme: ThemeMode): void {
@@ -56,6 +84,15 @@ export class ThemeService {
     this._preferences.set(next);
     this.persist(next);
     this.apply(next);
+    this.writeThrough(next);
+  }
+
+  /** Persist to the database when authenticated (write-through). */
+  private writeThrough(prefs: UserPreferences): void {
+    if (!this.auth.isAuthenticated) return;
+    this.api.saveUserSettings(JSON.stringify(prefs)).subscribe({
+      error: () => { /* ignore transient write failures */ },
+    });
   }
 
   private apply(prefs: UserPreferences): void {

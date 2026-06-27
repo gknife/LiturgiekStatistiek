@@ -132,3 +132,44 @@
     flex-wrap: wrap;
   }
 }
+
+.preektekst-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+
+  .section-label { font-weight: 600; }
+  .section-hint { margin: 0; font-size: 0.85rem; opacity: 0.75; }
+}
+
+.sermon-ref-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+
+  .ref-book { flex: 2 1 200px; }
+  .ref-chapter { flex: 1 1 110px; }
+  .ref-verse { flex: 1 1 100px; }
+}
+
+.element-songs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-left: 2.5rem;
+}
+
+.song-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+
+  .song-bundle { flex: 1 1 140px; }
+  .song-section { flex: 1 1 120px; }
+  .song-number { flex: 0 1 100px; }
+  .song-verses { flex: 1 1 140px; }
+}

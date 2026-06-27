@@ -1,4 +1,4 @@
-<h1>Zoeken & Statistieken</h1>
+<h1>Zoeken</h1>
 <p class="page-description">Doorzoek de database met voorgedefinieerde sjablonen, stel uw eigen vraag of bouw een geavanceerde query.</p>
 
 <mat-tab-group>
@@ -171,6 +171,24 @@
             }
           </div>
         </div>
+
+        @if (recentSearches().length > 0) {
+          <div class="recent-section">
+            <div class="recent-header">
+              <h4>Recente zoekvragen</h4>
+              <button mat-button color="warn" (click)="clearRecentSearches()">
+                <mat-icon>clear_all</mat-icon> Wissen
+              </button>
+            </div>
+            <div class="example-chips">
+              @for (recent of recentSearches(); track recent) {
+                <button mat-stroked-button class="example-chip" (click)="rerunRecent(recent)">
+                  {{ recent }}
+                </button>
+              }
+            </div>
+          </div>
+        }
       </mat-card>
     </div>
   </mat-tab>
@@ -213,6 +231,13 @@
 
     @if (result()!.columns.length > 0 && result()!.rows.length > 0) {
       <app-result-table [columns]="result()!.columns" [rows]="result()!.rows" [totalCount]="result()!.totalCount"></app-result-table>
+    }
+
+    @if (result()!.rows.length === 0) {
+      <mat-card class="no-results">
+        <mat-icon>search_off</mat-icon>
+        <p>Geen resultaten gevonden voor deze zoekopdracht.</p>
+      </mat-card>
     }
   </div>
 }

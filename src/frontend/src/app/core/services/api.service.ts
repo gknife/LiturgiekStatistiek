@@ -19,6 +19,8 @@ import {
   AdvancedQuerySchema,
   AdvancedQueryDefinition,
   SavedQuery,
+  BibleBook,
+  LiturgyParseResult,
 } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -217,5 +219,45 @@ export class ApiService {
   // Export
   exportExcel(request: any): Observable<Blob> {
     return this.http.post(`${this.baseUrl}/export/excel`, request, { responseType: 'blob' });
+  }
+
+  // Bible books (for the structured Preektekst editor)
+  getBibleBooks(translation?: string): Observable<BibleBook[]> {
+    let params = new HttpParams();
+    if (translation) params = params.set('translation', translation);
+    return this.http.get<BibleBook[]>(`${this.baseUrl}/bible/books`, { params });
+  }
+
+  // Liturgy parsing (paste + URL import)
+  parseLiturgy(text: string, title?: string): Observable<LiturgyParseResult> {
+    return this.http.post<LiturgyParseResult>(`${this.baseUrl}/parse/liturgy`, { text, title });
+  }
+
+  importLiturgyUrl(url: string): Observable<LiturgyParseResult> {
+    return this.http.post<LiturgyParseResult>(`${this.baseUrl}/parse/url`, { url });
+  }
+
+  // User settings (authenticated)
+  getUserSettings(): Observable<{ settingsJson: string }> {
+    return this.http.get<{ settingsJson: string }>(`${this.baseUrl}/usersettings`);
+  }
+
+  saveUserSettings(settingsJson: string): Observable<{ settingsJson: string }> {
+    return this.http.put<{ settingsJson: string }>(`${this.baseUrl}/usersettings`, { settingsJson });
+  }
+
+  // Recent searches (authenticated)
+  getRecentSearches(max = 10): Observable<{ queryText: string; createdAt: string }[]> {
+    return this.http.get<{ queryText: string; createdAt: string }[]>(`${this.baseUrl}/recent-searches`, {
+      params: new HttpParams().set('max', max),
+    });
+  }
+
+  addRecentSearch(queryText: string): Observable<{ queryText: string; createdAt: string }> {
+    return this.http.post<{ queryText: string; createdAt: string }>(`${this.baseUrl}/recent-searches`, { queryText });
+  }
+
+  clearRecentSearches(): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/recent-searches`);
   }
 }

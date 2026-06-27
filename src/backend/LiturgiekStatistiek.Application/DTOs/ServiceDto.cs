@@ -28,7 +28,26 @@ public record ServiceDto(
     Guid? ChurchCalendarSundayId,
     Guid? BibleTranslationId,
     Guid? MusicalAccompanimentId,
-    Guid? SpecialOccasionId
+    Guid? SpecialOccasionId,
+    List<SermonTextReferenceDto> SermonTextReferences
+);
+
+public record SermonTextReferenceDto(
+    Guid? BibleBookId,
+    string BookName,
+    int? Chapter,
+    int? VerseStart,
+    int? VerseEnd,
+    int Position
+);
+
+public record SermonTextReferenceRequest(
+    Guid? BibleBookId,
+    string BookName,
+    int? Chapter,
+    int? VerseStart,
+    int? VerseEnd,
+    int Position
 );
 
 public record ServiceSummaryDto(
@@ -62,7 +81,8 @@ public record CreateServiceRequest(
     string? SermonTheme,
     string? Notes,
     List<Guid>? BundleIds,
-    List<CreateServiceElementRequest>? Elements
+    List<CreateServiceElementRequest>? Elements,
+    List<SermonTextReferenceRequest>? SermonTextReferences
 );
 
 public record UpdateServiceRequest(
@@ -85,7 +105,8 @@ public record UpdateServiceRequest(
     string? SermonTheme,
     string? Notes,
     List<Guid>? BundleIds,
-    List<CreateServiceElementRequest>? Elements
+    List<CreateServiceElementRequest>? Elements,
+    List<SermonTextReferenceRequest>? SermonTextReferences
 );
 
 /// <summary>

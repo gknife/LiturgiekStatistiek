@@ -23,6 +23,11 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<ContentPage> ContentPages => Set<ContentPage>();
     public DbSet<SavedQuery> SavedQueries => Set<SavedQuery>();
     public DbSet<ChangeHistory> ChangeHistory => Set<ChangeHistory>();
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
+    public DbSet<RecentSearch> RecentSearches => Set<RecentSearch>();
+    public DbSet<BibleBook> BibleBooks => Set<BibleBook>();
+    public DbSet<BibleBookTranslationName> BibleBookTranslationNames => Set<BibleBookTranslationName>();
+    public DbSet<SermonTextReference> SermonTextReferences => Set<SermonTextReference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

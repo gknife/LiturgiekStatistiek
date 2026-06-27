@@ -37,6 +37,11 @@ public static class DependencyInjection
         services.AddScoped<IQueryService, QueryService>();
         services.AddScoped<IAdvancedQueryService, AdvancedQueryService>();
         services.AddScoped<ISavedQueryService, SavedQueryService>();
+        services.AddScoped<IUserSettingsService, UserSettingsService>();
+        services.AddScoped<IRecentSearchService, RecentSearchService>();
+        services.AddScoped<IBibleService, BibleService>();
+        services.AddScoped<ILiturgyParser, LiturgyParser>();
+        services.AddScoped<IUrlImportService, UrlImportService>();
         services.AddSingleton<ILlmService, LlmService>();
 
         return services;

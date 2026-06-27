@@ -37,4 +37,5 @@ public class Service : IHasAuditFields
     public ICollection<ServiceElement> Elements { get; set; } = new List<ServiceElement>();
     public ICollection<ServiceBundle> Bundles { get; set; } = new List<ServiceBundle>();
     public ICollection<ServiceMetadata> Metadata { get; set; } = new List<ServiceMetadata>();
+    public ICollection<SermonTextReference> SermonTextReferences { get; set; } = new List<SermonTextReference>();
 }

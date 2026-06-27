@@ -83,6 +83,7 @@ public class ServiceService : IServiceService
             .Include(s => s.Elements)
                 .ThenInclude(e => e.Songs)
                     .ThenInclude(sg => sg.Verses)
+            .Include(s => s.SermonTextReferences)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (service == null)
@@ -150,7 +151,17 @@ public class ServiceService : IServiceService
             service.ChurchCalendarSundayId,
             service.BibleTranslationId,
             service.MusicalAccompanimentId,
-            service.SpecialOccasionId);
+            service.SpecialOccasionId,
+            service.SermonTextReferences
+                .OrderBy(r => r.Position)
+                .Select(r => new SermonTextReferenceDto(
+                    r.BibleBookId,
+                    r.BookName,
+                    r.Chapter,
+                    r.VerseStart,
+                    r.VerseEnd,
+                    r.Position))
+                .ToList());
     }
 
     public async Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, string userId)
@@ -245,6 +256,24 @@ public class ServiceService : IServiceService
             }
         }
 
+        if (request.SermonTextReferences != null)
+        {
+            foreach (var refRequest in request.SermonTextReferences)
+            {
+                service.SermonTextReferences.Add(new SermonTextReference
+                {
+                    Id = Guid.NewGuid(),
+                    ServiceId = service.Id,
+                    Position = refRequest.Position,
+                    BibleBookId = refRequest.BibleBookId,
+                    BookName = refRequest.BookName,
+                    Chapter = refRequest.Chapter,
+                    VerseStart = refRequest.VerseStart,
+                    VerseEnd = refRequest.VerseEnd
+                });
+            }
+        }
+
         _context.Services.Add(service);
         await _context.SaveChangesAsync();
 
@@ -258,6 +287,7 @@ public class ServiceService : IServiceService
             .Include(s => s.Elements)
                 .ThenInclude(e => e.Songs)
                     .ThenInclude(sg => sg.Verses)
+            .Include(s => s.SermonTextReferences)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (service == null)
@@ -363,6 +393,27 @@ public class ServiceService : IServiceService
                 }
 
                 service.Elements.Add(element);
+            }
+        }
+
+        if (request.SermonTextReferences != null)
+        {
+            _context.SermonTextReferences.RemoveRange(service.SermonTextReferences);
+            service.SermonTextReferences.Clear();
+
+            foreach (var refRequest in request.SermonTextReferences)
+            {
+                service.SermonTextReferences.Add(new SermonTextReference
+                {
+                    Id = Guid.NewGuid(),
+                    ServiceId = service.Id,
+                    Position = refRequest.Position,
+                    BibleBookId = refRequest.BibleBookId,
+                    BookName = refRequest.BookName,
+                    Chapter = refRequest.Chapter,
+                    VerseStart = refRequest.VerseStart,
+                    VerseEnd = refRequest.VerseEnd
+                });
             }
         }
 

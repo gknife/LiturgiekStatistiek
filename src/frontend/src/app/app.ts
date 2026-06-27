@@ -8,6 +8,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from './core/auth/auth.service';
+import { ThemeService } from './core/services/theme.service';
 import { AsyncPipe } from '@angular/common';
 
 interface NavItem {
@@ -45,7 +46,7 @@ export class App implements OnInit {
     { path: '/contact', label: 'Contact', icon: 'mail' },
   ];
 
-  constructor(public auth: AuthService) {}
+  constructor(public auth: AuthService, private theme: ThemeService) {}
 
   get visibleNavItems(): NavItem[] {
     return this.allNavItems.filter(
@@ -55,6 +56,8 @@ export class App implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.auth.initialize();
+    // Once auth state is known, load DB-backed settings for logged-in users.
+    this.theme.loadFromDb();
   }
 
   login(): void {

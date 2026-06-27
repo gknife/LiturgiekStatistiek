@@ -152,7 +152,12 @@ Budget alert configured at €25/month.
 - **Query Engine:** Predefined templates, natural language (Dutch), advanced filter builder
 - **Advanced Query Builder:** Block-based filters over services & songs, group-by aggregates, song-sequence operators (before/after/directly-before/directly-after), multi-query comparison, save/load (authenticated) — see [`docs/advanced-query.md`](docs/advanced-query.md)
 - **Diensten (bulk view/edit):** Paginated/filtered grid, public view, inline & multi-select bulk edit for authenticated users, Admin bulk delete, create/edit dialog overlay — see [`docs/bulk-diensten.md`](docs/bulk-diensten.md)
-- **Data Entry:** Manual forms, paste-to-parse, URL import, bulk operations
+- **Data Entry:** Manual forms with structured liturgy editor, paste-to-parse, URL import, bulk operations — see [`docs/data-entry.md`](docs/data-entry.md)
+- **Orde van dienst:** Each service element is chosen from a fixed dropdown of 33 liturgical labels; song elements capture bundle, number and verses
+- **Preektekst (sermon text):** Structured Bible references (book/chapter/verse, book names per translation) plus free-text fallback, queryable
+- **Liturgy parsing:** Deterministic rule-based parser for paste & URL import (AI optional); recognises labels, song references and metadata from the title — see [`docs/data-entry.md`](docs/data-entry.md)
+- **User settings:** Theme/font/accent preferences persisted per user in the database (extensible JSON blob) with localStorage fallback
+- **Recent searches:** Last 10 natural-language questions saved per user; click to re-run or clear
 - **Visualization:** Charts (Chart.js/Plotly), maps (Leaflet), tables
 - **Export:** Excel, PDF, chart images
 - **Song Catalog:** Manageable per bundle (Psalms pre-seeded)
@@ -169,6 +174,7 @@ Detailed technical docs live under [`docs/`](docs/):
 - [`bulk-diensten.md`](docs/bulk-diensten.md) — bulk view/edit Diensten
 - [`theming.md`](docs/theming.md) — theming, logo & favicon
 - [`ai-configuration.md`](docs/ai-configuration.md) — Azure OpenAI setup & troubleshooting
+- [`data-entry.md`](docs/data-entry.md) — manual entry, orde-van-dienst dropdown, Preektekst editor, paste & URL parsing
 
 ## 📝 License
 

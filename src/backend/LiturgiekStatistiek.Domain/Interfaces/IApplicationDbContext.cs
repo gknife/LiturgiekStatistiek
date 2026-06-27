@@ -20,6 +20,11 @@ public interface IApplicationDbContext
     DbSet<ContentPage> ContentPages { get; }
     DbSet<SavedQuery> SavedQueries { get; }
     DbSet<ChangeHistory> ChangeHistory { get; }
+    DbSet<UserSetting> UserSettings { get; }
+    DbSet<RecentSearch> RecentSearches { get; }
+    DbSet<BibleBook> BibleBooks { get; }
+    DbSet<BibleBookTranslationName> BibleBookTranslationNames { get; }
+    DbSet<SermonTextReference> SermonTextReferences { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

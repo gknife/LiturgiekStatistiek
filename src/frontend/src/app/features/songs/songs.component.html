@@ -2,7 +2,7 @@
 <p class="page-description">Catalogus van liederen per bundel. Selecteer een bundel om de liederen te bekijken.</p>
 
 <div class="controls">
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
     <mat-label>Bundel</mat-label>
     <mat-select [(ngModel)]="selectedBundleId" (selectionChange)="onBundleChange()">
       @for (bundle of bundles(); track bundle.id) {
@@ -13,7 +13,7 @@
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
     <mat-label>Zoeken</mat-label>
     <input matInput [(ngModel)]="searchQuery" placeholder="Nummer of titel...">
     <mat-icon matSuffix>search</mat-icon>

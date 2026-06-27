@@ -48,6 +48,7 @@ export interface ServiceDetail {
   bibleTranslationId: string | null;
   musicalAccompanimentId: string | null;
   specialOccasionId: string | null;
+  sermonTextReferences: SermonTextReference[];
 }
 
 export interface ServiceElement {
@@ -68,6 +69,53 @@ export interface ServiceElementSong {
   songNumber: number;
   position: number;
   verses: string[];
+}
+
+export interface SermonTextReference {
+  bibleBookId: string | null;
+  bookName: string;
+  chapter: number | null;
+  verseStart: number | null;
+  verseEnd: number | null;
+  position: number;
+}
+
+export interface BibleBook {
+  id: string;
+  ordinal: number;
+  testament: string;
+  name: string;
+  chapterCount: number;
+  verseCounts: number[];
+}
+
+export interface ParsedElement {
+  position: number;
+  label: string;
+  songBundle: string | null;
+  songNumber: number | null;
+  verses: string[] | null;
+  notes: string | null;
+}
+
+export interface ParsedServiceData {
+  city: string | null;
+  congregation: string | null;
+  denomination: string | null;
+  date: string | null;
+  timeOfDay: string | null;
+  preacher: string | null;
+  bibleTranslation: string | null;
+  sermonText: string | null;
+  sermonTheme: string | null;
+  broadcastUrl: string | null;
+  elements: ParsedElement[];
+}
+
+export interface LiturgyParseResult {
+  success: boolean;
+  data: ParsedServiceData | null;
+  errorMessage: string | null;
 }
 
 export interface Congregation {

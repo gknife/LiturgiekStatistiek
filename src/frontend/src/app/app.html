@@ -27,10 +27,6 @@
           </a>
         }
       </nav>
-      <a mat-icon-button routerLink="/instellingen" aria-label="Instellingen"
-         matTooltip="Instellingen" class="settings-button">
-        <mat-icon>settings</mat-icon>
-      </a>
       @if (auth.isAuthenticated$ | async) {
         <button mat-button [matMenuTriggerFor]="userMenu" class="user-button">
           <mat-icon>account_circle</mat-icon>
@@ -41,12 +37,20 @@
             <mat-icon>email</mat-icon>
             <span>{{ (auth.user$ | async)?.email }}</span>
           </button>
+          <a mat-menu-item routerLink="/instellingen">
+            <mat-icon>settings</mat-icon>
+            <span>Instellingen</span>
+          </a>
           <button mat-menu-item (click)="logout()">
             <mat-icon>logout</mat-icon>
             <span>Uitloggen</span>
           </button>
         </mat-menu>
       } @else {
+        <a mat-icon-button routerLink="/instellingen" aria-label="Instellingen"
+           matTooltip="Instellingen" class="settings-button">
+          <mat-icon>settings</mat-icon>
+        </a>
         <button mat-button class="login-button" (click)="login()">
           <mat-icon>login</mat-icon>
           Inloggen

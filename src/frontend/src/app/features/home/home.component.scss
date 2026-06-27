@@ -10,8 +10,14 @@
     font-family: "Merriweather", serif;
     font-size: 2.5rem;
     font-weight: 700;
+    line-height: 1.2;
     color: var(--app-heading);
     margin-bottom: 0.75rem;
+    overflow-wrap: break-word;
+
+    @media (max-width: 480px) {
+      font-size: 1.9rem;
+    }
   }
 
   .subtitle {

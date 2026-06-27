@@ -78,12 +78,50 @@ public static class DataSeeder
         // --- Liturgical Labels ---
         var labelList = new ListDefinition { Id = Guid.NewGuid(), Name = "LiturgicalLabels", Description = "Liturgische labels", IsSystemList = true };
         db.ListDefinitions.Add(labelList);
-        var labels = new[] { "Voorzang", "Openingslied", "Na vermaan/belijden", "Bij kindermoment",
-            "Voor de preek", "Tussenzang", "Na de preek", "Slotlied", "Na de zegen",
-            "Votum", "Groet", "Vermaan/belijden", "Schriftlezing", "Gebed", "Preek",
-            "Mededelingen", "Collecte", "Zegen", "Geloofsbelijdenis", "Dankgebed" };
+        var labels = new[] {
+            "Muziek voor de dienst (orgel)",
+            "Muziek voor de dienst (anders)",
+            "Repertoire voor dienst (psalmen)",
+            "Repertoire voor dienst (psalmen/gezangen)",
+            "Repertoire voor dienst (psalmen/gezangen/orgelliteratuur)",
+            "Mededelingen",
+            "Votum",
+            "Groet",
+            "Groet (gebeden)",
+            "Vermaan/belijden",
+            "Schriftlezing(en)",
+            "Lector vermaan/belijden",
+            "Lector Schrift",
+            "Gebed om de opening van het Woord",
+            "Grote gebed (met voorbeden/dankzegging)",
+            "Dankgebed",
+            "Dankgebed (met voorbeden/dankzegging)",
+            "Preektekst",
+            "Thema preek",
+            "Voorzang",
+            "Openingslied",
+            "Na vermaan/belijden",
+            "Bij kindermoment",
+            "Voor de preek (zonder collecte)",
+            "Voor de preek (met collecte)",
+            "Tussenzang",
+            "Na de preek",
+            "Slotlied",
+            "Slotlied (met collecte)",
+            "Zegen",
+            "Zegen (gebeden)",
+            "Zegenbede",
+            "Na de zegen (orgelspel of...)",
+            "Collecte aan de deur",
+            "Overig" };
         for (int i = 0; i < labels.Length; i++)
             db.ListItems.Add(new ListItem { Id = Guid.NewGuid(), ListDefinitionId = labelList.Id, Value = labels[i], SortOrder = i + 1 });
+
+        // --- Bible Books + versification ---
+        foreach (var book in BibleData.GetBooks())
+        {
+            db.BibleBooks.Add(book);
+        }
 
         // --- Congregations ---
         var cong1 = new Congregation

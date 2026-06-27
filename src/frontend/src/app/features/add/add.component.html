@@ -1,7 +1,7 @@
 <h1>{{ isEditMode ? 'Dienst bewerken' : 'Dienst toevoegen' }}</h1>
 <p class="page-description">{{ isEditMode ? 'Pas de gegevens van deze dienst aan.' : 'Voeg een nieuwe kerkdienst toe aan de database.' }}</p>
 
-<mat-tab-group>
+<mat-tab-group [(selectedIndex)]="selectedTabIndex">
   <!-- Tab 1: Manual entry -->
   <mat-tab label="Handmatig invoeren">
     <div class="tab-content">
@@ -91,9 +91,63 @@
               </mat-select>
             </mat-form-field>
 
+            <div class="full-width preektekst-section">
+              <label class="section-label">Preektekst</label>
+              <p class="section-hint">Kies bijbelboek (afhankelijk van de vertaling), hoofdstuk en vers(en).
+                Gebruik het vrije veld hieronder voor afwijkende verwijzingen (bijv. over hoofdstukken heen of een catechismuszondag).</p>
+
+              @for (ref of sermonRefs; track $index; let i = $index) {
+                <div class="sermon-ref-row">
+                  <mat-form-field appearance="outline" class="ref-book">
+                    <mat-label>Bijbelboek</mat-label>
+                    <mat-select [(ngModel)]="ref.bibleBookId" [ngModelOptions]="{ standalone: true }">
+                      @for (b of bibleBooks; track b.id) {
+                        <mat-option [value]="b.id">{{ b.name }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Hoofdstuk</mat-label>
+                    <mat-select [(ngModel)]="ref.chapter" [ngModelOptions]="{ standalone: true }">
+                      @for (c of chaptersOf(ref.bibleBookId); track c) {
+                        <mat-option [value]="c">{{ c }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="ref-verse">
+                    <mat-label>Van vers</mat-label>
+                    <mat-select [(ngModel)]="ref.verseStart" [ngModelOptions]="{ standalone: true }">
+                      @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
+                        <mat-option [value]="v">{{ v }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="ref-verse">
+                    <mat-label>Tot vers</mat-label>
+                    <mat-select [(ngModel)]="ref.verseEnd" [ngModelOptions]="{ standalone: true }">
+                      @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
+                        <mat-option [value]="v">{{ v }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <button mat-icon-button color="warn" type="button" (click)="removeSermonRef(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+
+              <button mat-stroked-button type="button" (click)="addSermonRef()">
+                <mat-icon>add</mat-icon> Preektekst toevoegen
+              </button>
+            </div>
+
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Preektekst</mat-label>
-              <input matInput formControlName="sermonText" placeholder="Bijv. Openbaring 2:1-7">
+              <mat-label>Preektekst (vrije invoer)</mat-label>
+              <input matInput formControlName="sermonText" placeholder="Bijv. Genesis 1: laatste vers - Genesis 2: eerste vers">
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -128,17 +182,56 @@
               <mat-card class="element-card">
                 <div class="element-header">
                   <span class="position-badge">{{ element.position }}</span>
-                  <mat-form-field appearance="outline" class="element-label-field">
+                  <mat-form-field appearance="outline" class="element-label-field" subscriptSizing="dynamic">
                     <mat-label>Onderdeel</mat-label>
-                    <input matInput [(ngModel)]="element.label"
-                      placeholder="Bijv. Openingslied, Schriftlezing, Gebed...">
+                    <mat-select [(ngModel)]="element.labelId" [ngModelOptions]="{ standalone: true }">
+                      @for (l of liturgicalLabels; track l.id) {
+                        <mat-option [value]="l.id">{{ l.value }}</mat-option>
+                      }
+                    </mat-select>
                   </mat-form-field>
-                  <mat-form-field appearance="outline" class="element-notes-field">
+                  <mat-form-field appearance="outline" class="element-notes-field" subscriptSizing="dynamic">
                     <mat-label>Opmerking</mat-label>
-                    <input matInput [(ngModel)]="element.notes" placeholder="Bijv. staand, gezongen">
+                    <input matInput [(ngModel)]="element.notes" [ngModelOptions]="{ standalone: true }"
+                      placeholder="Bijv. staand, gezongen">
                   </mat-form-field>
-                  <button mat-icon-button color="warn" (click)="removeElement(i)">
+                  <button mat-icon-button color="warn" type="button" (click)="removeElement(i)">
                     <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+
+                <div class="element-songs">
+                  @for (song of element.songs; track $index; let si = $index) {
+                    <div class="song-row">
+                      <mat-form-field appearance="outline" class="song-bundle" subscriptSizing="dynamic">
+                        <mat-label>Bundel</mat-label>
+                        <mat-select [(ngModel)]="song.bundleId" [ngModelOptions]="{ standalone: true }">
+                          @for (b of bundles; track b.id) {
+                            <mat-option [value]="b.id">{{ b.abbreviation || b.value }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" class="song-section" subscriptSizing="dynamic">
+                        <mat-label>Rubriek</mat-label>
+                        <input matInput [(ngModel)]="song.section" [ngModelOptions]="{ standalone: true }"
+                          placeholder="Psalm, Gezang...">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" class="song-number" subscriptSizing="dynamic">
+                        <mat-label>Nummer</mat-label>
+                        <input matInput type="number" [(ngModel)]="song.number" [ngModelOptions]="{ standalone: true }">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" class="song-verses" subscriptSizing="dynamic">
+                        <mat-label>Verzen</mat-label>
+                        <input matInput [(ngModel)]="song.versesText" [ngModelOptions]="{ standalone: true }"
+                          placeholder="Bijv. 1, 3, 5">
+                      </mat-form-field>
+                      <button mat-icon-button color="warn" type="button" (click)="removeSong(element, si)">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  }
+                  <button mat-button type="button" (click)="addSong(element)">
+                    <mat-icon>music_note</mat-icon> Lied toevoegen
                   </button>
                 </div>
               </mat-card>
@@ -207,10 +300,9 @@
           {{ parsing ? 'Bezig met verwerken...' : 'Verwerken' }}
         </button>
 
-        @if (parsedResult) {
+        @if (parseMessage) {
           <mat-card class="result-card">
-            <h4>Resultaat</h4>
-            <pre>{{ parsedResult | json }}</pre>
+            <p>{{ parseMessage }}</p>
           </mat-card>
         }
       </mat-card>
@@ -236,6 +328,12 @@
           <mat-icon>cloud_download</mat-icon>
           {{ importing ? 'Bezig met importeren...' : 'Importeren' }}
         </button>
+
+        @if (importMessage) {
+          <mat-card class="result-card">
+            <p>{{ importMessage }}</p>
+          </mat-card>
+        }
       </mat-card>
     </div>
   </mat-tab>

@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ListItem, Song } from '../../core/models/api.models';
 import { environment } from '../../../environments/environment';
 import { ResultChartComponent, ChartData } from '../../shared/components/result-chart/result-chart.component';
@@ -54,8 +55,10 @@ interface QueryResult {
 export class QueryComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
 
   naturalLanguageQuery = '';
+  readonly recentSearches = signal<string[]>([]);
   readonly queryTemplates = signal<QueryTemplate[]>([]);
   selectedTemplate: QueryTemplate | null = null;
   templateParams: Record<string, string> = {};
@@ -107,6 +110,36 @@ export class QueryComponent implements OnInit {
 
     this.api.getListByName('SongBundles').subscribe({
       next: list => this.bundles.set(list.items),
+    });
+
+    this.loadRecentSearches();
+  }
+
+  private loadRecentSearches(): void {
+    if (!this.auth.isAuthenticated) return;
+    this.api.getRecentSearches(10).subscribe({
+      next: items => this.recentSearches.set(items.map(i => i.queryText)),
+      error: () => { /* not logged in or unavailable; ignore */ },
+    });
+  }
+
+  rerunRecent(query: string): void {
+    this.naturalLanguageQuery = query;
+    this.submitNaturalLanguageQuery();
+  }
+
+  clearRecentSearches(): void {
+    this.recentSearches.set([]);
+    if (this.auth.isAuthenticated) {
+      this.api.clearRecentSearches().subscribe({ error: () => { /* ignore */ } });
+    }
+  }
+
+  private recordRecentSearch(query: string): void {
+    if (!this.auth.isAuthenticated) return;
+    this.api.addRecentSearch(query).subscribe({
+      next: () => this.loadRecentSearches(),
+      error: () => { /* ignore */ },
     });
   }
 
@@ -247,13 +280,14 @@ export class QueryComponent implements OnInit {
 
   submitNaturalLanguageQuery(): void {
     if (!this.naturalLanguageQuery) return;
+    const query = this.naturalLanguageQuery;
     this.loading.set(true);
     this.result.set(null);
 
     this.http.post<QueryResult>(`${this.apiUrl}/queries/execute`, {
-      naturalLanguageQuery: this.naturalLanguageQuery,
+      naturalLanguageQuery: query,
     }).subscribe({
-      next: res => { this.result.set(res); this.loading.set(false); },
+      next: res => { this.result.set(res); this.loading.set(false); this.recordRecentSearch(query); },
       error: () => this.loading.set(false),
     });
   }
