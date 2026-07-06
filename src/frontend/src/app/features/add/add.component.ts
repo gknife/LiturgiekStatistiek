@@ -21,7 +21,7 @@ import {
   CongregationSummary, PreacherSummary, ListItem, ServiceDetail,
   BibleBook, ParsedServiceData,
 } from '../../core/models/api.models';
-import { debounceTime, switchMap, of, map, throwError, Observable } from 'rxjs';
+import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin } from 'rxjs';
 import { FormControl } from '@angular/forms';
 
 export interface AddDialogData {
@@ -148,15 +148,33 @@ export class AddComponent implements OnInit {
       hasBeamerSongs: [false],
     });
 
-    // Load dropdown lists
-    this.api.getListByName('SongBundles').subscribe(l => this.bundles = l.items);
-    this.api.getListByName('SpecialOccasions').subscribe(l => this.specialOccasions = l.items);
-    this.api.getListByName('BibleTranslations').subscribe(l => this.bibleTranslations = l.items);
-    this.api.getListByName('ChurchCalendarSundays').subscribe(l => this.churchCalendarSundays = l.items);
-    this.api.getListByName('MusicalAccompaniment').subscribe(l => this.musicalAccompaniments = l.items);
-    this.api.getListByName('LiturgicalLabels').subscribe(l => this.liturgicalLabels = l.items);
+    // Load dropdown lists. Edit-mode prefill maps existing labels/bundles back to
+    // their ids, so it must run only AFTER these lists are available — otherwise the
+    // Onderdeel/bundle dropdowns render empty. forkJoin gates prefill on the loads.
+    forkJoin({
+      bundles: this.api.getListByName('SongBundles'),
+      specialOccasions: this.api.getListByName('SpecialOccasions'),
+      bibleTranslations: this.api.getListByName('BibleTranslations'),
+      churchCalendarSundays: this.api.getListByName('ChurchCalendarSundays'),
+      musicalAccompaniments: this.api.getListByName('MusicalAccompaniment'),
+      liturgicalLabels: this.api.getListByName('LiturgicalLabels'),
+    }).subscribe(lists => {
+      this.bundles = lists.bundles.items;
+      this.specialOccasions = lists.specialOccasions.items;
+      this.bibleTranslations = lists.bibleTranslations.items;
+      this.churchCalendarSundays = lists.churchCalendarSundays.items;
+      this.musicalAccompaniments = lists.musicalAccompaniments.items;
+      this.liturgicalLabels = lists.liturgicalLabels.items;
 
-    this.loadBibleBooks();
+      this.loadBibleBooks();
+
+      // Edit mode: load the existing service and prefill the form once the lists
+      // needed to resolve labels/bundles/books are present.
+      if (this.dialogData?.serviceId) {
+        this.editingServiceId = this.dialogData.serviceId;
+        this.api.getService(this.editingServiceId).subscribe(service => this.prefill(service));
+      }
+    });
 
     // Reload book names when the translation changes.
     this.metadataForm.get('bibleTranslationId')!.valueChanges.subscribe(() => this.loadBibleBooks());
@@ -172,12 +190,6 @@ export class AddComponent implements OnInit {
       debounceTime(300),
       switchMap(val => val && val.length > 1 ? this.api.searchPreachers(val) : of([]))
     ).subscribe(results => this.preacherSuggestions = results);
-
-    // Edit mode: load the existing service and prefill the form.
-    if (this.dialogData?.serviceId) {
-      this.editingServiceId = this.dialogData.serviceId;
-      this.api.getService(this.editingServiceId).subscribe(service => this.prefill(service));
-    }
   }
 
   private loadBibleBooks(): void {

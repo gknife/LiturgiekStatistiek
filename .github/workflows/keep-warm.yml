@@ -1,0 +1,38 @@
+name: Keep API warm
+
+# The backend runs on an Azure Container App with minReplicas: 0, so it scales to
+# zero when idle and the first request afterwards pays a ~45s cold start (EF
+# migrations + data seeding on boot). This scheduled ping keeps a replica warm
+# during business hours only, preserving the overnight scale-to-zero savings.
+#
+# Schedule is in UTC. 05:00-22:59 UTC covers roughly 07:00-23:00 Europe/Amsterdam
+# across both CET (UTC+1) and CEST (UTC+2).
+
+on:
+  schedule:
+    - cron: '*/5 5-22 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          URL="https://ca-liturgiek-api.happypond-fc71b176.westeurope.azurecontainerapps.io/health"
+          echo "Pinging $URL"
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$URL" || echo "000")
+            echo "Attempt $attempt -> HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "API is warm."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health endpoint did not return 200 after 3 attempts (last: $code)."
+          exit 1

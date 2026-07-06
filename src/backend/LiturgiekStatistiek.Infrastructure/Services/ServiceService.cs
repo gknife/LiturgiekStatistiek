@@ -286,8 +286,6 @@ public class ServiceService : IServiceService
         var service = await _context.Services
             .Include(s => s.Bundles)
             .Include(s => s.Elements)
-                .ThenInclude(e => e.Songs)
-                    .ThenInclude(sg => sg.Verses)
             .Include(s => s.SermonTextReferences)
             .FirstOrDefaultAsync(s => s.Id == id);
 
@@ -317,11 +315,37 @@ public class ServiceService : IServiceService
         service.ModifiedBy = userId;
         service.ModifiedAt = DateTime.UtcNow;
 
+        // Replace-collections edit: delete the existing child rows and flush them in
+        // their own SaveChanges BEFORE inserting the replacements. Deleting the old
+        // graph and inserting the new one in a single SaveChanges makes EF's identity
+        // resolution treat a freshly-created child as an existing row to UPDATE (and
+        // deleting every tracked level races the ON DELETE CASCADE on relational
+        // providers), both of which throw DbUpdateConcurrencyException
+        // ("expected to affect 1 row(s), but actually affected 0 row(s)"). Only the
+        // top-level rows are removed explicitly; the database cascade removes the
+        // child Songs and Verses.
         if (request.BundleIds != null)
         {
             _context.ServiceBundles.RemoveRange(service.Bundles);
             service.Bundles.Clear();
+        }
 
+        if (request.Elements != null)
+        {
+            _context.ServiceElements.RemoveRange(service.Elements);
+            service.Elements.Clear();
+        }
+
+        if (request.SermonTextReferences != null)
+        {
+            _context.SermonTextReferences.RemoveRange(service.SermonTextReferences);
+            service.SermonTextReferences.Clear();
+        }
+
+        await _context.SaveChangesAsync();
+
+        if (request.BundleIds != null)
+        {
             foreach (var bundleId in request.BundleIds)
             {
                 service.Bundles.Add(new ServiceBundle
@@ -332,20 +356,8 @@ public class ServiceService : IServiceService
             }
         }
 
-        // Full nested edit: when Elements are supplied, replace the whole tree
-        // (elements -> songs -> verses). Simpler and correct for v1; avoids
-        // per-child diffing.
         if (request.Elements != null)
         {
-            foreach (var existing in service.Elements)
-            {
-                foreach (var song in existing.Songs)
-                    _context.SongVerses.RemoveRange(song.Verses);
-                _context.ServiceElementSongs.RemoveRange(existing.Songs);
-            }
-            _context.ServiceElements.RemoveRange(service.Elements);
-            service.Elements.Clear();
-
             foreach (var elementRequest in request.Elements)
             {
                 var element = new ServiceElement
@@ -393,15 +405,17 @@ public class ServiceService : IServiceService
                     }
                 }
 
-                service.Elements.Add(element);
+                // Add via the DbSet (not the tracked service.Elements navigation) so the
+                // entire new graph - element, songs and verses - is marked Added. Adding
+                // through the navigation only forces the element to Added; the grandchild
+                // songs/verses keep their pre-set Guid keys and hit EF's "key is set =>
+                // existing row" heuristic, producing a 0-row UPDATE that throws.
+                _context.ServiceElements.Add(element);
             }
         }
 
         if (request.SermonTextReferences != null)
         {
-            _context.SermonTextReferences.RemoveRange(service.SermonTextReferences);
-            service.SermonTextReferences.Clear();
-
             foreach (var refRequest in request.SermonTextReferences)
             {
                 service.SermonTextReferences.Add(new SermonTextReference
