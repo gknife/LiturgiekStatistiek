@@ -39,6 +39,12 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Plaats</mat-label>
+              <input matInput [formControl]="congregationCityControl"
+                placeholder="Plaats van de gemeente">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
               <mat-label>Voorganger</mat-label>
               <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
                 placeholder="Typ om te zoeken...">
@@ -257,7 +263,7 @@
             <mat-card class="review-card">
               <p><strong>Datum:</strong> {{ metadataForm.get('date')?.value | date:'d MMMM yyyy' }}</p>
               <p><strong>Dagdeel:</strong> {{ timeOfDayOptions[metadataForm.get('timeOfDay')?.value]?.label }}</p>
-              <p><strong>Gemeente:</strong> {{ congregationControl.value }}</p>
+              <p><strong>Gemeente:</strong> {{ congregationControl.value }}{{ congregationCityControl.value ? ' — ' + congregationCityControl.value : '' }}</p>
               <p><strong>Voorganger:</strong> {{ preacherControl.value }}</p>
               <p><strong>Preektekst:</strong> {{ metadataForm.get('sermonText')?.value }}</p>
               <p><strong>Thema:</strong> {{ metadataForm.get('sermonTheme')?.value }}</p>

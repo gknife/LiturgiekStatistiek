@@ -27,10 +27,23 @@ manual form for review before saving.
 ## 3. URL importeren (url)
 
 Posts a URL to `POST /api/parse/url` `{ url }`. `UrlImportService` fetches the page
-server-side, extracts `og:title` / `<title>` and the meta description, HTML-decodes them
-and feeds them to the same `LiturgyParser`. The broadcast URL is stored on the service.
-Verified against kerkdienstgemist.nl, whose liturgy lives in the meta description and
-title (no JavaScript required).
+server-side, extracts `og:title` / `<title>` and the meta description and HTML-decodes them.
+
+- **kerkdienstgemist.nl** gets a dedicated extractor (`UrlImportService.ParseKerkdienstgemist`).
+  The page is a SPA (no liturgy in the static HTML), but the metadata sits in predictable
+  places:
+  - The **date & time-of-day** come from the recording id in the path, which encodes the
+    start time as `{unixSeconds}{stationId:D5}` (e.g. `…/recording/178326870001060` →
+    unix `1783268700` → `2026-07-05`, converted to Europe/Amsterdam).
+  - The **church name** is the last ` - ` segment of `og:title`; it is split into
+    *Gemeente* (all but the last word) and *Plaats* (last word).
+  - The **preacher** is the first ` - ` segment when it starts with `ds.`/`drs.`/… (else the
+    first segment is a service type such as *Avonddienst* → Evening); with 3+ segments the
+    middle segment is the **sermon theme**, and a scripture reference in the description
+    (e.g. `Handelingen 9: 1-22`) becomes the **preektekst**.
+- **Other sites** fall back to the generic `LiturgyParser` over the title + meta description.
+
+The broadcast URL is stored on the service.
 
 ## Parser rules (summary)
 
@@ -50,15 +63,15 @@ title (no JavaScript required).
 
 ## Saving — congregation & preacher resolution
 
-The save path is shared by all three flows. When the **Gemeente** or **Voorganger**
-field holds a name that was selected from the autocomplete, its id is used directly.
-When the name was typed manually or supplied by the paste/URL parser and does not yet
-exist, it is resolved on save: an existing match (case-insensitive) is reused, otherwise
-a new `Congregation` / `Preacher` is created automatically (`POST /api/congregations`,
-`POST /api/preachers`) and its id is used. A parsed city fills the required *City* field;
-when none is available (e.g. kerkdienstgemist titles without a city) it falls back to
-`Onbekend`. This keeps the URL-import flow working without manual pre-registration; new
-records can be edited or de-duplicated afterwards under *Lijsten*.
+The save path is shared by all three flows. **Gemeente** (name, with autocomplete) and
+**Plaats** (city) are separate fields; the preacher is a single autocomplete field. When a
+value is selected from the autocomplete its id is used directly; editing either the name or
+the city clears that id so it is re-resolved on save. On save, an existing congregation is
+matched **case-insensitively on both name and city** (so "Hervormde gemeente" in Randwijk
+and in Ederveen stay distinct), otherwise a new `Congregation` / `Preacher` is created
+automatically (`POST /api/congregations`, `POST /api/preachers`) and its id is used. An
+empty city falls back to `Onbekend`. This keeps the URL-import flow working without manual
+pre-registration; new records can be edited or de-duplicated afterwards under *Lijsten*.
 
 ## Related endpoints
 

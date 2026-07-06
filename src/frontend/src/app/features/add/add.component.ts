@@ -67,20 +67,12 @@ export class AddComponent implements OnInit {
   // Form
   metadataForm!: FormGroup;
   congregationControl = new FormControl('');
+  congregationCityControl = new FormControl('');
   preacherControl = new FormControl('');
 
   // Autocomplete
   congregationSuggestions: CongregationSummary[] = [];
   preacherSuggestions: PreacherSummary[] = [];
-
-  // Display label last set for a resolved id. When the user edits the autocomplete
-  // text away from this label the stored id is stale, so it is cleared and the id is
-  // re-resolved from the typed text on save (fixes edits to Gemeente/Voorganger).
-  private selectedCongregationLabel = '';
-  private selectedPreacherLabel = '';
-
-  /** City parsed from paste/URL import, used when auto-creating a new congregation. */
-  private parsedCity: string | null = null;
 
   // Lists
   timeOfDayOptions = [
@@ -185,19 +177,20 @@ export class AddComponent implements OnInit {
     // Reload book names when the translation changes.
     this.metadataForm.get('bibleTranslationId')!.valueChanges.subscribe(() => this.loadBibleBooks());
 
-    // Autocomplete for congregation
+    // Autocomplete for congregation (search on the name field).
     this.congregationControl.valueChanges.pipe(
       debounceTime(300),
       switchMap(val => val && val.length > 1 ? this.api.searchCongregations(val) : of([]))
     ).subscribe(results => this.congregationSuggestions = results);
 
-    // Invalidate the stored congregation id as soon as the text no longer matches the
-    // label that produced it, so an edited name is re-resolved instead of silently
-    // keeping the previous congregation.
-    this.congregationControl.valueChanges.subscribe(val => {
-      if ((val ?? '') !== this.selectedCongregationLabel) {
-        this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
-      }
+    // Editing either the name or the city means the previously resolved congregation
+    // id is stale, so clear it and let it be re-resolved (name + city) on save. These
+    // fire only on user input; programmatic prefill/select use { emitEvent: false }.
+    this.congregationControl.valueChanges.subscribe(() => {
+      this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
+    });
+    this.congregationCityControl.valueChanges.subscribe(() => {
+      this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
     });
 
     // Autocomplete for preacher
@@ -206,10 +199,8 @@ export class AddComponent implements OnInit {
       switchMap(val => val && val.length > 1 ? this.api.searchPreachers(val) : of([]))
     ).subscribe(results => this.preacherSuggestions = results);
 
-    this.preacherControl.valueChanges.subscribe(val => {
-      if ((val ?? '') !== this.selectedPreacherLabel) {
-        this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
-      }
+    this.preacherControl.valueChanges.subscribe(() => {
+      this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
     });
   }
 
@@ -258,11 +249,10 @@ export class AddComponent implements OnInit {
       hasBeamerSongs: service.hasBeamerSongs,
     });
 
-    this.selectedCongregationLabel = `${service.congregation.name} — ${service.congregation.city}`;
-    this.congregationControl.setValue(this.selectedCongregationLabel);
+    this.congregationControl.setValue(service.congregation.name, { emitEvent: false });
+    this.congregationCityControl.setValue(service.congregation.city, { emitEvent: false });
     if (service.preacher) {
-      this.selectedPreacherLabel = service.preacher.fullName;
-      this.preacherControl.setValue(service.preacher.fullName);
+      this.preacherControl.setValue(service.preacher.fullName, { emitEvent: false });
     }
 
     this.elements = service.elements
@@ -300,15 +290,14 @@ export class AddComponent implements OnInit {
   }
 
   selectCongregation(congregation: CongregationSummary): void {
-    this.selectedCongregationLabel = congregation.name + ' — ' + congregation.city;
+    this.congregationControl.setValue(congregation.name, { emitEvent: false });
+    this.congregationCityControl.setValue(congregation.city, { emitEvent: false });
     this.metadataForm.patchValue({ congregationId: congregation.id });
-    this.congregationControl.setValue(this.selectedCongregationLabel);
   }
 
   selectPreacher(preacher: PreacherSummary): void {
-    this.selectedPreacherLabel = preacher.fullName;
+    this.preacherControl.setValue(preacher.fullName, { emitEvent: false });
     this.metadataForm.patchValue({ preacherId: preacher.id });
-    this.preacherControl.setValue(preacher.fullName);
   }
 
   addElement(): void {
@@ -389,8 +378,8 @@ export class AddComponent implements OnInit {
     });
 
     if (data.congregation) this.congregationControl.setValue(data.congregation);
+    if (data.city) this.congregationCityControl.setValue(data.city);
     if (data.preacher) this.preacherControl.setValue(data.preacher);
-    this.parsedCity = data.city ?? null;
 
     this.elements = data.elements.map((e, i) => ({
       position: e.position || i + 1,
@@ -474,19 +463,18 @@ export class AddComponent implements OnInit {
     const existing = this.nullableGuid(this.metadataForm.value.congregationId);
     if (existing) return of(existing);
 
-    const raw = (this.congregationControl.value || '').trim();
-    if (!raw) return throwError(() => new Error('Gemeente is verplicht.'));
+    const name = (this.congregationControl.value || '').trim();
+    if (!name) return throwError(() => new Error('Gemeente is verplicht.'));
 
-    // Display value may be "Naam — Plaats (Denominatie)"; extract the bare name/city.
-    const name = raw.split(' — ')[0].trim();
-    const cityFromLabel = raw.includes(' — ')
-      ? raw.split(' — ')[1].split(' (')[0].trim()
-      : '';
-    const city = this.parsedCity || cityFromLabel || 'Onbekend';
+    const city = (this.congregationCityControl.value || '').trim() || 'Onbekend';
 
+    // Match an existing congregation on BOTH name and city so, e.g., "Hervormde
+    // Gemeente" in Randwijk and in Ederveen stay distinct; otherwise create it.
     return this.api.searchCongregations(name).pipe(
       switchMap(results => {
-        const match = results.find(r => r.name.toLowerCase() === name.toLowerCase());
+        const match = results.find(r =>
+          r.name.toLowerCase() === name.toLowerCase() &&
+          (r.city || '').toLowerCase() === city.toLowerCase());
         if (match) return of(match.id);
         return this.api.createCongregation({ name, city }).pipe(map(c => c.id));
       })
