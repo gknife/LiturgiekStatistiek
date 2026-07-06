@@ -73,6 +73,12 @@ export class AddComponent implements OnInit {
   congregationSuggestions: CongregationSummary[] = [];
   preacherSuggestions: PreacherSummary[] = [];
 
+  // Display label last set for a resolved id. When the user edits the autocomplete
+  // text away from this label the stored id is stale, so it is cleared and the id is
+  // re-resolved from the typed text on save (fixes edits to Gemeente/Voorganger).
+  private selectedCongregationLabel = '';
+  private selectedPreacherLabel = '';
+
   /** City parsed from paste/URL import, used when auto-creating a new congregation. */
   private parsedCity: string | null = null;
 
@@ -185,11 +191,26 @@ export class AddComponent implements OnInit {
       switchMap(val => val && val.length > 1 ? this.api.searchCongregations(val) : of([]))
     ).subscribe(results => this.congregationSuggestions = results);
 
+    // Invalidate the stored congregation id as soon as the text no longer matches the
+    // label that produced it, so an edited name is re-resolved instead of silently
+    // keeping the previous congregation.
+    this.congregationControl.valueChanges.subscribe(val => {
+      if ((val ?? '') !== this.selectedCongregationLabel) {
+        this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
+      }
+    });
+
     // Autocomplete for preacher
     this.preacherControl.valueChanges.pipe(
       debounceTime(300),
       switchMap(val => val && val.length > 1 ? this.api.searchPreachers(val) : of([]))
     ).subscribe(results => this.preacherSuggestions = results);
+
+    this.preacherControl.valueChanges.subscribe(val => {
+      if ((val ?? '') !== this.selectedPreacherLabel) {
+        this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
+      }
+    });
   }
 
   private loadBibleBooks(): void {
@@ -237,8 +258,10 @@ export class AddComponent implements OnInit {
       hasBeamerSongs: service.hasBeamerSongs,
     });
 
-    this.congregationControl.setValue(`${service.congregation.name} — ${service.congregation.city}`);
+    this.selectedCongregationLabel = `${service.congregation.name} — ${service.congregation.city}`;
+    this.congregationControl.setValue(this.selectedCongregationLabel);
     if (service.preacher) {
+      this.selectedPreacherLabel = service.preacher.fullName;
       this.preacherControl.setValue(service.preacher.fullName);
     }
 
@@ -277,11 +300,13 @@ export class AddComponent implements OnInit {
   }
 
   selectCongregation(congregation: CongregationSummary): void {
+    this.selectedCongregationLabel = congregation.name + ' — ' + congregation.city;
     this.metadataForm.patchValue({ congregationId: congregation.id });
-    this.congregationControl.setValue(congregation.name + ' — ' + congregation.city);
+    this.congregationControl.setValue(this.selectedCongregationLabel);
   }
 
   selectPreacher(preacher: PreacherSummary): void {
+    this.selectedPreacherLabel = preacher.fullName;
     this.metadataForm.patchValue({ preacherId: preacher.id });
     this.preacherControl.setValue(preacher.fullName);
   }
