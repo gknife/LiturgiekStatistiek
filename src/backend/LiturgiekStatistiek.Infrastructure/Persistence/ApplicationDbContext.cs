@@ -28,6 +28,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<BibleBook> BibleBooks => Set<BibleBook>();
     public DbSet<BibleBookTranslationName> BibleBookTranslationNames => Set<BibleBookTranslationName>();
     public DbSet<SermonTextReference> SermonTextReferences => Set<SermonTextReference>();
+    public DbSet<ReadingReference> ReadingReferences => Set<ReadingReference>();
+    public DbSet<ServiceTemplate> ServiceTemplates => Set<ServiceTemplate>();
+    public DbSet<ServiceTemplateElement> ServiceTemplateElements => Set<ServiceTemplateElement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

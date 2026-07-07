@@ -13,8 +13,6 @@ public class Service : IHasAuditFields
     public Preacher? Preacher { get; set; }
     public Guid? ChurchCalendarSundayId { get; set; }
     public ListItem? ChurchCalendarSunday { get; set; }
-    public Guid? BibleTranslationId { get; set; }
-    public ListItem? BibleTranslation { get; set; }
     public bool IsReadingService { get; set; }
     public string? ReadSermonBy { get; set; }
     public Guid? MusicalAccompanimentId { get; set; }
@@ -29,6 +27,10 @@ public class Service : IHasAuditFields
     public string? SermonText { get; set; }
     public string? SermonTheme { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>Draft/publish lifecycle. Concept services are excluded from research queries until published.</summary>
+    public ServiceStatus Status { get; set; } = ServiceStatus.Gepubliceerd;
+
     public string? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? ModifiedBy { get; set; }

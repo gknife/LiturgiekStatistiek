@@ -46,6 +46,7 @@ export class ServicesComponent implements OnInit {
   readonly totalCount = signal(0);
   readonly loading = signal(false);
   readonly congregations = signal<Option[]>([]);
+  readonly denominations = signal<Option[]>([]);
   readonly selectedIds = signal<Set<string>>(new Set());
 
   readonly expandedId = signal<string | null>(null);
@@ -56,8 +57,10 @@ export class ServicesComponent implements OnInit {
   pageSize = 20;
 
   filterCongregationId = '';
+  filterDenominationId = '';
   filterFromDate = '';
   filterToDate = '';
+  includeConcepts = true;
 
   bulkField = 'timeOfDay';
   bulkValue = '';
@@ -79,11 +82,11 @@ export class ServicesComponent implements OnInit {
   }
 
   get isAdmin(): boolean {
-    return this.auth.isAdmin;
+    return this.auth.isAuthenticated;
   }
 
   get displayedColumns(): string[] {
-    const base = ['date', 'timeOfDay', 'congregation', 'city', 'preacher', 'specialOccasion', 'elementCount', 'broadcast'];
+    const base = ['date', 'timeOfDay', 'denomination', 'congregation', 'city', 'preacher', 'specialOccasion', 'status', 'elementCount', 'broadcast'];
     if (this.isAuthenticated) return ['select', ...base, 'actions'];
     return base;
   }
@@ -92,6 +95,9 @@ export class ServicesComponent implements OnInit {
     this.load();
     this.api.getCongregations({ pageSize: 1000 }).subscribe({
       next: res => this.congregations.set(res.items.map(c => ({ id: c.id, label: `${c.name} (${c.city})` }))),
+    });
+    this.api.getListByName('Denominations').subscribe({
+      next: def => this.denominations.set(def.items.map(i => ({ id: i.id, label: i.value }))),
     });
   }
 
@@ -103,8 +109,10 @@ export class ServicesComponent implements OnInit {
       page: this.page,
       pageSize: this.pageSize,
       congregationId: this.filterCongregationId || undefined,
+      denominationId: this.filterDenominationId || undefined,
       fromDate: this.filterFromDate || undefined,
       toDate: this.filterToDate || undefined,
+      includeConcepts: this.includeConcepts,
     }).subscribe({
       next: res => {
         this.services.set(res.items);
@@ -122,8 +130,10 @@ export class ServicesComponent implements OnInit {
 
   clearFilters(): void {
     this.filterCongregationId = '';
+    this.filterDenominationId = '';
     this.filterFromDate = '';
     this.filterToDate = '';
+    this.includeConcepts = true;
     this.page = 1;
     this.load();
   }
@@ -208,6 +218,18 @@ export class ServicesComponent implements OnInit {
 
   elementHeading(el: ServiceElement): string {
     return el.label || el.elementType || 'Onderdeel';
+  }
+
+  readingRefsLabel(el: ServiceElement): string {
+    if (!el.readingReferences?.length) return '';
+    return el.readingReferences
+      .map(r => {
+        const verses = r.verseStart
+          ? `:${r.verseStart}${r.verseEnd && r.verseEnd !== r.verseStart ? '-' + r.verseEnd : ''}`
+          : '';
+        return `${r.bookName} ${r.chapter ?? ''}${verses}`.trim();
+      })
+      .join('; ');
   }
 
   // --- Add / edit overlay ---

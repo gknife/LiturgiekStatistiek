@@ -41,6 +41,7 @@ export class App implements OnInit {
     { path: '/', label: 'Home', icon: 'home' },
     { path: '/zoeken', label: 'Zoeken', icon: 'search' },
     { path: '/diensten', label: 'Diensten', icon: 'church' },
+    { path: '/sjablonen', label: 'Sjablonen', icon: 'dashboard_customize', requiresAuth: true },
     { path: '/lijsten', label: 'Lijsten', icon: 'list', requiresAuth: true },
     { path: '/liedcatalogus', label: 'Liedcatalogus', icon: 'music_note', requiresAuth: true },
     { path: '/contact', label: 'Contact', icon: 'mail' },

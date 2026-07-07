@@ -145,6 +145,51 @@ public class LiturgyParserTests
     }
 
     [Test]
+    public void Parse_Ps1773Edition_TreatsNumberAfterEditionAsSong()
+    {
+        // The user's canonical notation: "Ps1773 84:1,2,3" (1773 is the psalter edition,
+        // 84 the song number). Regression: 1773 was previously consumed as the number.
+        var result = _parser.Parse("Ps1773 84:1,2,3");
+
+        Assert.That(result.Elements, Has.Count.EqualTo(1));
+        var song = result.Elements[0];
+        Assert.Multiple(() =>
+        {
+            Assert.That(song.SongBundle, Is.EqualTo("Ps1773"));
+            Assert.That(song.SongNumber, Is.EqualTo(84));
+            Assert.That(song.Verses, Is.EqualTo(new[] { "1", "2", "3" }));
+        });
+    }
+
+    [Test]
+    public void Parse_PsalmSpaceEdition_TreatsNumberAfterEditionAsSong()
+    {
+        var result = _parser.Parse("Psalm 1773 118:1");
+
+        var song = result.Elements[0];
+        Assert.Multiple(() =>
+        {
+            Assert.That(song.SongBundle, Is.EqualTo("Ps1773"));
+            Assert.That(song.SongNumber, Is.EqualTo(118));
+            Assert.That(song.Verses, Is.EqualTo(new[] { "1" }));
+        });
+    }
+
+    [Test]
+    public void Parse_Ps1773WithColonAfterEdition_ParsesSong()
+    {
+        var result = _parser.Parse("Ps1773 150: 1,2,3");
+
+        var song = result.Elements[^1];
+        Assert.Multiple(() =>
+        {
+            Assert.That(song.SongBundle, Is.EqualTo("Ps1773"));
+            Assert.That(song.SongNumber, Is.EqualTo(150));
+            Assert.That(song.Verses, Is.EqualTo(new[] { "1", "2", "3" }));
+        });
+    }
+
+    [Test]
     public void Parse_EmptyText_ReturnsNoElements()
     {
         var result = _parser.Parse(string.Empty);

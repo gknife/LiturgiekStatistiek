@@ -68,16 +68,6 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Bijbelvertaling</mat-label>
-              <mat-select formControlName="bibleTranslationId">
-                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
-                @for (bt of bibleTranslations; track bt.id) {
-                  <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
               <mat-label>Muzikale begeleiding</mat-label>
               <mat-select formControlName="musicalAccompanimentId">
                 <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
@@ -184,10 +174,24 @@
           <div class="elements-section">
             <p class="section-hint">Voeg de onderdelen van de dienst toe in de juiste volgorde.</p>
 
+            <button mat-stroked-button color="accent" type="button" (click)="applyTemplate()">
+              <mat-icon>dashboard_customize</mat-icon> Sjabloon toepassen
+            </button>
+
             @for (element of elements; track element.position; let i = $index) {
               <mat-card class="element-card">
                 <div class="element-header">
                   <span class="position-badge">{{ element.position }}</span>
+                  <mat-form-field appearance="outline" class="element-type-field" subscriptSizing="dynamic">
+                    <mat-label>Type</mat-label>
+                    <mat-select [(ngModel)]="element.elementType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
+                      <mat-option [value]="0">Lied</mat-option>
+                      <mat-option [value]="1">Liturgische handeling</mat-option>
+                      <mat-option [value]="2">Schriftlezing</mat-option>
+                      <mat-option [value]="3">Gebed</mat-option>
+                      <mat-option [value]="4">Overig</mat-option>
+                    </mat-select>
+                  </mat-form-field>
                   <mat-form-field appearance="outline" class="element-label-field" subscriptSizing="dynamic">
                     <mat-label>Onderdeel</mat-label>
                     <mat-select [(ngModel)]="element.labelId" [ngModelOptions]="{ standalone: true }">
@@ -206,7 +210,80 @@
                   </button>
                 </div>
 
+                @if (!isSongElement(element)) {
+                  <div class="element-performer">
+                    <mat-form-field appearance="outline" class="performer-field" subscriptSizing="dynamic">
+                      <mat-label>Wie doet dit onderdeel</mat-label>
+                      <mat-select [(ngModel)]="element.performerId" [ngModelOptions]="{ standalone: true }">
+                        <mat-option [value]="''">&mdash; Niet gespecificeerd &mdash;</mat-option>
+                        @for (p of performers; track p.id) {
+                          <mat-option [value]="p.id">{{ p.value }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                }
+
+                @if (isReadingElement(element)) {
+                  <div class="element-reading">
+                    <mat-form-field appearance="outline" class="reading-translation" subscriptSizing="dynamic">
+                      <mat-label>Bijbelvertaling</mat-label>
+                      <mat-select [(ngModel)]="element.bibleTranslationId" [ngModelOptions]="{ standalone: true }">
+                        <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
+                        @for (bt of bibleTranslations; track bt.id) {
+                          <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+
+                    @for (ref of element.readingRefs; track $index; let ri = $index) {
+                      <div class="sermon-ref-row">
+                        <mat-form-field appearance="outline" class="ref-book" subscriptSizing="dynamic">
+                          <mat-label>Bijbelboek</mat-label>
+                          <mat-select [(ngModel)]="ref.bibleBookId" [ngModelOptions]="{ standalone: true }">
+                            @for (b of bibleBooks; track b.id) {
+                              <mat-option [value]="b.id">{{ b.name }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="ref-chapter" subscriptSizing="dynamic">
+                          <mat-label>Hoofdstuk</mat-label>
+                          <mat-select [(ngModel)]="ref.chapter" [ngModelOptions]="{ standalone: true }">
+                            @for (c of chaptersOf(ref.bibleBookId); track c) {
+                              <mat-option [value]="c">{{ c }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="ref-verse" subscriptSizing="dynamic">
+                          <mat-label>Van vers</mat-label>
+                          <mat-select [(ngModel)]="ref.verseStart" [ngModelOptions]="{ standalone: true }">
+                            @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
+                              <mat-option [value]="v">{{ v }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="ref-verse" subscriptSizing="dynamic">
+                          <mat-label>Tot vers</mat-label>
+                          <mat-select [(ngModel)]="ref.verseEnd" [ngModelOptions]="{ standalone: true }">
+                            @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
+                              <mat-option [value]="v">{{ v }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                        <button mat-icon-button color="warn" type="button" (click)="removeReadingRef(element, ri)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                    }
+                    <button mat-button type="button" (click)="addReadingRef(element)">
+                      <mat-icon>add</mat-icon> Schriftgedeelte toevoegen
+                    </button>
+                  </div>
+                }
+
+                @if (isSongElement(element)) {
                 <div class="element-songs">
+                  <mat-checkbox [(ngModel)]="element.isBeurtzang" [ngModelOptions]="{ standalone: true }">Beurtzang</mat-checkbox>
                   @for (song of element.songs; track $index; let si = $index) {
                     <div class="song-row">
                       <mat-form-field appearance="outline" class="song-bundle" subscriptSizing="dynamic">
@@ -240,6 +317,7 @@
                     <mat-icon>music_note</mat-icon> Lied toevoegen
                   </button>
                 </div>
+                }
               </mat-card>
             }
 
@@ -261,6 +339,9 @@
             <p>Controleer de ingevoerde gegevens en sla de dienst op.</p>
 
             <mat-card class="review-card">
+              <p><strong>Status:</strong> {{ status === 1 ? 'Gepubliceerd' : 'Concept' }}
+                @if (autoSaving) { <em>(automatisch opslaan…)</em> }
+              </p>
               <p><strong>Datum:</strong> {{ metadataForm.get('date')?.value | date:'d MMMM yyyy' }}</p>
               <p><strong>Dagdeel:</strong> {{ timeOfDayOptions[metadataForm.get('timeOfDay')?.value]?.label }}</p>
               <p><strong>Gemeente:</strong> {{ congregationControl.value }}{{ congregationCityControl.value ? ' — ' + congregationCityControl.value : '' }}</p>
@@ -273,10 +354,13 @@
             <div class="step-actions">
               <button mat-button matStepperPrevious>Terug</button>
               @if (isInDialog) {
-                <button mat-button (click)="cancel()">Annuleren</button>
+                <button mat-button (click)="cancel()">Sluiten</button>
               }
-              <button mat-raised-button color="primary" (click)="saveService()">
-                <mat-icon>save</mat-icon> Opslaan
+              <button mat-stroked-button color="primary" (click)="saveDraft()" [disabled]="saving || publishing">
+                <mat-icon>save</mat-icon> {{ saving ? 'Opslaan…' : 'Opslaan als concept' }}
+              </button>
+              <button mat-raised-button color="primary" (click)="publish()" [disabled]="saving || publishing">
+                <mat-icon>publish</mat-icon> {{ publishing ? 'Publiceren…' : 'Publiceren' }}
               </button>
             </div>
           </div>

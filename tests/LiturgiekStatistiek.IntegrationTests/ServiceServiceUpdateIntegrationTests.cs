@@ -104,7 +104,6 @@ public class ServiceServiceUpdateIntegrationTests
             CongregationId: s.CongregationId,
             PreacherId: s.PreacherId,
             ChurchCalendarSundayId: s.ChurchCalendarSundayId,
-            BibleTranslationId: s.BibleTranslationId,
             IsReadingService: s.IsReadingService,
             ReadSermonBy: s.ReadSermonBy,
             MusicalAccompanimentId: s.MusicalAccompanimentId,

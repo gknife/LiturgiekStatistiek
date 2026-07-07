@@ -11,7 +11,6 @@ import {
 export interface UserProfile {
   name: string;
   email: string;
-  roles: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,21 +19,13 @@ export class AuthService {
   private _user = new BehaviorSubject<UserProfile | null>(null);
   private msalInstance: PublicClientApplication;
   private initPromise: Promise<void> | null = null;
+  private readonly devBypass = environment.devBypass === true;
 
   isAuthenticated$ = this._isAuthenticated.asObservable();
   user$ = this._user.asObservable();
 
   get isAuthenticated(): boolean {
     return this._isAuthenticated.value;
-  }
-
-  get isAdmin(): boolean {
-    return this._user.value?.roles.includes('Admin') ?? false;
-  }
-
-  get isResearcher(): boolean {
-    const roles = this._user.value?.roles ?? [];
-    return roles.includes('Admin') || roles.includes('Researcher');
   }
 
   constructor() {
@@ -58,6 +49,13 @@ export class AuthService {
   }
 
   private async doInitialize(): Promise<void> {
+    // Development bypass: treat the local user as a signed-in editor without Entra.
+    if (this.devBypass) {
+      this._isAuthenticated.next(true);
+      this._user.next({ name: 'Ontwikkelaar', email: 'dev@localhost' });
+      return;
+    }
+
     await this.msalInstance.initialize();
 
     // Handle redirect response (if returning from login)
@@ -75,6 +73,10 @@ export class AuthService {
   }
 
   async login(): Promise<void> {
+    if (this.devBypass) {
+      await this.initialize();
+      return;
+    }
     await this.initialize();
     // Use redirect — user stays in the same window
     await this.msalInstance.loginRedirect({
@@ -83,6 +85,9 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
+    if (this.devBypass) {
+      return;
+    }
     await this.initialize();
     this._isAuthenticated.next(false);
     this._user.next(null);
@@ -90,6 +95,9 @@ export class AuthService {
   }
 
   async getAccessToken(): Promise<string | null> {
+    if (this.devBypass) {
+      return null;
+    }
     await this.initialize();
     const account = this.msalInstance.getActiveAccount();
     if (!account) return null;
@@ -125,15 +133,10 @@ export class AuthService {
   }
 
   private setUserFromAccount(account: AccountInfo): void {
-    // Roles come from the ID token claims (set via App Roles in Entra)
-    const idTokenClaims = account.idTokenClaims as Record<string, unknown> | undefined;
-    const roles = (idTokenClaims?.['roles'] as string[]) ?? [];
-
     this._isAuthenticated.next(true);
     this._user.next({
       name: account.name ?? account.username,
       email: account.username,
-      roles,
     });
   }
 }

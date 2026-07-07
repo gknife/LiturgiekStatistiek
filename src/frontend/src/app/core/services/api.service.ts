@@ -21,6 +21,10 @@ import {
   SavedQuery,
   BibleBook,
   LiturgyParseResult,
+  ServiceTemplate,
+  ServiceTemplateSummary,
+  CreateServiceTemplateRequest,
+  TemplateElementInstance,
 } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +40,8 @@ export class ApiService {
     congregationId?: string;
     fromDate?: string;
     toDate?: string;
+    denominationId?: string;
+    includeConcepts?: boolean;
   }): Observable<PaginatedResult<ServiceSummary>> {
     let httpParams = new HttpParams();
     if (params?.page) httpParams = httpParams.set('page', params.page);
@@ -43,6 +49,8 @@ export class ApiService {
     if (params?.congregationId) httpParams = httpParams.set('congregationId', params.congregationId);
     if (params?.fromDate) httpParams = httpParams.set('fromDate', params.fromDate);
     if (params?.toDate) httpParams = httpParams.set('toDate', params.toDate);
+    if (params?.denominationId) httpParams = httpParams.set('denominationId', params.denominationId);
+    if (params?.includeConcepts !== undefined) httpParams = httpParams.set('includeConcepts', params.includeConcepts);
     return this.http.get<PaginatedResult<ServiceSummary>>(`${this.baseUrl}/services`, { params: httpParams });
   }
 
@@ -56,6 +64,10 @@ export class ApiService {
 
   updateService(id: string, request: any): Observable<ServiceDetail> {
     return this.http.put<ServiceDetail>(`${this.baseUrl}/services/${id}`, request);
+  }
+
+  publishService(id: string): Observable<ServiceDetail> {
+    return this.http.post<ServiceDetail>(`${this.baseUrl}/services/${id}/publish`, {});
   }
 
   deleteService(id: string): Observable<void> {
@@ -235,6 +247,41 @@ export class ApiService {
 
   importLiturgyUrl(url: string): Observable<LiturgyParseResult> {
     return this.http.post<LiturgyParseResult>(`${this.baseUrl}/parse/url`, { url });
+  }
+
+  // Service templates (Sjablonen)
+  getTemplates(): Observable<ServiceTemplateSummary[]> {
+    return this.http.get<ServiceTemplateSummary[]>(`${this.baseUrl}/templates`);
+  }
+
+  getTemplate(id: string): Observable<ServiceTemplate> {
+    return this.http.get<ServiceTemplate>(`${this.baseUrl}/templates/${id}`);
+  }
+
+  createTemplate(request: CreateServiceTemplateRequest): Observable<ServiceTemplate> {
+    return this.http.post<ServiceTemplate>(`${this.baseUrl}/templates`, request);
+  }
+
+  updateTemplate(id: string, request: CreateServiceTemplateRequest): Observable<ServiceTemplate> {
+    return this.http.put<ServiceTemplate>(`${this.baseUrl}/templates/${id}`, request);
+  }
+
+  deleteTemplate(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/templates/${id}`);
+  }
+
+  instantiateTemplate(params: {
+    denominationId?: string | null;
+    congregationId?: string | null;
+    timeOfDay?: number | null;
+    occasionId?: string | null;
+  }): Observable<TemplateElementInstance[]> {
+    let httpParams = new HttpParams();
+    if (params.denominationId) httpParams = httpParams.set('denominationId', params.denominationId);
+    if (params.congregationId) httpParams = httpParams.set('congregationId', params.congregationId);
+    if (params.timeOfDay !== null && params.timeOfDay !== undefined) httpParams = httpParams.set('timeOfDay', params.timeOfDay);
+    if (params.occasionId) httpParams = httpParams.set('occasionId', params.occasionId);
+    return this.http.get<TemplateElementInstance[]>(`${this.baseUrl}/templates/instantiate`, { params: httpParams });
   }
 
   // User settings (authenticated)

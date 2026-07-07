@@ -111,3 +111,32 @@
     color: var(--mat-sys-on-surface-variant);
   }
 }
+
+.concept-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fff3cd;
+  color: #856404;
+}
+
+.el-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.el-tag.complete {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.el-performer {
+  margin-left: 6px;
+  font-style: italic;
+  color: #666;
+}

@@ -14,6 +14,16 @@
   <!-- Filters -->
   <mat-card class="filter-card">
     <mat-form-field appearance="outline">
+      <mat-label>Kerkgenootschap</mat-label>
+      <mat-select [(ngModel)]="filterDenominationId">
+        <mat-option value="">Alle kerkgenootschappen</mat-option>
+        @for (d of denominations(); track d.id) {
+          <mat-option [value]="d.id">{{ d.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
       <mat-label>Gemeente</mat-label>
       <mat-select [(ngModel)]="filterCongregationId">
         <mat-option value="">Alle gemeenten</mat-option>
@@ -32,6 +42,10 @@
       <mat-label>Tot</mat-label>
       <input matInput type="date" [(ngModel)]="filterToDate">
     </mat-form-field>
+
+    @if (isAuthenticated) {
+      <mat-checkbox [(ngModel)]="includeConcepts">Concepten tonen</mat-checkbox>
+    }
 
     <button mat-raised-button color="primary" (click)="applyFilters()">
       <mat-icon>filter_list</mat-icon> Filteren
@@ -131,6 +145,11 @@
           <td mat-cell *matCellDef="let row">{{ timeLabel(row.timeOfDay) }}</td>
         </ng-container>
 
+        <ng-container matColumnDef="denomination">
+          <th mat-header-cell *matHeaderCellDef>Kerkgenootschap</th>
+          <td mat-cell *matCellDef="let row">{{ row.denomination }}</td>
+        </ng-container>
+
         <ng-container matColumnDef="congregation">
           <th mat-header-cell *matHeaderCellDef>Gemeente</th>
           <td mat-cell *matCellDef="let row">{{ row.congregationName }}</td>
@@ -149,6 +168,15 @@
         <ng-container matColumnDef="specialOccasion">
           <th mat-header-cell *matHeaderCellDef>Bijzondere gelegenheid</th>
           <td mat-cell *matCellDef="let row">{{ row.specialOccasion }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.statusValue === 0) {
+              <span class="concept-badge">Concept</span>
+            }
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="elementCount">
@@ -200,11 +228,26 @@
                     @for (el of detail.elements; track el.id) {
                       <li>
                         <span class="el-heading">{{ elementHeading(el) }}</span>
-                        @if (el.scriptureReference) {
+                        @if (el.isBeurtzang) {
+                          <span class="el-tag">Beurtzang</span>
+                        }
+                        @if (el.performer) {
+                          <span class="el-performer">{{ el.performer }}</span>
+                        }
+                        @if (el.readingReferences?.length) {
+                          <span class="el-ref">{{ readingRefsLabel(el) }}</span>
+                          @if (el.bibleTranslation) {
+                            <span class="el-tag">{{ el.bibleTranslation }}</span>
+                          }
+                        } @else if (el.scriptureReference) {
                           <span class="el-ref">{{ el.scriptureReference }}</span>
                         }
                         @for (song of el.songs; track song.id) {
-                          <span class="el-song">{{ songLabel(song) }}</span>
+                          <span class="el-song">{{ songLabel(song) }}
+                            @if (song.completeness?.completeInElement || song.completeness?.completeInService) {
+                              <span class="el-tag complete" matTooltip="Volledig gezongen">volledig</span>
+                            }
+                          </span>
                         }
                         @if (el.notes) {
                           <span class="el-notes">{{ el.notes }}</span>

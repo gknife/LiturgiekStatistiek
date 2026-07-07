@@ -7,7 +7,6 @@ public record ServiceDto(
     CongregationSummaryDto Congregation,
     PreacherSummaryDto? Preacher,
     string? ChurchCalendarSunday,
-    string? BibleTranslation,
     bool IsReadingService,
     string? ReadSermonBy,
     string? MusicalAccompaniment,
@@ -26,10 +25,13 @@ public record ServiceDto(
     string? CreatedBy,
     int TimeOfDayValue,
     Guid? ChurchCalendarSundayId,
-    Guid? BibleTranslationId,
     Guid? MusicalAccompanimentId,
     Guid? SpecialOccasionId,
-    List<SermonTextReferenceDto> SermonTextReferences
+    List<SermonTextReferenceDto> SermonTextReferences,
+    string Status,
+    int StatusValue,
+    Guid? DenominationId,
+    string? Denomination
 );
 
 public record SermonTextReferenceDto(
@@ -59,7 +61,10 @@ public record ServiceSummaryDto(
     string? PreacherName,
     string? SpecialOccasion,
     int ElementCount,
-    string? BroadcastUrl
+    string? BroadcastUrl,
+    string? Denomination = null,
+    string Status = "Gepubliceerd",
+    int StatusValue = 1
 );
 
 public record CreateServiceRequest(
@@ -68,7 +73,6 @@ public record CreateServiceRequest(
     Guid CongregationId,
     Guid? PreacherId,
     Guid? ChurchCalendarSundayId,
-    Guid? BibleTranslationId,
     bool IsReadingService,
     string? ReadSermonBy,
     Guid? MusicalAccompanimentId,
@@ -83,7 +87,8 @@ public record CreateServiceRequest(
     string? Notes,
     List<Guid>? BundleIds,
     List<CreateServiceElementRequest>? Elements,
-    List<SermonTextReferenceRequest>? SermonTextReferences
+    List<SermonTextReferenceRequest>? SermonTextReferences,
+    int? Status = null
 );
 
 public record UpdateServiceRequest(
@@ -92,7 +97,6 @@ public record UpdateServiceRequest(
     Guid CongregationId,
     Guid? PreacherId,
     Guid? ChurchCalendarSundayId,
-    Guid? BibleTranslationId,
     bool IsReadingService,
     string? ReadSermonBy,
     Guid? MusicalAccompanimentId,
@@ -107,7 +111,8 @@ public record UpdateServiceRequest(
     string? Notes,
     List<Guid>? BundleIds,
     List<CreateServiceElementRequest>? Elements,
-    List<SermonTextReferenceRequest>? SermonTextReferences
+    List<SermonTextReferenceRequest>? SermonTextReferences,
+    int? Status = null
 );
 
 /// <summary>

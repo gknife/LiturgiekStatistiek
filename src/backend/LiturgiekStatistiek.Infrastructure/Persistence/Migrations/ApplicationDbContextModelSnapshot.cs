@@ -329,6 +329,44 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.ToTable("Preachers");
                 });
 
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ReadingReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BibleBookId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BookName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("Chapter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ServiceElementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("VerseEnd")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VerseStart")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BibleBookId");
+
+                    b.HasIndex("ServiceElementId", "Position");
+
+                    b.ToTable("ReadingReferences");
+                });
+
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.RecentSearch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -430,9 +468,6 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("BibleTranslationId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("BroadcastUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -498,12 +533,13 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("SpecialOccasionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<int>("TimeOfDay")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BibleTranslationId");
 
                     b.HasIndex("ChurchCalendarSundayId");
 
@@ -516,6 +552,8 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.HasIndex("PreacherId");
 
                     b.HasIndex("SpecialOccasionId");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Services");
                 });
@@ -541,6 +579,9 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BibleTranslationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -549,6 +590,9 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("ElementType")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsBeurtzang")
+                        .HasColumnType("bit");
 
                     b.Property<Guid?>("LabelId")
                         .HasColumnType("uniqueidentifier");
@@ -563,6 +607,9 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<Guid?>("PerformerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Position")
                         .HasColumnType("int");
 
@@ -575,7 +622,11 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BibleTranslationId");
+
                     b.HasIndex("LabelId");
+
+                    b.HasIndex("PerformerId");
 
                     b.HasIndex("ServiceId", "Position");
 
@@ -638,6 +689,94 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.HasIndex("ServiceId");
 
                     b.ToTable("ServiceMetadata");
+                });
+
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CongregationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("DenominationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("OccasionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("TimeOfDay")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CongregationId");
+
+                    b.HasIndex("DenominationId");
+
+                    b.HasIndex("OccasionId");
+
+                    b.ToTable("ServiceTemplates");
+                });
+
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceTemplateElement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ElementType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FixedScriptureReference")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsBeurtzang")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("LabelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PerformerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ServiceTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabelId");
+
+                    b.HasIndex("PerformerId");
+
+                    b.HasIndex("ServiceTemplateId", "Position");
+
+                    b.ToTable("ServiceTemplateElements");
                 });
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.Song", b =>
@@ -800,6 +939,24 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.Navigation("Denomination");
                 });
 
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ReadingReference", b =>
+                {
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.BibleBook", "BibleBook")
+                        .WithMany()
+                        .HasForeignKey("BibleBookId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ServiceElement", "ServiceElement")
+                        .WithMany("ReadingReferences")
+                        .HasForeignKey("ServiceElementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BibleBook");
+
+                    b.Navigation("ServiceElement");
+                });
+
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.SermonTextReference", b =>
                 {
                     b.HasOne("LiturgiekStatistiek.Domain.Entities.BibleBook", "BibleBook")
@@ -820,10 +977,6 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.Service", b =>
                 {
-                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "BibleTranslation")
-                        .WithMany()
-                        .HasForeignKey("BibleTranslationId");
-
                     b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "ChurchCalendarSunday")
                         .WithMany()
                         .HasForeignKey("ChurchCalendarSundayId");
@@ -846,8 +999,6 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                     b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "SpecialOccasion")
                         .WithMany()
                         .HasForeignKey("SpecialOccasionId");
-
-                    b.Navigation("BibleTranslation");
 
                     b.Navigation("ChurchCalendarSunday");
 
@@ -881,9 +1032,19 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceElement", b =>
                 {
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "BibleTranslation")
+                        .WithMany()
+                        .HasForeignKey("BibleTranslationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "Label")
                         .WithMany()
                         .HasForeignKey("LabelId");
+
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "Performer")
+                        .WithMany()
+                        .HasForeignKey("PerformerId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("LiturgiekStatistiek.Domain.Entities.Service", "Service")
                         .WithMany("Elements")
@@ -891,7 +1052,11 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("BibleTranslation");
+
                     b.Navigation("Label");
+
+                    b.Navigation("Performer");
 
                     b.Navigation("Service");
                 });
@@ -924,6 +1089,55 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceTemplate", b =>
+                {
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.Congregation", "Congregation")
+                        .WithMany()
+                        .HasForeignKey("CongregationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "Denomination")
+                        .WithMany()
+                        .HasForeignKey("DenominationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "Occasion")
+                        .WithMany()
+                        .HasForeignKey("OccasionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Congregation");
+
+                    b.Navigation("Denomination");
+
+                    b.Navigation("Occasion");
+                });
+
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceTemplateElement", b =>
+                {
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "Label")
+                        .WithMany()
+                        .HasForeignKey("LabelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ListItem", "Performer")
+                        .WithMany()
+                        .HasForeignKey("PerformerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LiturgiekStatistiek.Domain.Entities.ServiceTemplate", "ServiceTemplate")
+                        .WithMany("Elements")
+                        .HasForeignKey("ServiceTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Label");
+
+                    b.Navigation("Performer");
+
+                    b.Navigation("ServiceTemplate");
                 });
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.Song", b =>
@@ -992,12 +1206,19 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceElement", b =>
                 {
+                    b.Navigation("ReadingReferences");
+
                     b.Navigation("Songs");
                 });
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceElementSong", b =>
                 {
                     b.Navigation("Verses");
+                });
+
+            modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.ServiceTemplate", b =>
+                {
+                    b.Navigation("Elements");
                 });
 
             modelBuilder.Entity("LiturgiekStatistiek.Domain.Entities.Song", b =>

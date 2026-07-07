@@ -29,5 +29,6 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
 
         builder.HasIndex(s => s.Date);
         builder.HasIndex(s => s.CongregationId);
+        builder.HasIndex(s => s.Status);
     }
 }

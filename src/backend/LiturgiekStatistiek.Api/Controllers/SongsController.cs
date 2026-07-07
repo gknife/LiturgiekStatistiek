@@ -43,7 +43,7 @@ public class SongsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Researcher")]
+    [Authorize]
     public async Task<ActionResult<SongDto>> CreateSong([FromBody] CreateSongRequest request)
     {
         var userId = User.Identity?.Name ?? "unknown";
@@ -52,7 +52,7 @@ public class SongsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin,Researcher")]
+    [Authorize]
     public async Task<ActionResult<SongDto>> UpdateSong(Guid id, [FromBody] UpdateSongRequest request)
     {
         var userId = User.Identity?.Name ?? "unknown";
@@ -62,7 +62,7 @@ public class SongsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,Researcher")]
+    [Authorize]
     public async Task<IActionResult> DeleteSong(Guid id)
     {
         var success = await _songService.DeleteSongAsync(id);

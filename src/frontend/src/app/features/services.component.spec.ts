@@ -11,12 +11,11 @@ describe('ServicesComponent', () => {
   const apiMock = {
     getServices: () => of({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
     getCongregations: () => of([]),
+    getListByName: () => of({ items: [] }),
   } as unknown as ApiService;
 
   const authMock = {
     isAuthenticated: false,
-    isAdmin: false,
-    isResearcher: false,
   } as unknown as AuthService;
 
   const dialogMock = { open: () => ({ afterClosed: () => of(false) }) } as unknown as MatDialog;
@@ -53,5 +52,19 @@ describe('ServicesComponent', () => {
   it('hides edit controls for anonymous users', () => {
     expect(component.isAuthenticated).toBe(false);
     expect(component.isAdmin).toBe(false);
+  });
+
+  it('formats multi-part reading references into a compact label', () => {
+    const el = {
+      readingReferences: [
+        { bookName: 'Genesis', chapter: 1, verseStart: 1, verseEnd: 3, bibleBookId: null, position: 1 },
+        { bookName: 'Psalm', chapter: 23, verseStart: 1, verseEnd: 1, bibleBookId: null, position: 2 },
+      ],
+    } as any;
+    expect(component.readingRefsLabel(el)).toBe('Genesis 1:1-3; Psalm 23:1');
+  });
+
+  it('returns empty string when there are no reading references', () => {
+    expect(component.readingRefsLabel({ readingReferences: null } as any)).toBe('');
   });
 });

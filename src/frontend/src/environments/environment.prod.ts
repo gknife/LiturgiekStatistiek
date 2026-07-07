@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   apiUrl: 'https://ca-liturgiek-api.happypond-fc71b176.westeurope.azurecontainerapps.io/api',
+  devBypass: false,
   msalConfig: {
     auth: {
       clientId: 'ee00b27d-ca8e-4c09-aff2-5d632f42691e',        // From App Registration

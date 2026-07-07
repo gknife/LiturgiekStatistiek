@@ -113,6 +113,7 @@ public class CongregationService : ICongregationService
     {
         return await _context.Congregations
             .Include(c => c.Denomination)
+            .Where(c => c.Services.Any())
             .Where(c => c.Name.Contains(query) || c.City.Contains(query))
             .OrderBy(c => c.Name)
             .Take(10)

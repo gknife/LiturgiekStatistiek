@@ -31,8 +31,27 @@ public class LlmService : ILlmService
 
         if (_hasEndpoint && _hasApiKey)
         {
-            var client = new AzureOpenAIClient(new Uri(endpoint!), new ApiKeyCredential(apiKey!));
-            _chatClient = client.GetChatClient(_deployment);
+            var credential = new ApiKeyCredential(apiKey!);
+            // Azure AI Foundry exposes an OpenAI-compatible endpoint ending in "/openai/v1"
+            // (host *.services.ai.azure.com). That endpoint does not use the classic Azure
+            // "deployments/{name}" URL scheme, so AzureOpenAIClient would 404. Use the plain
+            // OpenAIClient (which targets {endpoint}/chat/completions) for those endpoints and
+            // the AzureOpenAIClient for classic "*.openai.azure.com" resources.
+            var isOpenAiCompatible =
+                endpoint!.Contains("/openai/v1", StringComparison.OrdinalIgnoreCase) ||
+                endpoint.Contains(".services.ai.azure.com", StringComparison.OrdinalIgnoreCase);
+
+            if (isOpenAiCompatible)
+            {
+                var options = new OpenAI.OpenAIClientOptions { Endpoint = new Uri(endpoint) };
+                var client = new OpenAI.OpenAIClient(credential, options);
+                _chatClient = client.GetChatClient(_deployment);
+            }
+            else
+            {
+                var client = new AzureOpenAIClient(new Uri(endpoint), credential);
+                _chatClient = client.GetChatClient(_deployment);
+            }
             _isConfigured = true;
             _logger.LogInformation(
                 "Azure OpenAI configured (deployment '{Deployment}'). Natural-language and parsing features are enabled.",
@@ -93,18 +112,21 @@ public class LlmService : ILlmService
 Je taak is om een vraag in het Nederlands te vertalen naar een van de volgende query-sjablonen:
 
 Beschikbare sjablonen:
-1. most-sung-song: Meest gezongen lied. Parameters: congregationId (verplicht), fromDate, toDate
-2. most-sung-verse: Meest gezongen couplet. Parameters: year (verplicht), bundleId
+1. most-sung-song: Meest gezongen lied in een gemeente OF kerkgenootschap. Parameters: congregationId (optioneel), denominationId (optioneel, bv ""GG"", ""PKN""), fromDate, toDate. Geef congregationId bij een gemeentenaam, denominationId bij een kerkgenootschap. Minstens één van beide is nodig.
+2. most-sung-verse: Meest gezongen couplet. Parameters: year (optioneel; laat weg als geen jaar genoemd is), bundleId (optioneel), songNumber (optioneel; het liednummer, bv 119 voor Psalm 119)
 3. most-opening-song: Meest gezongen openingslied. Parameters: fromDate, toDate
 4. average-songs-per-service: Gemiddeld aantal liederen. Parameters: congregationId, fromDate, toDate
-5. most-psalms-congregation: Meeste psalmen. Parameters: fromDate, toDate
-6. song-by-city-map: Lied per stad. Parameters: bundleId (verplicht), songNumber (verplicht), fromDate, toDate
+5. most-psalms-congregation: Meeste psalmen per gemeente. Parameters: fromDate, toDate
+6. song-by-city-map: Lied per stad (op de kaart). Parameters: songNumber (verplicht), bundleId (optioneel; voor psalmen ""Ps1773""), fromDate, toDate. Gebruik dit ALTIJD bij vragen als ""welke stad zingt Psalm 150 het meest""; bundleId mag je op ""Ps1773"" zetten als er geen bundel genoemd is.
 7. song-by-period: Lied per periode. Parameters: year (verplicht), month
 8. services-with-song: Diensten met lied. Parameters: bundleId (verplicht), songNumber (verplicht)
 9. song-after-song: Lied na lied. Parameters: bundleIdA, songNumberA, bundleIdB, songNumberB (allen verplicht)
 10. song-usage-over-time: Gebruik over tijd. Parameters: bundleId (verplicht), songNumber (verplicht)
+11. song-completeness: Wanneer wordt een lied volledig (alle coupletten) gezongen. Parameters: bundleId (verplicht), songNumber (optioneel; laat weg voor de hele bundel). Gebruik dit bij vragen als ""wanneer wordt Ps1773 93 volledig/helemaal/in zijn geheel gezongen"".
+12. compare-denominations: Vergelijk lied-/psalmgebruik tussen kerkgenootschappen. Parameters: denominationIds (verplicht, kommagescheiden bv ""PKN,NGK""), fromDate, toDate. Gebruik dit bij vragen als ""vergelijk psalmengebruik tussen PKN en NGK"".
 
 Bundel-afkortingen: Ps1773, PsOB, LvdK, WK, WKPs, Opw, GK, EG
+Voor psalmen zonder expliciet genoemde bundel, gebruik bundleId ""Ps1773"".
 Kerkgenootschappen: PKN, NGK, GG, GB, CGK, HHK
 
 Antwoord ALLEEN met JSON in dit formaat:

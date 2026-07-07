@@ -87,7 +87,7 @@ export class SongsComponent implements OnInit {
   }
 
   get canEdit(): boolean {
-    return this.auth.isResearcher;
+    return this.auth.isAuthenticated;
   }
 
   get selectedBundle(): ListItem | undefined {

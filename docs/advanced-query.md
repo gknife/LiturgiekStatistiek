@@ -38,10 +38,27 @@ Each filter is one AND-combined block: `{ field, operator, value, value2, ...son
 | `bibleTranslation` | text | `eq`, `contains` |
 | `specialOccasion` | text | `eq`, `contains` |
 | `isReadingService` | bool | `isTrue`, `isFalse` |
+| `beurtzang` | bool | `isTrue`, `isFalse` |
+| `performer` | text | `eq`, `contains` (voorganger/ouderling/gemeentelid) |
 | `sermonTheme` | text | `contains` |
 | `sermonText` | text | `contains` |
 | `songUsed` | song | `eq` (bundle + number) |
+| `songComplete` | song | `eq` — service where the song (bundle + number) was sung **as a whole** |
 | `songSequence` | songSequence | `seqBefore`, `seqAfter`, `seqDirectlyBefore`, `seqDirectlyAfter` |
+
+The builder UI is **schema-driven**: it renders whatever `/api/queries/advanced/schema`
+returns, so new whitelisted fields appear automatically. `beurtzang`/`songComplete`/
+`performer`/`bibleTranslation`/`denomination` cover the per-reading translation,
+kerkgenootschap and "sung as a whole" dimensions. Draft (`Concept`) services are always
+excluded — advanced queries only see `Gepubliceerd` services.
+
+### Song-completeness filter
+
+`songComplete` keeps only services where every catalog verse of the given song was sung
+(union across all onderdelen in that service), using `SongCompletenessCalculator`. In the
+**natural-language** search this maps to the `song-completeness` template — e.g.
+*"wanneer wordt Ps1773 93 volledig gezongen"* lists every service where Psalm 93 was sung
+in full.
 
 ### Song-sequence operators
 
@@ -58,6 +75,13 @@ plus song number.
 - **aggregate** — group-by + count, with a chart (`bar`/`line`/`pie`/`doughnut`).
   Group-by fields: congregation, city, denomination, preacher, timeOfDay,
   bibleTranslation, specialOccasion, year.
+
+## Chart formatting
+
+Count-based charts (aantal diensten, aantal keer gezongen, …) render **integer** ticks and
+tooltips (1, 2, 3 — never 1.0/0.5/0.3). The chart component detects this automatically when
+every data point is a whole number; averages and percentages keep their decimals. See
+`ResultChartComponent`.
 
 ## Compare
 

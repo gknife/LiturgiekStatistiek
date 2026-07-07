@@ -97,6 +97,7 @@ public class PreacherService : IPreacherService
     public async Task<List<PreacherSummaryDto>> SearchPreachersAsync(string query)
     {
         return await _context.Preachers
+            .Where(p => p.Services.Any())
             .Where(p => p.FullName.Contains(query))
             .OrderBy(p => p.FullName)
             .Take(10)

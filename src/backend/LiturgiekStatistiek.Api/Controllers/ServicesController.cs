@@ -22,9 +22,11 @@ public class ServicesController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] Guid? congregationId = null,
         [FromQuery] DateOnly? fromDate = null,
-        [FromQuery] DateOnly? toDate = null)
+        [FromQuery] DateOnly? toDate = null,
+        [FromQuery] Guid? denominationId = null,
+        [FromQuery] bool includeConcepts = true)
     {
-        var result = await _serviceService.GetServicesAsync(page, pageSize, congregationId, fromDate, toDate);
+        var result = await _serviceService.GetServicesAsync(page, pageSize, congregationId, fromDate, toDate, denominationId, includeConcepts);
         return Ok(result);
     }
 
@@ -55,8 +57,18 @@ public class ServicesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("{id:guid}/publish")]
+    [Authorize]
+    public async Task<ActionResult<ServiceDto>> PublishService(Guid id)
+    {
+        var userId = User.Identity?.Name ?? "unknown";
+        var result = await _serviceService.PublishServiceAsync(id, userId);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<IActionResult> DeleteService(Guid id)
     {
         var success = await _serviceService.DeleteServiceAsync(id);
@@ -81,7 +93,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPost("bulk-delete")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<BulkOperationResult>> BulkDelete([FromBody] BulkDeleteServicesRequest request)
     {
         var result = await _serviceService.BulkDeleteAsync(request);

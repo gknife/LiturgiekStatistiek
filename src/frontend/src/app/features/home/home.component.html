@@ -1,59 +1,80 @@
-<section class="hero">
-  <h1>Liturgiek Statistiek</h1>
-  <p class="subtitle">
-    Onderzoeksplatform voor liturgie en kerkmuziek in Nederland.
-    Bouw mee aan een database van kerkdiensten en ontdek patronen in lied- en liturgiegebruik.
-  </p>
-</section>
+@if (auth.isAuthenticated$ | async) {
+  <section class="hero">
+    <h1>Liturgiek Statistiek</h1>
+    <p class="subtitle">
+      Onderzoeksplatform voor liturgie en kerkmuziek in Nederland.
+      Bouw mee aan een database van kerkdiensten en ontdek patronen in lied- en liturgiegebruik.
+    </p>
+  </section>
 
-<section class="stats-grid">
-  <mat-card class="stat-card">
-    <mat-icon class="stat-icon">church</mat-icon>
-    <div class="stat-value">{{ stats().services }}</div>
-    <div class="stat-label">Diensten</div>
-  </mat-card>
-  <mat-card class="stat-card">
-    <mat-icon class="stat-icon">groups</mat-icon>
-    <div class="stat-value">{{ stats().congregations }}</div>
-    <div class="stat-label">Gemeenten</div>
-  </mat-card>
-  <mat-card class="stat-card">
-    <mat-icon class="stat-icon">person</mat-icon>
-    <div class="stat-value">{{ stats().preachers }}</div>
-    <div class="stat-label">Voorgangers</div>
-  </mat-card>
-</section>
+  <section class="stats-grid">
+    <mat-card class="stat-card">
+      <mat-icon class="stat-icon">church</mat-icon>
+      <div class="stat-value">{{ stats().services }}</div>
+      <div class="stat-label">Diensten</div>
+    </mat-card>
+    <mat-card class="stat-card">
+      <mat-icon class="stat-icon">groups</mat-icon>
+      <div class="stat-value">{{ stats().congregations }}</div>
+      <div class="stat-label">Gemeenten</div>
+    </mat-card>
+    <mat-card class="stat-card">
+      <mat-icon class="stat-icon">person</mat-icon>
+      <div class="stat-value">{{ stats().preachers }}</div>
+      <div class="stat-label">Voorgangers</div>
+    </mat-card>
+  </section>
 
-<section class="quick-actions">
-  <h2>Snel aan de slag</h2>
-  <div class="action-grid">
-    <mat-card class="action-card" routerLink="/zoeken">
-      <mat-icon>search</mat-icon>
-      <h3>Zoeken</h3>
-      <p>Doorzoek de database met statistische vragen.</p>
-    </mat-card>
-    <mat-card class="action-card" routerLink="/diensten">
-      <mat-icon>add_circle</mat-icon>
-      <h3>Toevoegen</h3>
-      <p>Voeg een nieuwe kerkdienst toe aan de database.</p>
-    </mat-card>
-    <mat-card class="action-card" routerLink="/liedcatalogus">
-      <mat-icon>music_note</mat-icon>
-      <h3>Liedcatalogus</h3>
-      <p>Bekijk de catalogus van liedbundels en psalmen.</p>
-    </mat-card>
-    <mat-card class="action-card" routerLink="/lijsten">
-      <mat-icon>list</mat-icon>
-      <h3>Lijsten</h3>
-      <p>Bekijk afkortingen, kerkgenootschappen en meer.</p>
-    </mat-card>
-  </div>
-</section>
+  <section class="quick-actions">
+    <h2>Snel aan de slag</h2>
+    <div class="action-grid">
+      <mat-card class="action-card" routerLink="/zoeken">
+        <mat-icon>search</mat-icon>
+        <h3>Zoeken</h3>
+        <p>Doorzoek de database met statistische vragen.</p>
+      </mat-card>
+      <mat-card class="action-card" routerLink="/diensten">
+        <mat-icon>add_circle</mat-icon>
+        <h3>Toevoegen</h3>
+        <p>Voeg een nieuwe kerkdienst toe aan de database.</p>
+      </mat-card>
+      <mat-card class="action-card" routerLink="/liedcatalogus">
+        <mat-icon>music_note</mat-icon>
+        <h3>Liedcatalogus</h3>
+        <p>Bekijk de catalogus van liedbundels en psalmen.</p>
+      </mat-card>
+      <mat-card class="action-card" routerLink="/lijsten">
+        <mat-icon>list</mat-icon>
+        <h3>Lijsten</h3>
+        <p>Bekijk afkortingen, kerkgenootschappen en meer.</p>
+      </mat-card>
+    </div>
+  </section>
 
-@if (contentHtml()) {
-  <section class="about-section">
-    <mat-card class="content-card">
-      <div [innerHTML]="contentHtml()"></div>
+  @if (contentHtml()) {
+    <section class="about-section">
+      <mat-card class="content-card">
+        <div [innerHTML]="contentHtml()"></div>
+      </mat-card>
+    </section>
+  }
+} @else {
+  <section class="login-screen">
+    <mat-card class="login-card">
+      <img src="logo.png" alt="Liturgiek Statistiek" class="login-logo" />
+      <h1>Liturgiek Statistiek</h1>
+      <p class="login-subtitle">
+        Onderzoeksplatform voor liturgie en kerkmuziek in Nederland.
+      </p>
+      <p class="login-hint">Meld u aan om diensten te bekijken, toe te voegen en te doorzoeken.</p>
+      <button mat-raised-button color="primary" class="login-btn" (click)="login()" [disabled]="loggingIn()">
+        @if (loggingIn()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          <mat-icon>login</mat-icon>
+        }
+        Inloggen met Microsoft
+      </button>
     </mat-card>
   </section>
 }

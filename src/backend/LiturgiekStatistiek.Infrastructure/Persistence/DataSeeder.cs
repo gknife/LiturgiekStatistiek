@@ -46,6 +46,24 @@ public static class DataSeeder
         var nabetHA = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Nabetrachting HA", SortOrder = 9 };
         db.ListItems.AddRange(avondmaal, doop, pasen, pinksteren, kerst, biddag, dankdag, voorbHA, nabetHA);
 
+        // --- Service Performers (wie doet het onderdeel) ---
+        var performerList = new ListDefinition { Id = Guid.NewGuid(), Name = "ServicePerformer", Description = "Wie doet het onderdeel", IsSystemList = true };
+        db.ListDefinitions.Add(performerList);
+        var perfVoorganger = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = performerList.Id, Value = "Voorganger", SortOrder = 1 };
+        var perfOuderling = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = performerList.Id, Value = "Ouderling", SortOrder = 2 };
+        var perfGemeentelid = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = performerList.Id, Value = "Gemeentelid", SortOrder = 3 };
+        db.ListItems.AddRange(perfVoorganger, perfOuderling, perfGemeentelid);
+
+        // --- Service Occasion characteristics (voor sjablonen) ---
+        var svcOccasionList = new ListDefinition { Id = Guid.NewGuid(), Name = "ServiceOccasion", Description = "Aard van de dienst (voor sjablonen)", IsSystemList = true };
+        db.ListDefinitions.Add(svcOccasionList);
+        var occRegulier = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Regulier", SortOrder = 1 };
+        var occDoop = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Doop", SortOrder = 2 };
+        var occAvondmaal = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Avondmaal", SortOrder = 3 };
+        var occBelijdenis = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Belijdenis", SortOrder = 4 };
+        var occBevestiging = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Bevestiging ambtsdragers", SortOrder = 5 };
+        db.ListItems.AddRange(occRegulier, occDoop, occAvondmaal, occBelijdenis, occBevestiging);
+
         // --- Bible Translations ---
         var bibleList = new ListDefinition { Id = Guid.NewGuid(), Name = "BibleTranslations", Description = "Bijbelvertalingen", IsSystemList = true };
         db.ListDefinitions.Add(bibleList);
@@ -315,6 +333,55 @@ public static class DataSeeder
         var s3_6 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el3_6.Id, BundleId = wkPs.Id, SongNumber = 103, Position = 1 };
         db.ServiceElementSongs.Add(s3_6);
         db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = s3_6.Id, VerseLabel = "9", Position = 1 });
+
+        // --- Demo services covering the example questions (Psalm 6, 116, 119, 150) ---
+        // Helper to add a Ps1773 psalm element with the given verse labels.
+        void AddPsalm(Guid serviceId, int position, int psalmNumber, params string[] verseLabels)
+        {
+            var el = new ServiceElement { Id = Guid.NewGuid(), ServiceId = serviceId, Position = position, ElementType = ElementType.Song };
+            db.ServiceElements.Add(el);
+            var ses = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = el.Id, BundleId = ps1773.Id, Section = "Psalm", SongNumber = psalmNumber, Position = 1 };
+            db.ServiceElementSongs.Add(ses);
+            for (var i = 0; i < verseLabels.Length; i++)
+                db.SongVerses.Add(new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = ses.Id, VerseLabel = verseLabels[i], Position = i + 1 });
+        }
+
+        var thisYear = DateTime.Now.Year;
+
+        // svc4 — NGK (cong1), this year: Psalm 119 (meest gezongen couplet), Psalm 150, Psalm 6.
+        var svc4 = new Service
+        {
+            Id = Guid.NewGuid(), CongregationId = cong1.Id, PreacherId = preacher1.Id,
+            Date = new DateOnly(thisYear, 3, 9), TimeOfDay = TimeOfDay.Morning,
+            SermonTheme = "Uw woord is een lamp", SermonText = "Psalm 119:105"
+        };
+        db.Services.Add(svc4);
+        AddPsalm(svc4.Id, 1, 119, "1", "2", "3", "4");
+        AddPsalm(svc4.Id, 2, 150, "1", "2");
+        AddPsalm(svc4.Id, 3, 6, "1", "2", "3");
+
+        // svc5 — PKN (cong3), last year: Psalm 116, Psalm 150, Psalm 119.
+        var svc5 = new Service
+        {
+            Id = Guid.NewGuid(), CongregationId = cong3.Id, PreacherId = preacher3.Id,
+            Date = new DateOnly(thisYear - 1, 9, 15), TimeOfDay = TimeOfDay.Evening,
+            SermonTheme = "Ik heb den HEER lief", SermonText = "Psalm 116"
+        };
+        db.Services.Add(svc5);
+        AddPsalm(svc5.Id, 1, 116, "1", "2", "3", "4");
+        AddPsalm(svc5.Id, 2, 150, "1");
+        AddPsalm(svc5.Id, 3, 119, "5");
+
+        // svc6 — GG (cong2), two years ago: Psalm 116, Psalm 150.
+        var svc6 = new Service
+        {
+            Id = Guid.NewGuid(), CongregationId = cong2.Id, PreacherId = preacher2.Id,
+            Date = new DateOnly(thisYear - 2, 11, 3), TimeOfDay = TimeOfDay.Morning,
+            SermonTheme = "Lofzang", SermonText = "Psalm 150"
+        };
+        db.Services.Add(svc6);
+        AddPsalm(svc6.Id, 1, 116, "1", "2");
+        AddPsalm(svc6.Id, 2, 150, "3");
 
         // --- Content pages ---
         db.ContentPages.Add(new ContentPage

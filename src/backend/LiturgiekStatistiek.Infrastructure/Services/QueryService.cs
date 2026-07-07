@@ -1,5 +1,6 @@
 using LiturgiekStatistiek.Application.DTOs.Queries;
 using LiturgiekStatistiek.Application.Interfaces;
+using LiturgiekStatistiek.Domain.Entities;
 using LiturgiekStatistiek.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,12 +25,13 @@ public class QueryService : IQueryService
             new()
             {
                 Id = "most-sung-song",
-                Title = "Meest gezongen lied in gemeente",
-                Description = "Welk lied wordt het vaakst gezongen in een bepaalde gemeente?",
+                Title = "Meest gezongen lied in gemeente of kerkgenootschap",
+                Description = "Welk lied wordt het vaakst gezongen in een bepaalde gemeente of kerkgenootschap?",
                 DefaultChartType = "bar",
                 Parameters = new()
                 {
-                    new() { Name = "congregationId", Label = "Gemeente", Type = "congregation", Required = true },
+                    new() { Name = "congregationId", Label = "Gemeente", Type = "congregation", Required = false },
+                    new() { Name = "denominationId", Label = "Kerkgenootschap", Type = "string", Required = false },
                     new() { Name = "fromDate", Label = "Vanaf", Type = "date", Required = false },
                     new() { Name = "toDate", Label = "Tot", Type = "date", Required = false },
                 }
@@ -38,12 +40,13 @@ public class QueryService : IQueryService
             {
                 Id = "most-sung-verse",
                 Title = "Meest gezongen couplet",
-                Description = "Welk couplet van welk lied is het afgelopen jaar het meest gezongen?",
+                Description = "Welk couplet van welk lied is het meest gezongen?",
                 DefaultChartType = "bar",
                 Parameters = new()
                 {
-                    new() { Name = "year", Label = "Jaar", Type = "string", Required = true, DefaultValue = DateTime.Now.Year.ToString() },
+                    new() { Name = "year", Label = "Jaar", Type = "string", Required = false },
                     new() { Name = "bundleId", Label = "Bundel", Type = "bundle", Required = false },
+                    new() { Name = "songNumber", Label = "Liednummer", Type = "string", Required = false },
                 }
             },
             new()
@@ -150,6 +153,31 @@ public class QueryService : IQueryService
                     new() { Name = "verse", Label = "Couplet (optioneel)", Type = "verse", Required = false },
                 }
             },
+            new()
+            {
+                Id = "song-completeness",
+                Title = "Wanneer wordt lied X volledig gezongen?",
+                Description = "Geef alle diensten waarin alle coupletten van een bepaald lied (samen) gezongen zijn.",
+                DefaultChartType = "table",
+                Parameters = new()
+                {
+                    new() { Name = "bundleId", Label = "Bundel", Type = "bundle", Required = true },
+                    new() { Name = "songNumber", Label = "Liednummer", Type = "string", Required = true },
+                }
+            },
+            new()
+            {
+                Id = "compare-denominations",
+                Title = "Vergelijk kerkgenootschappen",
+                Description = "Vergelijk het lied- of psalmgebruik tussen twee of meer kerkgenootschappen.",
+                DefaultChartType = "bar",
+                Parameters = new()
+                {
+                    new() { Name = "denominationIds", Label = "Kerkgenootschappen", Type = "string", Required = true },
+                    new() { Name = "fromDate", Label = "Vanaf", Type = "date", Required = false },
+                    new() { Name = "toDate", Label = "Tot", Type = "date", Required = false },
+                }
+            },
         };
 
         return Task.FromResult(templates);
@@ -157,6 +185,8 @@ public class QueryService : IQueryService
 
     public async Task<QueryResult> ExecuteTemplateAsync(string templateId, Dictionary<string, string> parameters, CancellationToken ct = default)
     {
+        await ResolveBundleParametersAsync(parameters, ct);
+        await ResolveDenominationParametersAsync(parameters, ct);
         return templateId switch
         {
             "most-sung-song" => await MostSungSongAsync(parameters, ct),
@@ -164,35 +194,162 @@ public class QueryService : IQueryService
             "most-opening-song" => await MostOpeningSongAsync(parameters, ct),
             "average-songs-per-service" => await AverageSongsPerServiceAsync(parameters, ct),
             "most-psalms-congregation" => await MostPsalmsCongregationAsync(parameters, ct),
+            "compare-denominations" => await CompareDenominationsAsync(parameters, ct),
             "song-by-city-map" => await SongByCityMapAsync(parameters, ct),
             "song-by-period" => await SongByPeriodAsync(parameters, ct),
             "services-with-song" => await ServicesWithSongAsync(parameters, ct),
             "song-after-song" => await SongAfterSongAsync(parameters, ct),
             "song-usage-over-time" => await SongUsageOverTimeAsync(parameters, ct),
+            "song-completeness" => await SongCompletenessAsync(parameters, ct),
             _ => new QueryResult { Title = "Onbekende query", Description = $"Template '{templateId}' niet gevonden." }
         };
     }
 
     public Task<QueryResult> ExecuteNaturalLanguageAsync(string query, CancellationToken ct = default)
     {
-        // TODO: Integrate with Azure OpenAI GPT-4o-mini
         return Task.FromResult(new QueryResult
         {
             Title = "Natuurlijke taalverwerking",
-            Description = "Deze functie wordt binnenkort beschikbaar. Gebruik voorlopig de voorgedefinieerde sjablonen.",
+            Description = "Gebruik de /execute endpoint met een natuurlijke taalvraag, of de voorgedefinieerde sjablonen.",
         });
+    }
+
+    /// <summary>
+    /// The NL parser returns bundle abbreviations/names (e.g. "Ps1773") rather than Guids.
+    /// Resolve any non-Guid bundle parameter to the matching SongBundles list-item id so
+    /// template implementations that expect a Guid keep working from natural language.
+    /// </summary>
+    private async Task ResolveBundleParametersAsync(Dictionary<string, string> parameters, CancellationToken ct)
+    {
+        var bundleKeys = new[] { "bundleId", "bundleIdA", "bundleIdB" };
+        var needsResolving = bundleKeys
+            .Where(k => parameters.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v) && !Guid.TryParse(v, out _))
+            .ToList();
+
+        // Fallback: the NL parser sometimes omits bundleId for a psalm question (e.g. "Psalm 150").
+        // If a songNumber is present but bundleId is missing, assume the default psalm bundle so the
+        // template can still run instead of failing with "bundleId ontbreekt".
+        var needsPsalmFallback = parameters.ContainsKey("songNumber")
+            && (!parameters.TryGetValue("bundleId", out var existingBundle) || string.IsNullOrWhiteSpace(existingBundle));
+
+        if (needsResolving.Count == 0 && !needsPsalmFallback) return;
+
+        var bundles = await _db.ListItems
+            .Where(i => i.ListDefinition.Name == "SongBundles")
+            .Select(i => new { i.Id, i.Value, i.Abbreviation })
+            .ToListAsync(ct);
+
+        foreach (var key in needsResolving)
+        {
+            var raw = parameters[key];
+            var match = bundles.FirstOrDefault(b =>
+                string.Equals(b.Abbreviation, raw, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(b.Value, raw, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+                parameters[key] = match.Id.ToString();
+        }
+
+        if (needsPsalmFallback)
+        {
+            var psalmBundle = bundles.FirstOrDefault(b =>
+                    string.Equals(b.Abbreviation, "Ps1773", StringComparison.OrdinalIgnoreCase))
+                ?? bundles.FirstOrDefault(b =>
+                    (b.Abbreviation != null && b.Abbreviation.StartsWith("Ps", StringComparison.OrdinalIgnoreCase))
+                    || b.Value.Contains("Psalm", StringComparison.OrdinalIgnoreCase));
+            if (psalmBundle != null)
+                parameters["bundleId"] = psalmBundle.Id.ToString();
+        }
+    }
+
+    /// <summary>
+    /// The NL parser returns kerkgenootschap names/abbreviations (e.g. "GG", "PKN") rather than
+    /// Guids. Resolve any non-Guid denomination parameter(s) to the matching Denominations
+    /// list-item id(s). Supports single (denominationId) and comma-separated (denominationIds).
+    /// </summary>
+    private async Task ResolveDenominationParametersAsync(Dictionary<string, string> parameters, CancellationToken ct)
+    {
+        var singleKeys = new[] { "denominationId" };
+        var listKeys = new[] { "denominationIds" };
+        var hasSingle = singleKeys.Any(k => parameters.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v) && !Guid.TryParse(v, out _));
+        var hasList = listKeys.Any(k => parameters.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v));
+        if (!hasSingle && !hasList) return;
+
+        var denominations = await _db.ListItems
+            .Where(i => i.ListDefinition.Name == "Denominations")
+            .Select(i => new { i.Id, i.Value, i.Abbreviation })
+            .ToListAsync(ct);
+
+        Guid? Resolve(string raw)
+        {
+            raw = raw.Trim();
+            if (Guid.TryParse(raw, out var g)) return g;
+            var match = denominations.FirstOrDefault(d =>
+                string.Equals(d.Abbreviation, raw, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(d.Value, raw, StringComparison.OrdinalIgnoreCase));
+            return match?.Id;
+        }
+
+        foreach (var key in singleKeys)
+        {
+            if (parameters.TryGetValue(key, out var raw) && !string.IsNullOrWhiteSpace(raw))
+            {
+                var id = Resolve(raw);
+                if (id.HasValue) parameters[key] = id.Value.ToString();
+            }
+        }
+
+        foreach (var key in listKeys)
+        {
+            if (parameters.TryGetValue(key, out var raw) && !string.IsNullOrWhiteSpace(raw))
+            {
+                var ids = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(Resolve)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value.ToString());
+                parameters[key] = string.Join(",", ids);
+            }
+        }
     }
 
     // --- Template implementations ---
 
     private async Task<QueryResult> MostSungSongAsync(Dictionary<string, string> parameters, CancellationToken ct)
     {
-        var congregationId = Guid.Parse(parameters["congregationId"]);
+        var hasCongregation = parameters.TryGetValue("congregationId", out var congStr)
+            && Guid.TryParse(congStr, out var congregationId);
+        var hasDenomination = parameters.TryGetValue("denominationId", out var denomStr)
+            && Guid.TryParse(denomStr, out var denominationId);
+
+        if (!hasCongregation && !hasDenomination)
+        {
+            return new QueryResult
+            {
+                Title = "Meest gezongen liederen",
+                Description = "Specificeer een gemeente of een kerkgenootschap om de meest gezongen liederen te bepalen.",
+                ChartType = "bar",
+            };
+        }
+
         var query = _db.ServiceElementSongs
             .Include(ses => ses.ServiceElement)
                 .ThenInclude(se => se.Service)
+                    .ThenInclude(s => s!.Congregation)
             .Include(ses => ses.Bundle)
-            .Where(ses => ses.ServiceElement.Service.CongregationId == congregationId);
+            .Where(ses => ses.ServiceElement.Service.Status == ServiceStatus.Gepubliceerd);
+
+        string scopeLabel;
+        if (hasCongregation)
+        {
+            congregationId = Guid.Parse(parameters["congregationId"]);
+            query = query.Where(ses => ses.ServiceElement.Service.CongregationId == congregationId);
+            scopeLabel = "gemeente";
+        }
+        else
+        {
+            denominationId = Guid.Parse(parameters["denominationId"]);
+            query = query.Where(ses => ses.ServiceElement.Service.Congregation!.DenominationId == denominationId);
+            scopeLabel = "kerkgenootschap";
+        }
 
         if (parameters.TryGetValue("fromDate", out var from) && DateOnly.TryParse(from, out var fromDate))
             query = query.Where(ses => ses.ServiceElement.Service.Date >= fromDate);
@@ -208,7 +365,7 @@ public class QueryService : IQueryService
 
         return new QueryResult
         {
-            Title = "Meest gezongen liederen",
+            Title = $"Meest gezongen liederen ({scopeLabel})",
             ChartType = "bar",
             Columns = new() { "Lied", "Aantal" },
             Rows = results.Select(r => new Dictionary<string, object?>
@@ -225,19 +382,112 @@ public class QueryService : IQueryService
         };
     }
 
+    private async Task<QueryResult> CompareDenominationsAsync(Dictionary<string, string> parameters, CancellationToken ct)
+    {
+        var denominationIds = (parameters.GetValueOrDefault("denominationIds") ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
+            .Where(g => g.HasValue)
+            .Select(g => g!.Value)
+            .Distinct()
+            .ToList();
+
+        if (denominationIds.Count == 0)
+        {
+            return new QueryResult
+            {
+                Title = "Vergelijking kerkgenootschappen",
+                Description = "Kon de opgegeven kerkgenootschappen niet herkennen. Gebruik bijvoorbeeld 'PKN' en 'NGK'.",
+                ChartType = "bar",
+            };
+        }
+
+        var psalmBundles = await _db.ListItems
+            .Where(li => li.Abbreviation != null && (li.Abbreviation.Contains("Ps") || li.Value.Contains("Psalm")))
+            .Select(li => li.Id)
+            .ToListAsync(ct);
+
+        var denomNames = await _db.ListItems
+            .Where(i => i.ListDefinition.Name == "Denominations" && denominationIds.Contains(i.Id))
+            .Select(i => new { i.Id, Name = i.Abbreviation ?? i.Value })
+            .ToListAsync(ct);
+
+        var query = _db.ServiceElementSongs
+            .Include(ses => ses.ServiceElement)
+                .ThenInclude(se => se.Service)
+                    .ThenInclude(s => s!.Congregation)
+            .Where(ses => ses.ServiceElement.Service.Status == ServiceStatus.Gepubliceerd
+                && ses.ServiceElement.Service.Congregation!.DenominationId != null
+                && denominationIds.Contains(ses.ServiceElement.Service.Congregation.DenominationId!.Value));
+
+        if (parameters.TryGetValue("fromDate", out var from) && DateOnly.TryParse(from, out var fromDate))
+            query = query.Where(ses => ses.ServiceElement.Service.Date >= fromDate);
+        if (parameters.TryGetValue("toDate", out var to) && DateOnly.TryParse(to, out var toDate))
+            query = query.Where(ses => ses.ServiceElement.Service.Date <= toDate);
+
+        var rawData = await query
+            .Select(ses => new
+            {
+                DenominationId = ses.ServiceElement.Service.Congregation!.DenominationId!.Value,
+                IsPsalm = psalmBundles.Contains(ses.BundleId)
+            })
+            .ToListAsync(ct);
+
+        var grouped = denominationIds
+            .Select(id =>
+            {
+                var items = rawData.Where(x => x.DenominationId == id).ToList();
+                var total = items.Count;
+                var psalms = items.Count(x => x.IsPsalm);
+                return new
+                {
+                    Name = denomNames.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString(),
+                    Total = total,
+                    Psalms = psalms,
+                    Percentage = total == 0 ? 0.0 : Math.Round(psalms * 100.0 / total, 1)
+                };
+            })
+            .OrderByDescending(x => x.Percentage)
+            .ToList();
+
+        return new QueryResult
+        {
+            Title = "Psalmgebruik per kerkgenootschap",
+            ChartType = "bar",
+            Columns = new() { "Kerkgenootschap", "Psalmen", "Totaal liederen", "Percentage psalmen" },
+            Rows = grouped.Select(r => new Dictionary<string, object?>
+            {
+                ["Kerkgenootschap"] = r.Name,
+                ["Psalmen"] = r.Psalms,
+                ["Totaal liederen"] = r.Total,
+                ["Percentage psalmen"] = $"{r.Percentage}%"
+            }).ToList(),
+            TotalCount = grouped.Count,
+            Chart = new ChartData
+            {
+                Labels = grouped.Select(r => r.Name).ToList(),
+                Datasets = new() { new() { Label = "% Psalmen", Data = grouped.Select(r => r.Percentage).ToList() } }
+            }
+        };
+    }
+
     private async Task<QueryResult> MostSungVerseAsync(Dictionary<string, string> parameters, CancellationToken ct)
     {
-        var year = int.Parse(parameters.GetValueOrDefault("year", DateTime.Now.Year.ToString()));
+        int? year = parameters.TryGetValue("year", out var yearStr) && int.TryParse(yearStr, out var y) ? y : null;
         var query = _db.SongVerses
             .Include(sv => sv.ServiceElementSong)
                 .ThenInclude(ses => ses.ServiceElement)
                     .ThenInclude(se => se.Service)
             .Include(sv => sv.ServiceElementSong)
                 .ThenInclude(ses => ses.Bundle)
-            .Where(sv => sv.ServiceElementSong.ServiceElement.Service.Date.Year == year);
+            .Where(sv => sv.ServiceElementSong.ServiceElement.Service.Status == ServiceStatus.Gepubliceerd);
 
+        if (year.HasValue)
+            query = query.Where(sv => sv.ServiceElementSong.ServiceElement.Service.Date.Year == year);
         if (parameters.TryGetValue("bundleId", out var bundleIdStr) && Guid.TryParse(bundleIdStr, out var bundleId))
             query = query.Where(sv => sv.ServiceElementSong.BundleId == bundleId);
+        if (parameters.TryGetValue("songNumber", out var songNumberStr) && int.TryParse(songNumberStr, out var songNumber))
+            query = query.Where(sv => sv.ServiceElementSong.SongNumber == songNumber);
         if (parameters.TryGetValue("section", out var sectionFilter) && !string.IsNullOrWhiteSpace(sectionFilter))
             query = query.Where(sv => sv.ServiceElementSong.Section == sectionFilter);
 
@@ -256,7 +506,7 @@ public class QueryService : IQueryService
 
         return new QueryResult
         {
-            Title = $"Meest gezongen coupletten ({year})",
+            Title = year.HasValue ? $"Meest gezongen coupletten ({year})" : "Meest gezongen coupletten",
             ChartType = "bar",
             Columns = new() { "Couplet", "Aantal" },
             Rows = results.Select(r => new Dictionary<string, object?>
@@ -569,6 +819,86 @@ public class QueryService : IQueryService
                 ["Label"] = r.Label
             }).ToList(),
             TotalCount = results.Count,
+        };
+    }
+
+    private async Task<QueryResult> SongCompletenessAsync(Dictionary<string, string> parameters, CancellationToken ct)
+    {
+        if (!parameters.TryGetValue("bundleId", out var bundleRaw) || !Guid.TryParse(bundleRaw, out var bundleId))
+        {
+            return new QueryResult
+            {
+                Title = "Wanneer wordt dit lied volledig gezongen?",
+                Description = "Specificeer een bundel (en eventueel een liednummer) om de volledigheid te bepalen.",
+                ChartType = "table",
+            };
+        }
+
+        int? songNumber = parameters.TryGetValue("songNumber", out var snRaw) && int.TryParse(snRaw, out var sn)
+            ? sn
+            : null;
+
+        // Catalog verse counts per song number in this bundle.
+        var catalog = await _db.Songs
+            .Where(s => s.BundleId == bundleId && (songNumber == null || s.Number == songNumber))
+            .Select(s => new { s.Number, s.NumberOfVerses })
+            .ToListAsync(ct);
+        var catalogByNumber = catalog
+            .GroupBy(c => c.Number)
+            .ToDictionary(g => g.Key, g => (int?)g.First().NumberOfVerses);
+
+        var matches = await _db.ServiceElementSongs
+            .Include(ses => ses.Verses)
+            .Include(ses => ses.ServiceElement)
+                .ThenInclude(se => se.Service)
+                    .ThenInclude(s => s!.Congregation)
+            .Include(ses => ses.ServiceElement)
+                .ThenInclude(se => se.Service)
+                    .ThenInclude(s => s!.Preacher)
+            .Where(ses => ses.BundleId == bundleId
+                && (songNumber == null || ses.SongNumber == songNumber)
+                && ses.ServiceElement.Service!.Status == ServiceStatus.Gepubliceerd)
+            .ToListAsync(ct);
+
+        var rows = new List<Dictionary<string, object?>>();
+        foreach (var group in matches.GroupBy(m => new { m.ServiceElement.ServiceId, m.SongNumber }))
+        {
+            var serviceVerses = group.SelectMany(m => m.Verses.Select(v => v.VerseLabel)).ToList();
+            var elementVerses = group
+                .GroupBy(m => m.ServiceElementId)
+                .Select(g => g.SelectMany(m => m.Verses.Select(v => v.VerseLabel)).ToList())
+                .OrderByDescending(l => l.Count)
+                .First();
+
+            catalogByNumber.TryGetValue(group.Key.SongNumber, out var catalogVerses);
+            var comp = Application.Services.SongCompletenessCalculator.Compute(catalogVerses, elementVerses, serviceVerses);
+            if (!comp.CompleteInService) continue;
+
+            var svc = group.First().ServiceElement.Service!;
+            rows.Add(new Dictionary<string, object?>
+            {
+                ["Datum"] = svc.Date.ToString("d-M-yyyy"),
+                ["Lied"] = group.Key.SongNumber,
+                ["Gemeente"] = svc.Congregation!.Name,
+                ["Stad"] = svc.Congregation.City,
+                ["Voorganger"] = svc.Preacher?.FullName ?? "",
+                ["Volledig in één onderdeel"] = comp.CompleteInElement ? "Ja" : "Nee (verdeeld)"
+            });
+        }
+
+        var anyCatalog = catalogByNumber.Values.Any(v => v.HasValue);
+        return new QueryResult
+        {
+            Title = songNumber.HasValue
+                ? "Diensten waarin dit lied volledig gezongen is"
+                : "Diensten waarin een lied uit deze bundel volledig gezongen is",
+            ChartType = "table",
+            Columns = new() { "Datum", "Lied", "Gemeente", "Stad", "Voorganger", "Volledig in één onderdeel" },
+            Rows = rows.OrderByDescending(r => r["Datum"]).ToList(),
+            TotalCount = rows.Count,
+            Description = anyCatalog
+                ? "Volledigheid bepaald op basis van het aantal coupletten in de catalogus."
+                : "Let op: aantal coupletten onbekend in catalogus; volledigheid kan niet bepaald worden.",
         };
     }
 

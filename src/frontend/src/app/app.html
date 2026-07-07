@@ -13,21 +13,21 @@
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <mat-toolbar class="app-toolbar">
-      <button mat-icon-button (click)="sidenav.toggle()" class="menu-button">
-        <mat-icon>menu</mat-icon>
-      </button>
-      <img src="logo.png" alt="Liturgiek Statistiek" class="app-logo" routerLink="/" />
-      <span class="spacer"></span>
-      <nav class="desktop-nav">
-        @for (item of visibleNavItems; track item.path) {
-          <a mat-button [routerLink]="item.path" routerLinkActive="active-link"
-             [routerLinkActiveOptions]="{exact: item.path === '/'}">
-            {{ item.label }}
-          </a>
-        }
-      </nav>
-      @if (auth.isAuthenticated$ | async) {
+    @if (auth.isAuthenticated$ | async) {
+      <mat-toolbar class="app-toolbar">
+        <button mat-icon-button (click)="sidenav.toggle()" class="menu-button">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <img src="logo.png" alt="Liturgiek Statistiek" class="app-logo" routerLink="/" />
+        <span class="spacer"></span>
+        <nav class="desktop-nav">
+          @for (item of visibleNavItems; track item.path) {
+            <a mat-button [routerLink]="item.path" routerLinkActive="active-link"
+               [routerLinkActiveOptions]="{exact: item.path === '/'}">
+              {{ item.label }}
+            </a>
+          }
+        </nav>
         <button mat-button [matMenuTriggerFor]="userMenu" class="user-button">
           <mat-icon>account_circle</mat-icon>
           <span class="user-name">{{ (auth.user$ | async)?.name }}</span>
@@ -46,30 +46,23 @@
             <span>Uitloggen</span>
           </button>
         </mat-menu>
-      } @else {
-        <a mat-icon-button routerLink="/instellingen" aria-label="Instellingen"
-           matTooltip="Instellingen" class="settings-button">
-          <mat-icon>settings</mat-icon>
-        </a>
-        <button mat-button class="login-button" (click)="login()">
-          <mat-icon>login</mat-icon>
-          Inloggen
-        </button>
-      }
-    </mat-toolbar>
+      </mat-toolbar>
+    }
 
     <main class="app-content">
       <router-outlet />
     </main>
 
-    <footer class="app-footer">
-      <div class="footer-content">
-        <span>&copy; 2026 Liturgiek Statistiek &mdash; Onderzoeksproject</span>
-        <div class="footer-links">
-          <a routerLink="/contact">Contact</a>
-          <a href="https://github.com/gknife/LiturgiekStatistiek" target="_blank" rel="noopener">GitHub</a>
+    @if (auth.isAuthenticated$ | async) {
+      <footer class="app-footer">
+        <div class="footer-content">
+          <span>&copy; 2026 Liturgiek Statistiek &mdash; Onderzoeksproject</span>
+          <div class="footer-links">
+            <a routerLink="/contact">Contact</a>
+            <a href="https://github.com/gknife/LiturgiekStatistiek" target="_blank" rel="noopener">GitHub</a>
+          </div>
         </div>
-      </div>
-    </footer>
+      </footer>
+    }
   </mat-sidenav-content>
 </mat-sidenav-container>

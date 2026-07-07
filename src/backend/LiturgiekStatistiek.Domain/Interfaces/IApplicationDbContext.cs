@@ -25,6 +25,9 @@ public interface IApplicationDbContext
     DbSet<BibleBook> BibleBooks { get; }
     DbSet<BibleBookTranslationName> BibleBookTranslationNames { get; }
     DbSet<SermonTextReference> SermonTextReferences { get; }
+    DbSet<ReadingReference> ReadingReferences { get; }
+    DbSet<ServiceTemplate> ServiceTemplates { get; }
+    DbSet<ServiceTemplateElement> ServiceTemplateElements { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

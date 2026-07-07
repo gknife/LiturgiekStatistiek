@@ -20,10 +20,18 @@ public class QueryServiceTests
     }
 
     [Test]
-    public async Task GetTemplatesAsync_Returns10Templates()
+    public async Task GetTemplatesAsync_Returns12Templates()
     {
         var templates = await _sut.GetTemplatesAsync();
-        Assert.That(templates, Has.Count.EqualTo(10));
+        Assert.That(templates, Has.Count.EqualTo(12));
+    }
+
+    [Test]
+    public async Task GetTemplatesAsync_IncludesSongCompletenessTemplate()
+    {
+        var templates = await _sut.GetTemplatesAsync();
+        Assert.That(templates.Any(t => t.Id == "song-completeness"), Is.True,
+            "Expected a 'song-completeness' template for the 'sung as a whole' question.");
     }
 
     [Test]
@@ -53,11 +61,13 @@ public class QueryServiceTests
     [TestCase("most-opening-song")]
     [TestCase("average-songs-per-service")]
     [TestCase("most-psalms-congregation")]
+    [TestCase("compare-denominations")]
     [TestCase("song-by-city-map")]
     [TestCase("song-by-period")]
     [TestCase("services-with-song")]
     [TestCase("song-after-song")]
     [TestCase("song-usage-over-time")]
+    [TestCase("song-completeness")]
     public async Task GetTemplatesAsync_ContainsExpectedTemplate(string expectedId)
     {
         var templates = await _sut.GetTemplatesAsync();

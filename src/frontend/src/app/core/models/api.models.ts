@@ -18,6 +18,9 @@ export interface ServiceSummary {
   specialOccasion: string | null;
   elementCount: number;
   broadcastUrl: string | null;
+  denomination: string | null;
+  status: string | null;
+  statusValue: number;
 }
 
 export interface ServiceDetail {
@@ -27,7 +30,6 @@ export interface ServiceDetail {
   congregation: CongregationSummary;
   preacher: PreacherSummary | null;
   churchCalendarSunday: string | null;
-  bibleTranslation: string | null;
   isReadingService: boolean;
   readSermonBy: string | null;
   musicalAccompaniment: string | null;
@@ -46,10 +48,13 @@ export interface ServiceDetail {
   createdBy: string | null;
   timeOfDayValue: number;
   churchCalendarSundayId: string | null;
-  bibleTranslationId: string | null;
   musicalAccompanimentId: string | null;
   specialOccasionId: string | null;
   sermonTextReferences: SermonTextReference[];
+  denomination: string | null;
+  denominationId: string | null;
+  status: string | null;
+  statusValue: number;
 }
 
 export interface ServiceElement {
@@ -57,9 +62,33 @@ export interface ServiceElement {
   position: number;
   elementType: string;
   label: string | null;
+  labelId: string | null;
   scriptureReference: string | null;
   notes: string | null;
   songs: ServiceElementSong[];
+  performerId: string | null;
+  performer: string | null;
+  isBeurtzang: boolean;
+  bibleTranslationId: string | null;
+  bibleTranslation: string | null;
+  readingReferences: ReadingReference[] | null;
+}
+
+export interface ReadingReference {
+  bibleBookId: string | null;
+  bookName: string;
+  chapter: number | null;
+  verseStart: number | null;
+  verseEnd: number | null;
+  position: number;
+}
+
+export interface SongCompleteness {
+  state: string;
+  completeInElement: boolean;
+  completeInService: boolean;
+  catalogVerseCount: number | null;
+  sungVerseCount: number;
 }
 
 export interface ServiceElementSong {
@@ -70,6 +99,8 @@ export interface ServiceElementSong {
   songNumber: number;
   position: number;
   verses: string[];
+  bundleId: string | null;
+  completeness: SongCompleteness | null;
 }
 
 export interface SermonTextReference {
@@ -268,4 +299,80 @@ export interface SavedQuery {
   queryParameters: string;
   isPublic: boolean;
   createdAt: string;
+}
+
+// ---------------- Service templates (Sjablonen) ----------------
+
+export interface ServiceTemplateElement {
+  id: string;
+  position: number;
+  elementType: string;
+  elementTypeValue: number;
+  labelId: string | null;
+  label: string | null;
+  performerId: string | null;
+  performer: string | null;
+  isBeurtzang: boolean;
+  fixedScriptureReference: string | null;
+}
+
+export interface ServiceTemplate {
+  id: string;
+  name: string;
+  denominationId: string | null;
+  denomination: string | null;
+  congregationId: string | null;
+  congregation: string | null;
+  timeOfDay: number | null;
+  occasionId: string | null;
+  occasion: string | null;
+  isActive: boolean;
+  elements: ServiceTemplateElement[];
+}
+
+export interface ServiceTemplateSummary {
+  id: string;
+  name: string;
+  denominationId: string | null;
+  denomination: string | null;
+  congregationId: string | null;
+  congregation: string | null;
+  timeOfDay: number | null;
+  occasionId: string | null;
+  occasion: string | null;
+  isActive: boolean;
+  elementCount: number;
+}
+
+export interface CreateServiceTemplateElementRequest {
+  position: number;
+  elementType: number;
+  labelId: string | null;
+  performerId: string | null;
+  isBeurtzang: boolean;
+  fixedScriptureReference: string | null;
+}
+
+export interface CreateServiceTemplateRequest {
+  name: string;
+  denominationId: string | null;
+  congregationId: string | null;
+  timeOfDay: number | null;
+  occasionId: string | null;
+  isActive: boolean;
+  elements: CreateServiceTemplateElementRequest[];
+}
+
+/** A ready-to-use service element produced by instantiating a template. */
+export interface TemplateElementInstance {
+  position: number;
+  elementType: number;
+  labelId: string | null;
+  scriptureReference: string | null;
+  notes: string | null;
+  songs: unknown[] | null;
+  performerId: string | null;
+  isBeurtzang: boolean;
+  bibleTranslationId: string | null;
+  readingReferences: ReadingReference[] | null;
 }

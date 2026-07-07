@@ -1,5 +1,6 @@
 using LiturgiekStatistiek.Application.DTOs;
 using LiturgiekStatistiek.Application.Interfaces;
+using LiturgiekStatistiek.Application.Services;
 using LiturgiekStatistiek.Domain.Entities;
 using LiturgiekStatistiek.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +21,13 @@ public class ServiceService : IServiceService
         int pageSize = 20,
         Guid? congregationId = null,
         DateOnly? fromDate = null,
-        DateOnly? toDate = null)
+        DateOnly? toDate = null,
+        Guid? denominationId = null,
+        bool includeConcepts = true)
     {
         var query = _context.Services
             .Include(s => s.Congregation)
+                .ThenInclude(c => c.Denomination)
             .Include(s => s.Preacher)
             .Include(s => s.SpecialOccasion)
             .AsQueryable();
@@ -31,6 +35,16 @@ public class ServiceService : IServiceService
         if (congregationId.HasValue)
         {
             query = query.Where(s => s.CongregationId == congregationId.Value);
+        }
+
+        if (denominationId.HasValue)
+        {
+            query = query.Where(s => s.Congregation.DenominationId == denominationId.Value);
+        }
+
+        if (!includeConcepts)
+        {
+            query = query.Where(s => s.Status == ServiceStatus.Gepubliceerd);
         }
 
         if (fromDate.HasValue)
@@ -58,7 +72,10 @@ public class ServiceService : IServiceService
                 s.Preacher != null ? s.Preacher.FullName : null,
                 s.SpecialOccasion != null ? s.SpecialOccasion.Value : null,
                 s.Elements.Count,
-                s.BroadcastUrl))
+                s.BroadcastUrl,
+                s.Congregation.Denomination != null ? s.Congregation.Denomination.Value : null,
+                s.Status.ToString(),
+                (int)s.Status))
             .ToListAsync();
 
         return new PaginatedResult<ServiceSummaryDto>(items, totalCount, page, pageSize);
@@ -71,13 +88,18 @@ public class ServiceService : IServiceService
                 .ThenInclude(c => c.Denomination)
             .Include(s => s.Preacher)
             .Include(s => s.ChurchCalendarSunday)
-            .Include(s => s.BibleTranslation)
             .Include(s => s.MusicalAccompaniment)
             .Include(s => s.SpecialOccasion)
             .Include(s => s.Bundles)
                 .ThenInclude(b => b.Bundle)
             .Include(s => s.Elements)
                 .ThenInclude(e => e.Label)
+            .Include(s => s.Elements)
+                .ThenInclude(e => e.Performer)
+            .Include(s => s.Elements)
+                .ThenInclude(e => e.BibleTranslation)
+            .Include(s => s.Elements)
+                .ThenInclude(e => e.ReadingReferences)
             .Include(s => s.Elements)
                 .ThenInclude(e => e.Songs)
                     .ThenInclude(sg => sg.Bundle)
@@ -92,6 +114,8 @@ public class ServiceService : IServiceService
             return null;
         }
 
+        var completeness = await BuildCompletenessLookupAsync(service);
+
         return new ServiceDto(
             service.Id,
             service.Date,
@@ -105,7 +129,6 @@ public class ServiceService : IServiceService
                 ? new PreacherSummaryDto(service.Preacher.Id, service.Preacher.FullName, service.Preacher.Title)
                 : null,
             service.ChurchCalendarSunday?.Value,
-            service.BibleTranslation?.Value,
             service.IsReadingService,
             service.ReadSermonBy,
             service.MusicalAccompaniment?.Value,
@@ -143,14 +166,31 @@ public class ServiceService : IServiceService
                             sg.Verses
                                 .OrderBy(v => v.Position)
                                 .Select(v => v.VerseLabel)
-                                .ToList()))
+                                .ToList(),
+                            sg.BundleId,
+                            completeness.TryGetValue(SongKey(sg), out var comp) ? comp : null))
+                        .ToList(),
+                    e.LabelId,
+                    e.PerformerId,
+                    e.Performer?.Value,
+                    e.IsBeurtzang,
+                    e.BibleTranslationId,
+                    e.BibleTranslation?.Value,
+                    e.ReadingReferences
+                        .OrderBy(r => r.Position)
+                        .Select(r => new ReadingReferenceDto(
+                            r.BibleBookId,
+                            r.BookName,
+                            r.Chapter,
+                            r.VerseStart,
+                            r.VerseEnd,
+                            r.Position))
                         .ToList()))
                 .ToList(),
             service.CreatedAt,
             service.CreatedBy,
             (int)service.TimeOfDay,
             service.ChurchCalendarSundayId,
-            service.BibleTranslationId,
             service.MusicalAccompanimentId,
             service.SpecialOccasionId,
             service.SermonTextReferences
@@ -162,7 +202,66 @@ public class ServiceService : IServiceService
                     r.VerseStart,
                     r.VerseEnd,
                     r.Position))
-                .ToList());
+                .ToList(),
+            service.Status.ToString(),
+            (int)service.Status,
+            service.Congregation.DenominationId,
+            service.Congregation.Denomination?.Value);
+    }
+
+    private static (Guid Bundle, string Section, int Number) SongKey(ServiceElementSong sg)
+        => (sg.BundleId, sg.Section ?? "", sg.SongNumber);
+
+    /// <summary>
+    /// Computes per-song completeness for every sung song in a service. The catalog
+    /// verse-count comes from the <see cref="Song"/> catalog; completeness is flagged
+    /// both within a single onderdeel and across the whole service.
+    /// </summary>
+    private async Task<Dictionary<(Guid, string, int), SongCompletenessDto>> BuildCompletenessLookupAsync(Service service)
+    {
+        var songs = service.Elements.SelectMany(e => e.Songs).ToList();
+        var result = new Dictionary<(Guid, string, int), SongCompletenessDto>();
+        if (songs.Count == 0) return result;
+
+        var keys = songs.Select(SongKey).Distinct().ToList();
+        var bundleIds = keys.Select(k => k.Item1).Distinct().ToList();
+
+        var catalog = await _context.Songs
+            .Where(s => bundleIds.Contains(s.BundleId))
+            .Select(s => new { s.BundleId, s.Section, s.Number, s.NumberOfVerses })
+            .ToListAsync();
+
+        foreach (var key in keys)
+        {
+            var catalogVerseCount = catalog
+                .Where(c => c.BundleId == key.Item1 && (c.Section ?? "") == key.Item2 && c.Number == key.Item3)
+                .Select(c => c.NumberOfVerses)
+                .FirstOrDefault();
+
+            var serviceVerses = songs
+                .Where(sg => SongKey(sg) == key)
+                .SelectMany(sg => sg.Verses.Select(v => v.VerseLabel))
+                .ToList();
+
+            // Per-onderdeel completeness is computed against the union within that
+            // onderdeel; take the first element occurrence for the element scope.
+            var elementVerses = songs
+                .Where(sg => SongKey(sg) == key)
+                .GroupBy(sg => sg.ServiceElementId)
+                .Select(g => g.SelectMany(sg => sg.Verses.Select(v => v.VerseLabel)).ToList())
+                .OrderByDescending(l => l.Count)
+                .First();
+
+            var comp = SongCompletenessCalculator.Compute(catalogVerseCount, elementVerses, serviceVerses);
+            result[key] = new SongCompletenessDto(
+                comp.State,
+                comp.CompleteInElement,
+                comp.CompleteInService,
+                comp.CatalogVerseCount,
+                comp.SungVerseCount);
+        }
+
+        return result;
     }
 
     public async Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, string userId)
@@ -175,7 +274,6 @@ public class ServiceService : IServiceService
             CongregationId = request.CongregationId,
             PreacherId = request.PreacherId,
             ChurchCalendarSundayId = request.ChurchCalendarSundayId,
-            BibleTranslationId = request.BibleTranslationId,
             IsReadingService = request.IsReadingService,
             ReadSermonBy = request.ReadSermonBy,
             MusicalAccompanimentId = request.MusicalAccompanimentId,
@@ -188,6 +286,7 @@ public class ServiceService : IServiceService
             SermonText = request.SermonText,
             SermonTheme = request.SermonTheme,
             Notes = request.Notes,
+            Status = request.Status.HasValue ? (ServiceStatus)request.Status.Value : ServiceStatus.Gepubliceerd,
             CreatedBy = userId,
             CreatedAt = DateTime.UtcNow
         };
@@ -208,52 +307,7 @@ public class ServiceService : IServiceService
         {
             foreach (var elementRequest in request.Elements)
             {
-                var element = new ServiceElement
-                {
-                    Id = Guid.NewGuid(),
-                    ServiceId = service.Id,
-                    Position = elementRequest.Position,
-                    ElementType = (ElementType)elementRequest.ElementType,
-                    LabelId = elementRequest.LabelId,
-                    ScriptureReference = elementRequest.ScriptureReference,
-                    Notes = elementRequest.Notes,
-                    CreatedBy = userId,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                if (elementRequest.Songs != null)
-                {
-                    foreach (var songRequest in elementRequest.Songs)
-                    {
-                        var song = new ServiceElementSong
-                        {
-                            Id = Guid.NewGuid(),
-                            ServiceElementId = element.Id,
-                            BundleId = songRequest.BundleId,
-                            Section = songRequest.Section ?? "",
-                            SongNumber = songRequest.SongNumber,
-                            Position = songRequest.Position
-                        };
-
-                        if (songRequest.Verses != null)
-                        {
-                            for (var index = 0; index < songRequest.Verses.Count; index++)
-                            {
-                                song.Verses.Add(new SongVerse
-                                {
-                                    Id = Guid.NewGuid(),
-                                    ServiceElementSongId = song.Id,
-                                    VerseLabel = songRequest.Verses[index],
-                                    Position = index + 1
-                                });
-                            }
-                        }
-
-                        element.Songs.Add(song);
-                    }
-                }
-
-                service.Elements.Add(element);
+                service.Elements.Add(BuildServiceElement(elementRequest, service.Id, userId));
             }
         }
 
@@ -281,6 +335,78 @@ public class ServiceService : IServiceService
         return await GetServiceByIdAsync(service.Id) ?? throw new InvalidOperationException();
     }
 
+    /// <summary>Builds a fully-populated (but untracked) service element graph from a request.</summary>
+    private static ServiceElement BuildServiceElement(CreateServiceElementRequest elementRequest, Guid serviceId, string userId)
+    {
+        var element = new ServiceElement
+        {
+            Id = Guid.NewGuid(),
+            ServiceId = serviceId,
+            Position = elementRequest.Position,
+            ElementType = (ElementType)elementRequest.ElementType,
+            LabelId = elementRequest.LabelId,
+            ScriptureReference = elementRequest.ScriptureReference,
+            Notes = elementRequest.Notes,
+            PerformerId = elementRequest.PerformerId,
+            IsBeurtzang = elementRequest.IsBeurtzang,
+            BibleTranslationId = elementRequest.BibleTranslationId,
+            CreatedBy = userId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        if (elementRequest.Songs != null)
+        {
+            foreach (var songRequest in elementRequest.Songs)
+            {
+                var song = new ServiceElementSong
+                {
+                    Id = Guid.NewGuid(),
+                    ServiceElementId = element.Id,
+                    BundleId = songRequest.BundleId,
+                    Section = songRequest.Section ?? "",
+                    SongNumber = songRequest.SongNumber,
+                    Position = songRequest.Position
+                };
+
+                if (songRequest.Verses != null)
+                {
+                    for (var index = 0; index < songRequest.Verses.Count; index++)
+                    {
+                        song.Verses.Add(new SongVerse
+                        {
+                            Id = Guid.NewGuid(),
+                            ServiceElementSongId = song.Id,
+                            VerseLabel = songRequest.Verses[index],
+                            Position = index + 1
+                        });
+                    }
+                }
+
+                element.Songs.Add(song);
+            }
+        }
+
+        if (elementRequest.ReadingReferences != null)
+        {
+            foreach (var r in elementRequest.ReadingReferences)
+            {
+                element.ReadingReferences.Add(new ReadingReference
+                {
+                    Id = Guid.NewGuid(),
+                    ServiceElementId = element.Id,
+                    Position = r.Position,
+                    BibleBookId = r.BibleBookId,
+                    BookName = r.BookName,
+                    Chapter = r.Chapter,
+                    VerseStart = r.VerseStart,
+                    VerseEnd = r.VerseEnd
+                });
+            }
+        }
+
+        return element;
+    }
+
     public async Task<ServiceDto?> UpdateServiceAsync(Guid id, UpdateServiceRequest request, string userId)
     {
         var service = await _context.Services
@@ -294,12 +420,14 @@ public class ServiceService : IServiceService
             return null;
         }
 
+        var previousCongregationId = service.CongregationId;
+        var previousPreacherId = service.PreacherId;
+
         service.Date = request.Date;
         service.TimeOfDay = (TimeOfDay)request.TimeOfDay;
         service.CongregationId = request.CongregationId;
         service.PreacherId = request.PreacherId;
         service.ChurchCalendarSundayId = request.ChurchCalendarSundayId;
-        service.BibleTranslationId = request.BibleTranslationId;
         service.IsReadingService = request.IsReadingService;
         service.ReadSermonBy = request.ReadSermonBy;
         service.MusicalAccompanimentId = request.MusicalAccompanimentId;
@@ -312,6 +440,10 @@ public class ServiceService : IServiceService
         service.SermonText = request.SermonText;
         service.SermonTheme = request.SermonTheme;
         service.Notes = request.Notes;
+        if (request.Status.HasValue)
+        {
+            service.Status = (ServiceStatus)request.Status.Value;
+        }
         service.ModifiedBy = userId;
         service.ModifiedAt = DateTime.UtcNow;
 
@@ -360,57 +492,9 @@ public class ServiceService : IServiceService
         {
             foreach (var elementRequest in request.Elements)
             {
-                var element = new ServiceElement
-                {
-                    Id = Guid.NewGuid(),
-                    ServiceId = service.Id,
-                    Position = elementRequest.Position,
-                    ElementType = (ElementType)elementRequest.ElementType,
-                    LabelId = elementRequest.LabelId,
-                    ScriptureReference = elementRequest.ScriptureReference,
-                    Notes = elementRequest.Notes,
-                    CreatedBy = userId,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                if (elementRequest.Songs != null)
-                {
-                    foreach (var songRequest in elementRequest.Songs)
-                    {
-                        var song = new ServiceElementSong
-                        {
-                            Id = Guid.NewGuid(),
-                            ServiceElementId = element.Id,
-                            BundleId = songRequest.BundleId,
-                            Section = songRequest.Section ?? "",
-                            SongNumber = songRequest.SongNumber,
-                            Position = songRequest.Position
-                        };
-
-                        if (songRequest.Verses != null)
-                        {
-                            for (var index = 0; index < songRequest.Verses.Count; index++)
-                            {
-                                song.Verses.Add(new SongVerse
-                                {
-                                    Id = Guid.NewGuid(),
-                                    ServiceElementSongId = song.Id,
-                                    VerseLabel = songRequest.Verses[index],
-                                    Position = index + 1
-                                });
-                            }
-                        }
-
-                        element.Songs.Add(song);
-                    }
-                }
-
                 // Add via the DbSet (not the tracked service.Elements navigation) so the
-                // entire new graph - element, songs and verses - is marked Added. Adding
-                // through the navigation only forces the element to Added; the grandchild
-                // songs/verses keep their pre-set Guid keys and hit EF's "key is set =>
-                // existing row" heuristic, producing a 0-row UPDATE that throws.
-                _context.ServiceElements.Add(element);
+                // entire new graph - element, songs and verses - is marked Added.
+                _context.ServiceElements.Add(BuildServiceElement(elementRequest, service.Id, userId));
             }
         }
 
@@ -433,7 +517,48 @@ public class ServiceService : IServiceService
         }
 
         await _context.SaveChangesAsync();
+
+        // Remove gemeente/voorganger that no longer have any service after a reassign.
+        await CleanupOrphansAsync(previousCongregationId, previousPreacherId);
+
         return await GetServiceByIdAsync(id);
+    }
+
+    /// <summary>
+    /// Hard-deletes a congregation and/or preacher when they have no services left.
+    /// Scope is limited to these auto-created reference entities; curated Lijsten are
+    /// never touched.
+    /// </summary>
+    private async Task CleanupOrphansAsync(Guid? congregationId, Guid? preacherId)
+    {
+        var changed = false;
+
+        if (congregationId.HasValue &&
+            !await _context.Services.AnyAsync(s => s.CongregationId == congregationId.Value))
+        {
+            var congregation = await _context.Congregations.FindAsync(congregationId.Value);
+            if (congregation != null)
+            {
+                _context.Congregations.Remove(congregation);
+                changed = true;
+            }
+        }
+
+        if (preacherId.HasValue &&
+            !await _context.Services.AnyAsync(s => s.PreacherId == preacherId.Value))
+        {
+            var preacher = await _context.Preachers.FindAsync(preacherId.Value);
+            if (preacher != null)
+            {
+                _context.Preachers.Remove(preacher);
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task<BulkOperationResult> BulkUpdateAsync(BulkUpdateServicesRequest request, string userId)
@@ -465,8 +590,21 @@ public class ServiceService : IServiceService
             .Where(s => request.ServiceIds.Contains(s.Id))
             .ToListAsync();
 
+        var affectedCongregations = services.Select(s => s.CongregationId).Distinct().ToList();
+        var affectedPreachers = services.Where(s => s.PreacherId.HasValue).Select(s => s.PreacherId!.Value).Distinct().ToList();
+
         _context.Services.RemoveRange(services);
         await _context.SaveChangesAsync();
+
+        foreach (var cid in affectedCongregations)
+        {
+            await CleanupOrphansAsync(cid, null);
+        }
+        foreach (var pid in affectedPreachers)
+        {
+            await CleanupOrphansAsync(null, pid);
+        }
+
         return new BulkOperationResult(services.Count);
     }
 
@@ -484,9 +622,6 @@ public class ServiceService : IServiceService
             case "preacherid":
                 service.PreacherId = Guid.TryParse(value, out var pid) ? pid : null;
                 break;
-            case "bibletranslationid":
-                service.BibleTranslationId = Guid.TryParse(value, out var bid) ? bid : null;
-                break;
             case "specialoccasionid":
                 service.SpecialOccasionId = Guid.TryParse(value, out var sid) ? sid : null;
                 break;
@@ -501,6 +636,22 @@ public class ServiceService : IServiceService
         }
     }
 
+    public async Task<ServiceDto?> PublishServiceAsync(Guid id, string userId)
+    {
+        var service = await _context.Services.FindAsync(id);
+        if (service == null)
+        {
+            return null;
+        }
+
+        service.Status = ServiceStatus.Gepubliceerd;
+        service.ModifiedBy = userId;
+        service.ModifiedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return await GetServiceByIdAsync(id);
+    }
+
     public async Task<bool> DeleteServiceAsync(Guid id)
     {
         var service = await _context.Services.FindAsync(id);
@@ -509,8 +660,13 @@ public class ServiceService : IServiceService
             return false;
         }
 
+        var congregationId = service.CongregationId;
+        var preacherId = service.PreacherId;
+
         _context.Services.Remove(service);
         await _context.SaveChangesAsync();
+
+        await CleanupOrphansAsync(congregationId, preacherId);
         return true;
     }
 }

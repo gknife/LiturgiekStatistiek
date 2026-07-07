@@ -21,7 +21,7 @@ import {
   CongregationSummary, PreacherSummary, ListItem, ServiceDetail,
   BibleBook, ParsedServiceData,
 } from '../../core/models/api.models';
-import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin } from 'rxjs';
+import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin, tap } from 'rxjs';
 import { FormControl } from '@angular/forms';
 
 export interface AddDialogData {
@@ -35,12 +35,23 @@ interface ElementSong {
   versesText: string;
 }
 
+interface ReadingRefModel {
+  bibleBookId: string;
+  chapter: number | null;
+  verseStart: number | null;
+  verseEnd: number | null;
+}
+
 interface ServiceElementModel {
   position: number;
   elementType: number;
   labelId: string;
   notes: string;
   songs: ElementSong[];
+  performerId: string;
+  isBeurtzang: boolean;
+  bibleTranslationId: string;
+  readingRefs: ReadingRefModel[];
 }
 
 interface SermonRefModel {
@@ -86,6 +97,20 @@ export class AddComponent implements OnInit {
   churchCalendarSundays: ListItem[] = [];
   musicalAccompaniments: ListItem[] = [];
   liturgicalLabels: ListItem[] = [];
+  performers: ListItem[] = [];
+  serviceOccasions: ListItem[] = [];
+
+  // Element type ids (mirror the backend ElementType enum).
+  readonly ELEMENT_SONG = 0;
+  readonly ELEMENT_READING = 2;
+
+  // Draft/publish + save-guard state.
+  saving = false;
+  publishing = false;
+  autoSaving = false;
+  status = 1; // 0 = Concept, 1 = Gepubliceerd
+  private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastSavedSnapshot = '';
 
   // Bible reference data for the structured Preektekst editor.
   bibleBooks: BibleBook[] = [];
@@ -134,7 +159,6 @@ export class AddComponent implements OnInit {
       congregationId: [''],
       preacherId: [''],
       churchCalendarSundayId: [''],
-      bibleTranslationId: [''],
       musicalAccompanimentId: [''],
       specialOccasionId: [''],
       isReadingService: [false],
@@ -156,6 +180,8 @@ export class AddComponent implements OnInit {
       churchCalendarSundays: this.api.getListByName('ChurchCalendarSundays'),
       musicalAccompaniments: this.api.getListByName('MusicalAccompaniment'),
       liturgicalLabels: this.api.getListByName('LiturgicalLabels'),
+      performers: this.api.getListByName('ServicePerformer'),
+      serviceOccasions: this.api.getListByName('ServiceOccasion'),
     }).subscribe(lists => {
       this.bundles = lists.bundles.items;
       this.specialOccasions = lists.specialOccasions.items;
@@ -163,6 +189,8 @@ export class AddComponent implements OnInit {
       this.churchCalendarSundays = lists.churchCalendarSundays.items;
       this.musicalAccompaniments = lists.musicalAccompaniments.items;
       this.liturgicalLabels = lists.liturgicalLabels.items;
+      this.performers = lists.performers.items;
+      this.serviceOccasions = lists.serviceOccasions.items;
 
       this.loadBibleBooks();
 
@@ -173,9 +201,6 @@ export class AddComponent implements OnInit {
         this.api.getService(this.editingServiceId).subscribe(service => this.prefill(service));
       }
     });
-
-    // Reload book names when the translation changes.
-    this.metadataForm.get('bibleTranslationId')!.valueChanges.subscribe(() => this.loadBibleBooks());
 
     // Autocomplete for congregation (search on the name field).
     this.congregationControl.valueChanges.pipe(
@@ -202,12 +227,15 @@ export class AddComponent implements OnInit {
     this.preacherControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
     });
+
+    // Autosave: debounced draft save whenever the metadata form changes.
+    this.metadataForm.valueChanges.subscribe(() => this.scheduleAutosave());
   }
 
   private loadBibleBooks(): void {
-    const translationId = this.metadataForm?.get('bibleTranslationId')?.value;
-    const abbr = this.bibleTranslations.find(t => t.id === translationId)?.abbreviation || undefined;
-    this.api.getBibleBooks(abbr).subscribe(books => this.bibleBooks = books);
+    // Book/chapter/verse structure is translation-independent for the structured
+    // editor; per-reading translation is captured separately on each reading onderdeel.
+    this.api.getBibleBooks().subscribe(books => this.bibleBooks = books);
   }
 
   chaptersOf(bookId: string): number[] {
@@ -231,13 +259,13 @@ export class AddComponent implements OnInit {
   }
 
   private prefill(service: ServiceDetail): void {
+    this.status = service.statusValue ?? 1;
     this.metadataForm.patchValue({
       date: service.date ? new Date(service.date) : null,
       timeOfDay: service.timeOfDayValue,
       congregationId: service.congregation.id,
       preacherId: service.preacher?.id ?? '',
       churchCalendarSundayId: service.churchCalendarSundayId ?? '',
-      bibleTranslationId: service.bibleTranslationId ?? '',
       musicalAccompanimentId: service.musicalAccompanimentId ?? '',
       specialOccasionId: service.specialOccasionId ?? '',
       isReadingService: service.isReadingService,
@@ -259,11 +287,20 @@ export class AddComponent implements OnInit {
       .sort((a, b) => a.position - b.position)
       .map(e => ({
         position: e.position,
-        elementType: 0,
-        labelId: this.labelIdByValue(e.label),
+        elementType: this.elementTypeValue(e.elementType),
+        labelId: e.labelId ?? this.labelIdByValue(e.label),
         notes: e.notes ?? '',
+        performerId: e.performerId ?? '',
+        isBeurtzang: e.isBeurtzang ?? false,
+        bibleTranslationId: e.bibleTranslationId ?? '',
+        readingRefs: (e.readingReferences ?? []).map(r => ({
+          bibleBookId: r.bibleBookId ?? '',
+          chapter: r.chapter,
+          verseStart: r.verseStart,
+          verseEnd: r.verseEnd,
+        })),
         songs: e.songs.map(s => ({
-          bundleId: this.bundleIdByAbbrev(s.bundleAbbreviation, s.bundleName),
+          bundleId: s.bundleId ?? this.bundleIdByAbbrev(s.bundleAbbreviation, s.bundleName),
           section: s.section,
           number: s.songNumber,
           versesText: s.verses.join(', '),
@@ -276,11 +313,40 @@ export class AddComponent implements OnInit {
       verseStart: r.verseStart,
       verseEnd: r.verseEnd,
     }));
+
+    this.lastSavedSnapshot = this.snapshot();
+  }
+
+  /** Map the backend ElementType string name to its numeric value. */
+  private elementTypeValue(name: string): number {
+    switch (name) {
+      case 'Song': return 0;
+      case 'LiturgicalAct': return 1;
+      case 'Reading': return 2;
+      case 'Prayer': return 3;
+      case 'Other': return 4;
+      default: return 0;
+    }
   }
 
   private labelIdByValue(value: string | null): string {
     if (!value) return '';
     return this.liturgicalLabels.find(l => l.value === value)?.id ?? '';
+  }
+
+  private elementTypeForLabel(label: string | null): number {
+    const l = (label ?? '').toLowerCase();
+    if (l.includes('schriftlezing') || l.includes('lezing')) return 2; // Reading
+    if (l.includes('gebed')) return 3; // Prayer
+    if (l.includes('lied') || l.includes('zang') || l.includes('psalm')) return 0; // Song
+    if (
+      l.includes('votum') || l.includes('groet') || l.includes('zegen') || l.includes('collecte') ||
+      l.includes('vermaan') || l.includes('belijd') || l.includes('mededeling') || l.includes('muziek') ||
+      l.includes('kindermoment')
+    ) {
+      return 1; // LiturgicalAct
+    }
+    return 4; // Other
   }
 
   private bundleIdByAbbrev(abbrev: string | null, name?: string): string {
@@ -307,12 +373,32 @@ export class AddComponent implements OnInit {
       labelId: '',
       songs: [],
       notes: '',
+      performerId: '',
+      isBeurtzang: false,
+      bibleTranslationId: '',
+      readingRefs: [],
     });
   }
 
   removeElement(index: number): void {
     this.elements.splice(index, 1);
     this.elements.forEach((el, i) => el.position = i + 1);
+  }
+
+  isSongElement(el: ServiceElementModel): boolean {
+    return el.elementType === this.ELEMENT_SONG;
+  }
+
+  isReadingElement(el: ServiceElementModel): boolean {
+    return el.elementType === this.ELEMENT_READING;
+  }
+
+  addReadingRef(element: ServiceElementModel): void {
+    element.readingRefs.push({ bibleBookId: '', chapter: null, verseStart: null, verseEnd: null });
+  }
+
+  removeReadingRef(element: ServiceElementModel, index: number): void {
+    element.readingRefs.splice(index, 1);
   }
 
   addSong(element: ServiceElementModel): void {
@@ -383,9 +469,13 @@ export class AddComponent implements OnInit {
 
     this.elements = data.elements.map((e, i) => ({
       position: e.position || i + 1,
-      elementType: 0,
+      elementType: e.songNumber != null ? this.ELEMENT_SONG : this.elementTypeForLabel(e.label),
       labelId: this.labelIdByValue(e.label),
       notes: e.notes ?? '',
+      performerId: '',
+      isBeurtzang: false,
+      bibleTranslationId: '',
+      readingRefs: [],
       songs: e.songNumber != null
         ? [{
             bundleId: this.bundleIdByAbbrev(e.songBundle),
@@ -426,6 +516,24 @@ export class AddComponent implements OnInit {
       labelId: this.nullableGuid(el.labelId),
       scriptureReference: null,
       notes: el.notes || null,
+      performerId: this.isSongElement(el) ? null : this.nullableGuid(el.performerId),
+      isBeurtzang: this.isSongElement(el) ? el.isBeurtzang : false,
+      bibleTranslationId: this.isReadingElement(el) ? this.nullableGuid(el.bibleTranslationId) : null,
+      readingReferences: this.isReadingElement(el)
+        ? el.readingRefs
+            .filter(r => r.bibleBookId)
+            .map((r, i) => {
+              const book = this.bibleBooks.find(b => b.id === r.bibleBookId);
+              return {
+                bibleBookId: r.bibleBookId,
+                bookName: book?.name ?? '',
+                chapter: r.chapter,
+                verseStart: r.verseStart,
+                verseEnd: r.verseEnd,
+                position: i + 1,
+              };
+            })
+        : [],
       songs: el.songs
         .filter(s => s.bundleId && s.number != null)
         .map((s, i) => ({
@@ -498,39 +606,160 @@ export class AddComponent implements OnInit {
     );
   }
 
-  saveService(): void {
-    if (!this.metadataForm.valid) return;
+  private buildRequest(congregationId: string, preacherId: string | null, status: number) {
+    return {
+      ...this.metadataForm.value,
+      congregationId,
+      preacherId,
+      date: this.toDateString(this.metadataForm.value.date),
+      churchCalendarSundayId: this.nullableGuid(this.metadataForm.value.churchCalendarSundayId),
+      musicalAccompanimentId: this.nullableGuid(this.metadataForm.value.musicalAccompanimentId),
+      specialOccasionId: this.nullableGuid(this.metadataForm.value.specialOccasionId),
+      status,
+      elements: this.buildElements(),
+      sermonTextReferences: this.buildSermonRefs(),
+    };
+  }
 
-    this.resolveCongregationId().pipe(
+  private performSave(status: number): Observable<ServiceDetail> {
+    return this.resolveCongregationId().pipe(
       switchMap(congregationId =>
         this.resolvePreacherId().pipe(map(preacherId => ({ congregationId, preacherId })))
-      )
-    ).subscribe({
-      next: ({ congregationId, preacherId }) => {
-        const request = {
-          ...this.metadataForm.value,
-          congregationId,
-          preacherId,
-          date: this.toDateString(this.metadataForm.value.date),
-          churchCalendarSundayId: this.nullableGuid(this.metadataForm.value.churchCalendarSundayId),
-          bibleTranslationId: this.nullableGuid(this.metadataForm.value.bibleTranslationId),
-          musicalAccompanimentId: this.nullableGuid(this.metadataForm.value.musicalAccompanimentId),
-          specialOccasionId: this.nullableGuid(this.metadataForm.value.specialOccasionId),
-          elements: this.buildElements(),
-          sermonTextReferences: this.buildSermonRefs(),
-        };
-
+      ),
+      switchMap(({ congregationId, preacherId }) => {
+        const request = this.buildRequest(congregationId, preacherId, status);
         const save$ = this.isEditMode && this.editingServiceId
           ? this.api.updateService(this.editingServiceId, request)
           : this.api.createService(request);
+        return save$.pipe(tap(saved => {
+          this.editingServiceId = saved.id;
+          this.status = saved.statusValue ?? status;
+          this.lastSavedSnapshot = this.snapshot();
+        }));
+      })
+    );
+  }
 
-        save$.subscribe({
-          next: () => this.finish(true),
-          error: (err: any) => alert('Fout bij opslaan: ' + (err.message ?? err)),
-        });
-      },
-      error: (err: any) => alert('Fout bij opslaan: ' + (err.message ?? err)),
+  /** Snapshot of the editable state, used to skip no-op autosaves. */
+  private snapshot(): string {
+    return JSON.stringify({
+      form: this.metadataForm.value,
+      elements: this.elements,
+      sermonRefs: this.sermonRefs,
+      congregation: this.congregationControl.value,
+      city: this.congregationCityControl.value,
+      preacher: this.preacherControl.value,
     });
+  }
+
+  /** Debounced autosave: persists the in-progress service as a Concept draft. */
+  scheduleAutosave(): void {
+    if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
+    this.autosaveTimer = setTimeout(() => this.autosave(), 2000);
+  }
+
+  private autosave(): void {
+    if (this.saving || this.publishing) return;
+    if (!this.metadataForm.get('date')?.value) return;
+    if (!(this.congregationControl.value || this.metadataForm.value.congregationId)) return;
+    if (this.snapshot() === this.lastSavedSnapshot) return;
+
+    this.autoSaving = true;
+    // A brand-new service becomes a Concept draft; an existing one keeps its status.
+    this.performSave(this.isEditMode ? this.status : 0).subscribe({
+      next: () => { this.autoSaving = false; },
+      error: () => { this.autoSaving = false; },
+    });
+  }
+
+  /** Save (as Concept for a new service; keeps status for an existing one). */
+  saveDraft(): void {
+    if (this.saving || this.publishing) return;
+    if (!this.metadataForm.valid) { this.metadataForm.markAllAsTouched(); return; }
+    this.saving = true;
+    this.performSave(this.isEditMode ? this.status : 0).subscribe({
+      next: () => { this.saving = false; this.finish(true); },
+      error: (err: any) => { this.saving = false; alert('Fout bij opslaan: ' + (err.message ?? err)); },
+    });
+  }
+
+  /** Publish: persists the service and flips it to Gepubliceerd. */
+  publish(): void {
+    if (this.saving || this.publishing) return;
+    if (!this.metadataForm.valid) { this.metadataForm.markAllAsTouched(); return; }
+    this.publishing = true;
+    this.performSave(1).subscribe({
+      next: () => { this.publishing = false; this.finish(true); },
+      error: (err: any) => { this.publishing = false; alert('Fout bij opslaan: ' + (err.message ?? err)); },
+    });
+  }
+
+  /** Back-compat entry point for the primary action button. */
+  saveService(): void {
+    this.publish();
+  }
+
+  /** Pre-fill onderdelen from the best-matching template for the chosen gemeente/tijdstip. */
+  applyTemplate(): void {
+    const congregationId = this.nullableGuid(this.metadataForm.value.congregationId);
+    const timeOfDay = this.metadataForm.value.timeOfDay;
+    const occasionId = this.nullableGuid(this.metadataForm.value.specialOccasionId);
+    this.api.instantiateTemplate({ congregationId, timeOfDay, occasionId }).subscribe({
+      next: (instances) => {
+        if (!instances || instances.length === 0) {
+          alert('Geen passend sjabloon gevonden voor deze gemeente/tijdstip.');
+          return;
+        }
+        const scaffold: ServiceElementModel[] = instances.map((inst, i) => ({
+          position: inst.position || i + 1,
+          elementType: inst.elementType,
+          labelId: inst.labelId ?? '',
+          notes: '',
+          performerId: inst.performerId ?? '',
+          isBeurtzang: inst.isBeurtzang ?? false,
+          bibleTranslationId: inst.bibleTranslationId ?? '',
+          readingRefs: [],
+          songs: [],
+        }));
+        this.elements = this.reconcileWithScaffold(scaffold, this.elements);
+        this.scheduleAutosave();
+      },
+      error: () => alert('Kon sjabloon niet laden.'),
+    });
+  }
+
+  /**
+   * Merge already-entered/parsed onderdelen into a template scaffold:
+   * fill each empty scaffold slot with the first unused existing element that has the
+   * same label, keep empty slots that had no match, and append any leftover existing
+   * elements (that carried content) after the scaffold.
+   */
+  private reconcileWithScaffold(
+    scaffold: ServiceElementModel[],
+    existing: ServiceElementModel[],
+  ): ServiceElementModel[] {
+    const hasContent = (e: ServiceElementModel) =>
+      (e.songs && e.songs.length > 0) || !!e.notes || (e.readingRefs && e.readingRefs.length > 0);
+    const pool = existing.filter(hasContent);
+    const used = new Set<ServiceElementModel>();
+
+    for (const slot of scaffold) {
+      const match = pool.find(e => !used.has(e) && e.labelId && e.labelId === slot.labelId);
+      if (match) {
+        used.add(match);
+        slot.notes = match.notes || slot.notes;
+        slot.songs = match.songs;
+        if (match.performerId) slot.performerId = match.performerId;
+        if (match.isBeurtzang) slot.isBeurtzang = match.isBeurtzang;
+        if (match.bibleTranslationId) slot.bibleTranslationId = match.bibleTranslationId;
+        if (match.readingRefs?.length) slot.readingRefs = match.readingRefs;
+      }
+    }
+
+    const leftovers = pool.filter(e => !used.has(e));
+    const result = [...scaffold, ...leftovers];
+    result.forEach((e, i) => (e.position = i + 1));
+    return result;
   }
 
   finish(saved: boolean): void {

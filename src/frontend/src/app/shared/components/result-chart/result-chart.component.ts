@@ -47,6 +47,14 @@ export class ResultChartComponent implements OnChanges, AfterViewInit {
       tension: 0.3,
     }));
 
+    // Count-based charts must show integer ticks/tooltips (1, 2, 3 — never 1.0/0.5).
+    // Detect this when every data point is a whole number; averages/percentages
+    // keep decimals because their values are fractional.
+    const allValues = this.data.datasets.flatMap(ds => ds.data ?? []);
+    const allIntegers = allValues.length > 0 && allValues.every(v => Number.isInteger(v));
+    const fmtInt = (v: number | string) =>
+      typeof v === 'number' ? v.toLocaleString('nl-NL', { maximumFractionDigits: 0 }) : v;
+
     this.chart = new Chart(this.canvasRef.nativeElement, {
       type: this.chartType as any,
       data: { labels: this.data.labels, datasets },
@@ -55,9 +63,25 @@ export class ResultChartComponent implements OnChanges, AfterViewInit {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: this.data.datasets.length > 1 },
+          tooltip: allIntegers ? {
+            callbacks: {
+              label: (ctx: any) => {
+                const label = ctx.dataset?.label ? `${ctx.dataset.label}: ` : '';
+                const val = ctx.parsed?.y ?? ctx.parsed ?? ctx.raw;
+                return `${label}${fmtInt(val)}`;
+              },
+            },
+          } : {},
         },
-        scales: this.chartType !== 'pie' ? {
-          y: { beginAtZero: true },
+        scales: this.chartType !== 'pie' && this.chartType !== 'doughnut' ? {
+          y: {
+            beginAtZero: true,
+            ticks: allIntegers ? {
+              precision: 0,
+              stepSize: 1,
+              callback: (value: any) => (Number.isInteger(value) ? fmtInt(value) : ''),
+            } : {},
+          },
         } : undefined,
       },
     });

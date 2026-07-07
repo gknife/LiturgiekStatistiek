@@ -55,20 +55,24 @@ public class LiturgyParser : ILiturgyParser
         ("gebed", "Grote gebed (met voorbeden/dankzegging)"),
     };
 
+    // Keys are normalised: whitespace and dots stripped, lower-cased (see TryParseSong).
     private static readonly Dictionary<string, string> BundleMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["ps"] = "Ps1773", ["ps."] = "Ps1773", ["psalm"] = "Ps1773", ["psalmen"] = "Ps1773",
-        ["gez"] = "Ps1773", ["gez."] = "Ps1773", ["gezang"] = "Ps1773",
+        ["ps"] = "Ps1773", ["psalm"] = "Ps1773", ["psalmen"] = "Ps1773",
+        ["ps1773"] = "Ps1773", ["psalm1773"] = "Ps1773", ["psalmen1773"] = "Ps1773",
+        ["gez"] = "Ps1773", ["gezang"] = "Ps1773",
         ["lvdk"] = "LvdK", ["lied"] = "LvdK", ["liedboek"] = "LvdK",
-        ["opw"] = "Opw", ["opw."] = "Opw", ["opwekking"] = "Opw",
+        ["opw"] = "Opw", ["opwekking"] = "Opw",
         ["wk"] = "WK", ["weerklank"] = "WK",
         ["wkps"] = "WKPs",
         ["gk"] = "GK",
         ["eg"] = "EG",
     };
 
+    // The optional "1773" psalter edition is captured as part of the bundle so it is not
+    // mistaken for the song number (e.g. "Ps1773 84:1,2,3" -> bundle Ps1773, number 84).
     private static readonly Regex SongRegex = new(
-        @"^(?<bundle>Ps\.?|Psalm(?:en)?|Gez\.?|Gezang|LvdK|Liedboek|Lied|Opw\.?|Opwekking|WKPs|WK|Weerklank|GK|EG)\s*(?<num>\d+)\s*[:.]?\s*(?<verses>[\d,\s\-]*(?:\s*en\s*\d+)*)\s*$",
+        @"^(?<bundle>Psalm(?:en)?\.?\s*1773|Ps\.?\s*1773|Psalm(?:en)?|Ps\.?|Gez\.?|Gezang|LvdK|Liedboek|Lied|Opw\.?|Opwekking|WKPs|WK|Weerklank|GK|EG)\s*[:.]?\s*(?<num>\d+)\s*[:.]?\s*(?<verses>[\d,\s\-]*(?:\s*en\s*\d+)*)\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public ParsedServiceData Parse(string text, string? title = null)
@@ -178,9 +182,9 @@ public class LiturgyParser : ILiturgyParser
         var m = SongRegex.Match(input.Trim());
         if (!m.Success) return null;
 
-        var bundleRaw = m.Groups["bundle"].Value.Trim().TrimEnd('.').ToLowerInvariant();
-        if (!BundleMap.TryGetValue(bundleRaw, out var bundle) &&
-            !BundleMap.TryGetValue(bundleRaw + ".", out bundle))
+        var bundleRaw = m.Groups["bundle"].Value.Trim();
+        var key = Regex.Replace(bundleRaw, @"[\s.]", "").ToLowerInvariant();
+        if (!BundleMap.TryGetValue(key, out var bundle))
         {
             bundle = bundleRaw.ToUpperInvariant();
         }

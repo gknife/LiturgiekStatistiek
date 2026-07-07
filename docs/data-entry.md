@@ -17,6 +17,48 @@ three converge on the same save path so the resulting data is identical and quer
   `SermonTextReference` rows (book ordinal + chapter + verse start/end) so they are
   queryable, with `Service.SermonText` kept as a raw fallback.
 
+### Per-element details
+
+Each onderdeel carries a **type** (Lied, Liturgische handeling, Schriftlezing, Gebed,
+Overig). The editor adapts to the type:
+
+- **Wie doet dit onderdeel** (performer) — on every non-song onderdeel you can pick who
+  leads it (voorganger/ouderling/gemeentelid, seeded as the `ServicePerformer` list and
+  editable under *Lijsten*). Stored on `ServiceElement.PerformerId`.
+- **Beurtzang** — a checkbox on song onderdelen (`ServiceElement.IsBeurtzang`), queryable.
+- **Schriftlezing** — a reading onderdeel holds **one Bijbelvertaling** (per reading, no
+  longer service-wide) plus **one or more structured scripture references** (book +
+  chapter + verse start/end), reusing the Preektekst editor pattern. Stored as
+  `ReadingReference` rows on the element, with `ServiceElement.BibleTranslationId` for the
+  translation.
+
+### Volledig gezongen (completeness)
+
+Whether a song is "sung as a whole" is **computed automatically** — never a manual flag —
+by comparing the sung verse numbers against the song's catalog verse count
+(`Song.NumberOfVerses`). Two states are surfaced with a **volledig** badge in the diensten
+survey: complete **within one onderdeel** (e.g. `Ps1773 93:1,2,3,4`) and complete **across
+the whole service** (e.g. `93:1,2` in one onderdeel and `93:3,4` in another). When the
+catalog count is unknown the song is never counted as complete. See
+`SongCompletenessCalculator`.
+
+### Concept, autosave & publiceren
+
+Editing works against a **server-side draft**. While the dialog is open, changes are
+**autosaved** (debounced ~2s) as a `Concept`. Concept services show a *Concept* badge in the
+diensten list, are visible to all signed-in users, and are **excluded from all queries and
+statistics** until published. Use **Publiceren** to flip the status to `Gepubliceerd`. The
+Save/Publiceren buttons disable while a request is in flight, preventing duplicate saves.
+
+### Sjabloon toepassen (templates)
+
+**Sjabloon toepassen** pre-fills the onderdelen from the best-matching template for the
+chosen gemeente/kerkgenootschap, dagdeel and gelegenheid (Doop, Avondmaal, …). When you
+already parsed or entered onderdelen, applying a template **reconciles** them into the
+template scaffold: matching labels fill the template slots, empty slots stay, and extra
+onderdelen are appended. Templates are managed on the **Sjablonen** page (see
+[templates.md](./templates.md)).
+
 ## 2. Plakken & verwerken (paste)
 
 Posts raw text to `POST /api/parse/liturgy` `{ text, title? }`. A **deterministic**

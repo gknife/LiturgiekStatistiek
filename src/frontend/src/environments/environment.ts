@@ -1,6 +1,7 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:5001/api',
+  devBypass: true,
   msalConfig: {
     auth: {
       clientId: 'ee00b27d-ca8e-4c09-aff2-5d632f42691e',

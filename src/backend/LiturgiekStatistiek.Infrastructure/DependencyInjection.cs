@@ -29,6 +29,7 @@ public static class DependencyInjection
             provider.GetRequiredService<ApplicationDbContext>());
 
         services.AddScoped<IServiceService, ServiceService>();
+        services.AddScoped<ITemplateService, TemplateService>();
         services.AddScoped<ICongregationService, CongregationService>();
         services.AddScoped<IPreacherService, PreacherService>();
         services.AddScoped<IListService, ListService>();

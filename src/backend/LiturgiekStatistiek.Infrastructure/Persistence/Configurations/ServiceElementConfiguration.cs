@@ -19,6 +19,16 @@ public class ServiceElementConfiguration : IEntityTypeConfiguration<ServiceEleme
             .HasForeignKey(e => e.ServiceId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(e => e.Performer)
+            .WithMany()
+            .HasForeignKey(e => e.PerformerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(e => e.BibleTranslation)
+            .WithMany()
+            .HasForeignKey(e => e.BibleTranslationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(e => new { e.ServiceId, e.Position });
     }
 }

@@ -1,0 +1,160 @@
+<div class="templates-page">
+  <div class="page-header">
+    <h1>Sjablonen</h1>
+    <p class="subtitle">Standaard dienststructuren per kerkgenootschap. Bij het aanmaken van een dienst worden de onderdelen automatisch voorgevuld.</p>
+  </div>
+
+  @if (!editing) {
+    <div class="toolbar">
+      <button mat-flat-button color="primary" (click)="startCreate()">
+        <mat-icon>add</mat-icon> Nieuw sjabloon
+      </button>
+    </div>
+
+    @if (loading()) {
+      <p>Laden…</p>
+    } @else if (templates().length === 0) {
+      <mat-card class="empty-card"><mat-card-content>Nog geen sjablonen. Maak er een aan.</mat-card-content></mat-card>
+    } @else {
+      <table mat-table [dataSource]="templates()" class="mat-elevation-z1 templates-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Naam</th>
+          <td mat-cell *matCellDef="let t">{{ t.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="denomination">
+          <th mat-header-cell *matHeaderCellDef>Kerkgenootschap</th>
+          <td mat-cell *matCellDef="let t">{{ t.denomination || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="timeOfDay">
+          <th mat-header-cell *matHeaderCellDef>Tijdstip</th>
+          <td mat-cell *matCellDef="let t">{{ timeLabel(t.timeOfDay) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="occasion">
+          <th mat-header-cell *matHeaderCellDef>Aard</th>
+          <td mat-cell *matCellDef="let t">{{ t.occasion || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="elementCount">
+          <th mat-header-cell *matHeaderCellDef>Onderdelen</th>
+          <td mat-cell *matCellDef="let t">{{ t.elementCount }}</td>
+        </ng-container>
+        <ng-container matColumnDef="active">
+          <th mat-header-cell *matHeaderCellDef>Actief</th>
+          <td mat-cell *matCellDef="let t">
+            <mat-icon>{{ t.isActive ? 'check_circle' : 'cancel' }}</mat-icon>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let t">
+            <button mat-icon-button (click)="startEdit(t)" matTooltip="Bewerken"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="deleteTemplate(t)" matTooltip="Verwijderen"><mat-icon>delete</mat-icon></button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    }
+  } @else {
+    <mat-card class="editor-card">
+      <mat-card-content>
+        <h2>{{ editingId ? 'Sjabloon bewerken' : 'Nieuw sjabloon' }}</h2>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Naam</mat-label>
+            <input matInput [(ngModel)]="form.name" name="name" required />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Kerkgenootschap</mat-label>
+            <mat-select [(ngModel)]="form.denominationId" name="denomination">
+              <mat-option [value]="null">Elke</mat-option>
+              @for (d of denominations; track d.id) {
+                <mat-option [value]="d.id">{{ d.value }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tijdstip</mat-label>
+            <mat-select [(ngModel)]="form.timeOfDay" name="timeOfDay">
+              <mat-option [value]="null">Elke</mat-option>
+              @for (t of timesOfDay; track t.value) {
+                <mat-option [value]="t.value">{{ t.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Aard van de dienst</mat-label>
+            <mat-select [(ngModel)]="form.occasionId" name="occasion">
+              <mat-option [value]="null">Regulier / elke</mat-option>
+              @for (o of occasions; track o.id) {
+                <mat-option [value]="o.id">{{ o.value }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <mat-slide-toggle [(ngModel)]="form.isActive" name="active">Actief</mat-slide-toggle>
+
+        <h3>Onderdelen</h3>
+        <div class="elements">
+          @for (el of elements; track $index) {
+            <div class="element-row">
+              <div class="reorder">
+                <button mat-icon-button (click)="moveElement($index, -1)" [disabled]="$index === 0"><mat-icon>arrow_upward</mat-icon></button>
+                <button mat-icon-button (click)="moveElement($index, 1)" [disabled]="$index === elements.length - 1"><mat-icon>arrow_downward</mat-icon></button>
+              </div>
+              <mat-form-field appearance="outline" class="type-field">
+                <mat-label>Type</mat-label>
+                <mat-select [(ngModel)]="el.elementType" [name]="'type' + $index">
+                  @for (et of elementTypes; track et.value) {
+                    <mat-option [value]="et.value">{{ et.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="label-field">
+                <mat-label>Label</mat-label>
+                <mat-select [(ngModel)]="el.labelId" [name]="'label' + $index">
+                  <mat-option [value]="null">—</mat-option>
+                  @for (l of labels; track l.id) {
+                    <mat-option [value]="l.id">{{ l.value }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (!isSong(el)) {
+                <mat-form-field appearance="outline" class="performer-field">
+                  <mat-label>Wie</mat-label>
+                  <mat-select [(ngModel)]="el.performerId" [name]="'perf' + $index">
+                    <mat-option [value]="null">—</mat-option>
+                    @for (p of performers; track p.id) {
+                      <mat-option [value]="p.id">{{ p.value }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              }
+              @if (isSong(el)) {
+                <mat-checkbox [(ngModel)]="el.isBeurtzang" [name]="'beurt' + $index">Beurtzang</mat-checkbox>
+              }
+              @if (isReading(el)) {
+                <mat-form-field appearance="outline" class="fixed-field">
+                  <mat-label>Vaste schriftlezing</mat-label>
+                  <input matInput [(ngModel)]="el.fixedScriptureReference" [name]="'fixed' + $index" />
+                </mat-form-field>
+              }
+              <button mat-icon-button color="warn" (click)="removeElement($index)" matTooltip="Verwijderen"><mat-icon>close</mat-icon></button>
+            </div>
+          }
+        </div>
+        <button mat-stroked-button (click)="addElement()"><mat-icon>add</mat-icon> Onderdeel toevoegen</button>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button (click)="cancel()">Annuleren</button>
+        <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
+          {{ saving() ? 'Opslaan…' : 'Opslaan' }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+</div>

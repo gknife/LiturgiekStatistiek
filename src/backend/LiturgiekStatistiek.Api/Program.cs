@@ -13,7 +13,9 @@ if (!disableAuth)
 }
 else
 {
-    builder.Services.AddAuthentication();
+    builder.Services.AddAuthentication(LiturgiekStatistiek.Api.Auth.DevAuthHandler.SchemeName)
+        .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, LiturgiekStatistiek.Api.Auth.DevAuthHandler>(
+            LiturgiekStatistiek.Api.Auth.DevAuthHandler.SchemeName, _ => { });
     builder.Services.AddAuthorization();
 }
 
@@ -73,11 +75,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
-if (!disableAuth)
-{
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

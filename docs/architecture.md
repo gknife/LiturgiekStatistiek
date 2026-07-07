@@ -14,17 +14,36 @@ Angular 21 SPA (zoneless)  →  .NET 10 Web API  →  EF Core  →  SQL Server /
 ## Backend layers
 
 - **Domain** (`LiturgiekStatistiek.Domain`) — entities (`Service`, `ServiceElement`,
-  `ServiceElementSong`, `Congregation`, `Preacher`, `ListItem`/`ListDefinition`),
-  enums (`TimeOfDay`), and interfaces (`IApplicationDbContext`).
+  `ServiceElementSong`, `ReadingReference`, `ServiceTemplate`, `ServiceTemplateElement`,
+  `Congregation`, `Preacher`, `ListItem`/`ListDefinition`), enums (`TimeOfDay`,
+  `ServiceStatus`), and interfaces (`IApplicationDbContext`).
 - **Application** (`LiturgiekStatistiek.Application`) — DTOs, service interfaces
-  (`IServiceService`, `IQueryService`, `IAdvancedQueryService`, `ISavedQueryService`,
-  `ILlmService`). No infrastructure dependencies.
+  (`IServiceService`, `ITemplateService`, `IQueryService`, `IAdvancedQueryService`,
+  `ISavedQueryService`, `ILlmService`) and pure logic (`SongCompletenessCalculator`).
+  No infrastructure dependencies.
 - **Infrastructure** (`LiturgiekStatistiek.Infrastructure`) — EF Core
   `ApplicationDbContext`, `DataSeeder`, and service implementations.
 - **Api** (`LiturgiekStatistiek.Api`) — controllers, DI wiring, auth, CORS, Swagger.
 
-In development the API uses an **in-memory database** seeded with three sample
-services (Zutphen, Apeldoorn, Putten) and authentication is disabled.
+In development the API uses an **in-memory database** seeded with sample services and
+authentication is disabled (a `DevAuthHandler` auto-authenticates every request, matching
+the frontend `devBypass`).
+
+## Authentication & authorization
+
+The whole app is **behind login** (Entra ID / MSAL). There are **no roles** — a user is
+either signed in (full editor) or anonymous (no access). The Angular homepage is a branded
+login screen and every route except `/` is guarded (`authGuard`); all mutating API
+endpoints require `[Authorize]`. Locally, `devBypass`/`DevAuthHandler` short-circuit MSAL so
+the app is usable without Entra.
+
+## Service lifecycle
+
+Services have a `Status` (`Concept`/`Gepubliceerd`). Editing works against a server-side
+draft that is **autosaved**; **Publiceren** flips it to `Gepubliceerd`. Concepts are hidden
+from all queries/stats until published. When a service's gemeente/voorganger changes or the
+service is deleted, an orphan `Congregation`/`Preacher` (0 services left) is hard-deleted and
+dropped from entry dropdowns.
 
 ## Frontend: zoneless change detection
 
