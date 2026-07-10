@@ -8,7 +8,26 @@ public static class DataSeeder
     public static async Task SeedAsync(ApplicationDbContext db)
     {
         await EnsureSystemListsAsync(db);
+        await EnsureBibleBooksAsync(db);
         await SeedDemoDataAsync(db);
+    }
+
+    /// <summary>
+    /// Idempotently ensure the 66 canonical Bible books exist. Runs on every startup so a
+    /// database seeded before books were added (or one that only ever received system lists,
+    /// not demo data) is backfilled. Without this the book/chapter/verse dropdowns in the
+    /// data-entry form have no options and appear broken.
+    /// </summary>
+    private static async Task EnsureBibleBooksAsync(ApplicationDbContext db)
+    {
+        if (await db.BibleBooks.AnyAsync()) return;
+
+        foreach (var book in BibleData.GetBooks())
+        {
+            db.BibleBooks.Add(book);
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedDemoDataAsync(ApplicationDbContext db)
@@ -34,11 +53,6 @@ public static class DataSeeder
         var pkn = Denom("PKN");
         var ngk = Denom("NGK");
         var gg = Denom("GG");
-
-        foreach (var book in BibleData.GetBooks())
-        {
-            db.BibleBooks.Add(book);
-        }
 
         // --- Congregations ---
         var cong1 = new Congregation

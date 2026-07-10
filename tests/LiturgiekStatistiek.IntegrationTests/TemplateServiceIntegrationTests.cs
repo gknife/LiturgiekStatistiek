@@ -104,6 +104,7 @@ public class TemplateServiceIntegrationTests
         var congregationId = await FirstCongregationIdAsync();
         var translationId = await FirstBibleTranslationIdAsync();
         var accompanimentId = await FirstMusicalAccompanimentIdAsync();
+        var bundleId = await FirstSongBundleIdAsync();
 
         var created = await _sut.CreateTemplateAsync(new CreateServiceTemplateRequest(
             Name: "ZZ-TEST Kenmerken",
@@ -118,7 +119,8 @@ public class TemplateServiceIntegrationTests
             HasBeamerLiturgy: true,
             HasBeamerTexts: false,
             HasBeamerSongs: true,
-            DefaultBibleTranslationId: translationId), "tester");
+            DefaultBibleTranslationId: translationId,
+            DefaultSongBundleId: bundleId), "tester");
 
         var fetched = await _sut.GetTemplateByIdAsync(created.Id);
 
@@ -127,14 +129,19 @@ public class TemplateServiceIntegrationTests
         {
             Assert.That(fetched!.MusicalAccompanimentId, Is.EqualTo(accompanimentId));
             Assert.That(fetched.DefaultBibleTranslationId, Is.EqualTo(translationId));
+            Assert.That(fetched.DefaultSongBundleId, Is.EqualTo(bundleId));
             Assert.That(fetched.IsReadingService, Is.True);
             Assert.That(fetched.HasBeamerLiturgy, Is.True);
             Assert.That(fetched.HasBeamerTexts, Is.False);
             Assert.That(fetched.HasBeamerSongs, Is.True);
             Assert.That(fetched.MusicalAccompaniment, Is.Not.Null.And.Not.Empty);
             Assert.That(fetched.DefaultBibleTranslation, Is.Not.Null.And.Not.Empty);
+            Assert.That(fetched.DefaultSongBundle, Is.Not.Null.And.Not.Empty);
         });
     }
+
+    private async Task<Guid> FirstSongBundleIdAsync() =>
+        (await _db.ListItems.AsNoTracking().FirstAsync(i => i.ListDefinition.Name == "SongBundles")).Id;
 
     private async Task<Guid> FirstCongregationIdAsync() =>
         (await _db.Congregations.AsNoTracking().FirstAsync()).Id;

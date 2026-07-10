@@ -54,6 +54,7 @@ export class TemplatesComponent implements OnInit {
   labels: ListItem[] = [];
   musicalAccompaniments: ListItem[] = [];
   bibleTranslations: ListItem[] = [];
+  bundles: ListItem[] = [];
   congregations: CongregationSummary[] = [];
 
   readonly displayedColumns = ['name', 'denomination', 'timeOfDay', 'occasion', 'elementCount', 'active', 'actions'];
@@ -88,6 +89,7 @@ export class TemplatesComponent implements OnInit {
       labels: this.api.getListByName('LiturgicalLabels'),
       musicalAccompaniments: this.api.getListByName('MusicalAccompaniment'),
       bibleTranslations: this.api.getListByName('BibleTranslations'),
+      bundles: this.api.getListByName('SongBundles'),
     }).subscribe({
       next: (lists) => {
         this.denominations = lists.denominations.items;
@@ -96,6 +98,7 @@ export class TemplatesComponent implements OnInit {
         this.labels = lists.labels.items;
         this.musicalAccompaniments = lists.musicalAccompaniments.items;
         this.bibleTranslations = lists.bibleTranslations.items;
+        this.bundles = lists.bundles.items;
         this.loadTemplates();
       },
       error: () => {
@@ -128,6 +131,7 @@ export class TemplatesComponent implements OnInit {
       hasBeamerTexts: false,
       hasBeamerSongs: false,
       defaultBibleTranslationId: null,
+      defaultSongBundleId: null,
     };
   }
 
@@ -164,6 +168,7 @@ export class TemplatesComponent implements OnInit {
         hasBeamerTexts: t.hasBeamerTexts ?? false,
         hasBeamerSongs: t.hasBeamerSongs ?? false,
         defaultBibleTranslationId: t.defaultBibleTranslationId ?? null,
+        defaultSongBundleId: t.defaultSongBundleId ?? null,
       };
       this.elements = t.elements.map(e => ({
         position: e.position,
@@ -179,6 +184,38 @@ export class TemplatesComponent implements OnInit {
   cancel(): void {
     this.editing = false;
     this.editingId = null;
+  }
+
+  /** Duplicate a sjabloon: load it fully, then open the editor as a new (unsaved) copy. */
+  duplicateTemplate(summary: ServiceTemplateSummary): void {
+    this.api.getTemplate(summary.id).subscribe((t: ServiceTemplate) => {
+      this.editing = true;
+      this.editingId = null;
+      this.form = {
+        name: `${t.name} (kopie)`,
+        denominationId: t.denominationId,
+        congregationId: t.congregationId,
+        timeOfDay: t.timeOfDay,
+        occasionId: t.occasionId,
+        isActive: t.isActive,
+        elements: [],
+        musicalAccompanimentId: t.musicalAccompanimentId ?? null,
+        isReadingService: t.isReadingService ?? false,
+        hasBeamerLiturgy: t.hasBeamerLiturgy ?? false,
+        hasBeamerTexts: t.hasBeamerTexts ?? false,
+        hasBeamerSongs: t.hasBeamerSongs ?? false,
+        defaultBibleTranslationId: t.defaultBibleTranslationId ?? null,
+        defaultSongBundleId: t.defaultSongBundleId ?? null,
+      };
+      this.elements = t.elements.map(e => ({
+        position: e.position,
+        elementType: e.elementTypeValue,
+        labelId: e.labelId,
+        performerId: e.performerId,
+        isBeurtzang: e.isBeurtzang,
+        fixedScriptureReference: e.fixedScriptureReference,
+      }));
+    });
   }
 
   addElement(): void {

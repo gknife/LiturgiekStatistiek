@@ -49,6 +49,10 @@ public class ServiceTemplate : IHasAuditFields
     public Guid? DefaultBibleTranslationId { get; set; }
     public ListItem? DefaultBibleTranslation { get; set; }
 
+    /// <summary>Default liedbundel (ListItem in the SongBundles list) used to prefill lied onderdelen.</summary>
+    public Guid? DefaultSongBundleId { get; set; }
+    public ListItem? DefaultSongBundle { get; set; }
+
     public string? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? ModifiedBy { get; set; }

@@ -78,4 +78,39 @@ public class SongCompletenessCalculatorTests
             Assert.That(comp.CompleteInService, Is.False);
         });
     }
+
+    [Test]
+    public void Compute_SungInFull_IsComplete_EvenWhenCatalogUnknown()
+    {
+        var comp = SongCompletenessCalculator.Compute(
+            catalogVerseCount: null,
+            elementVerseLabels: new[] { "1" },
+            serviceVerseLabels: new[] { "1" },
+            sungInFull: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(comp.State, Is.EqualTo(SongCompletenessCalculator.StateCompleteElement));
+            Assert.That(comp.CompleteInElement, Is.True);
+            Assert.That(comp.CompleteInService, Is.True);
+        });
+    }
+
+    [Test]
+    public void Compute_SungInFull_OverridesIncompleteVerseSet()
+    {
+        // Only verse 1 of a 5-verse song, but explicitly marked "hele lied".
+        var comp = SongCompletenessCalculator.Compute(
+            catalogVerseCount: 5,
+            elementVerseLabels: new[] { "1" },
+            serviceVerseLabels: new[] { "1" },
+            sungInFull: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(comp.State, Is.EqualTo(SongCompletenessCalculator.StateCompleteElement));
+            Assert.That(comp.CompleteInElement, Is.True);
+            Assert.That(comp.CompleteInService, Is.True);
+        });
+    }
 }

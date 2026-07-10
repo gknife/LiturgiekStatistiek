@@ -105,6 +105,7 @@ export interface ServiceElementSong {
   verses: string[];
   bundleId: string | null;
   completeness: SongCompleteness | null;
+  sungInFull?: boolean;
 }
 
 export interface SermonTextReference {
@@ -345,6 +346,8 @@ export interface ServiceTemplate {
   hasBeamerSongs?: boolean;
   defaultBibleTranslationId?: string | null;
   defaultBibleTranslation?: string | null;
+  defaultSongBundleId?: string | null;
+  defaultSongBundle?: string | null;
 }
 
 export interface ServiceTemplateSummary {
@@ -384,6 +387,7 @@ export interface CreateServiceTemplateRequest {
   hasBeamerTexts?: boolean;
   hasBeamerSongs?: boolean;
   defaultBibleTranslationId?: string | null;
+  defaultSongBundleId?: string | null;
 }
 
 /** A ready-to-use service element produced by instantiating a template. */

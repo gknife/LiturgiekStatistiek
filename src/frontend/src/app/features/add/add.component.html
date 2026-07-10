@@ -73,6 +73,21 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Kerkgenootschap</mat-label>
+              <mat-select formControlName="denominationId">
+                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
+                @for (d of denominations; track d.id) {
+                  <mat-option [value]="d.id">{{ d.value }}</mat-option>
+                }
+              </mat-select>
+              @if (isNewCongregation) {
+                <mat-hint>Wordt gebruikt voor de nieuwe gemeente.</mat-hint>
+              } @else {
+                <mat-hint>Kerkgenootschap van de bestaande gemeente (niet wijzigbaar hier).</mat-hint>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
               <mat-label>Voorganger</mat-label>
               <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
                 placeholder="Typ om te zoeken...">
@@ -322,7 +337,7 @@
                     <div class="song-row">
                       <mat-form-field appearance="outline" class="song-bundle" subscriptSizing="dynamic">
                         <mat-label>Bundel</mat-label>
-                        <mat-select [(ngModel)]="song.bundleId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
+                        <mat-select [(ngModel)]="song.bundleId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onSongIdentityChange(song)">
                           @for (b of bundles; track b.id) {
                             <mat-option [value]="b.id">{{ b.abbreviation || b.value }}</mat-option>
                           }
@@ -335,16 +350,27 @@
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="song-number" subscriptSizing="dynamic">
                         <mat-label>Nummer</mat-label>
-                        <input matInput type="number" [(ngModel)]="song.number" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
+                        <input matInput type="number" [(ngModel)]="song.number" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onSongIdentityChange(song)">
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="song-verses" subscriptSizing="dynamic">
                         <mat-label>Verzen</mat-label>
                         <input matInput [(ngModel)]="song.versesText" [ngModelOptions]="{ standalone: true }"
-                          (ngModelChange)="scheduleAutosave()" placeholder="Bijv. 1, 3, 5">
+                          [disabled]="isVersesLocked(song)"
+                          (ngModelChange)="scheduleAutosave()" (blur)="normalizeVersesText(song)"
+                          placeholder="Bijv. 1, 3, 5-7">
+                        <mat-hint>Komma's tussen verzen, koppelteken voor een reeks (bijv. 1, 3, 5-7)</mat-hint>
+                        @if (hasInvalidVerses(song)) {
+                          <mat-hint class="verses-invalid">Alleen cijfers en reeksen (bijv. 1, 3, 5-7)</mat-hint>
+                        }
                       </mat-form-field>
                       <button mat-icon-button color="warn" type="button" (click)="removeSong(element, si)">
                         <mat-icon>close</mat-icon>
                       </button>
+                      <mat-checkbox class="song-full" [(ngModel)]="song.sungInFull" [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="onSungInFullChange(song)">Hele lied</mat-checkbox>
+                      @if (isSongComplete(song)) {
+                        <span class="song-complete-badge" matTooltip="Volledig gezongen">volledig</span>
+                      }
                     </div>
                   }
                   <button mat-button type="button" (click)="addSong(element)">

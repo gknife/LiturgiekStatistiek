@@ -59,10 +59,18 @@ public static class SongCompletenessCalculator
     public static SongCompleteness Compute(
         int? catalogVerseCount,
         IEnumerable<string> elementVerseLabels,
-        IEnumerable<string> serviceVerseLabels)
+        IEnumerable<string> serviceVerseLabels,
+        bool sungInFull = false)
     {
         var elementVerses = ParseVerseNumbers(elementVerseLabels);
         var serviceVerses = ParseVerseNumbers(serviceVerseLabels);
+
+        // An explicit "hele lied" marking always counts as complete, even when the
+        // catalog verse count is unknown (many bundles have no per-song verse counts).
+        if (sungInFull)
+        {
+            return new SongCompleteness(StateCompleteElement, true, true, catalogVerseCount, elementVerses.Count);
+        }
 
         if (catalogVerseCount is null || catalogVerseCount.Value <= 0)
         {

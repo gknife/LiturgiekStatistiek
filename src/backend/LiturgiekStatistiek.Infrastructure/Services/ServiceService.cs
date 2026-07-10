@@ -172,7 +172,8 @@ public class ServiceService : IServiceService
                                 .Select(v => v.VerseLabel)
                                 .ToList(),
                             sg.BundleId,
-                            completeness.TryGetValue(SongKey(sg), out var comp) ? comp : null))
+                            completeness.TryGetValue(SongKey(sg), out var comp) ? comp : null,
+                            sg.SungInFull))
                         .ToList(),
                     e.LabelId,
                     e.PerformerId,
@@ -256,7 +257,9 @@ public class ServiceService : IServiceService
                 .OrderByDescending(l => l.Count)
                 .First();
 
-            var comp = SongCompletenessCalculator.Compute(catalogVerseCount, elementVerses, serviceVerses);
+            var sungInFull = songs.Where(sg => SongKey(sg) == key).Any(sg => sg.SungInFull);
+
+            var comp = SongCompletenessCalculator.Compute(catalogVerseCount, elementVerses, serviceVerses, sungInFull);
             result[key] = new SongCompletenessDto(
                 comp.State,
                 comp.CompleteInElement,
@@ -369,7 +372,8 @@ public class ServiceService : IServiceService
                     BundleId = songRequest.BundleId,
                     Section = songRequest.Section ?? "",
                     SongNumber = songRequest.SongNumber,
-                    Position = songRequest.Position
+                    Position = songRequest.Position,
+                    SungInFull = songRequest.SungInFull
                 };
 
                 if (songRequest.Verses != null)

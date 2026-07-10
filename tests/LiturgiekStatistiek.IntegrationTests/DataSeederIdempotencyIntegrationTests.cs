@@ -139,4 +139,60 @@ public class DataSeederIdempotencyIntegrationTests
         Assert.That(TypeOf("Votum"), Is.EqualTo((int)ElementType.LiturgicalAct));
         Assert.That(TypeOf("Thema preek"), Is.EqualTo((int)ElementType.Other));
     }
+
+    [Test]
+    public async Task SeedAsync_SeedsBibleBooks_Idempotently()
+    {
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            await DataSeeder.SeedAsync(ctx);
+        }
+
+        int countAfterFirst;
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            countAfterFirst = await ctx.BibleBooks.CountAsync();
+            Assert.That(countAfterFirst, Is.GreaterThan(0),
+                "Bible books must be seeded independently of demo data so the reading dropdowns are populated.");
+        }
+
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await DataSeeder.SeedAsync(ctx);
+        }
+
+        await using (var verify = new ApplicationDbContext(_options))
+        {
+            Assert.That(await verify.BibleBooks.CountAsync(), Is.EqualTo(countAfterFirst),
+                "Re-running the seeder must not duplicate Bible books.");
+        }
+    }
+
+    [Test]
+    public async Task SeedAsync_WithMissingBibleBooks_BackfillsThem()
+    {
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            await DataSeeder.SeedAsync(ctx);
+        }
+
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            ctx.BibleBooks.RemoveRange(await ctx.BibleBooks.ToListAsync());
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await DataSeeder.SeedAsync(ctx);
+        }
+
+        await using (var verify = new ApplicationDbContext(_options))
+        {
+            Assert.That(await verify.BibleBooks.CountAsync(), Is.GreaterThan(0),
+                "A production DB seeded before Bible books existed should be backfilled on next startup.");
+        }
+    }
 }

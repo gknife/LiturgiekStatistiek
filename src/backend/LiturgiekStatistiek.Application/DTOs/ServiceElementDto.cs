@@ -39,7 +39,8 @@ public record ServiceElementSongDto(
     int Position,
     List<string> Verses,
     Guid? BundleId = null,
-    SongCompletenessDto? Completeness = null
+    SongCompletenessDto? Completeness = null,
+    bool SungInFull = false
 );
 
 public record CreateServiceElementSongRequest(
@@ -47,7 +48,8 @@ public record CreateServiceElementSongRequest(
     string? Section,
     int SongNumber,
     int Position,
-    List<string>? Verses
+    List<string>? Verses,
+    bool SungInFull = false
 );
 
 public record ReadingReferenceDto(

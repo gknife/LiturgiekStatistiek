@@ -20,6 +20,14 @@ skips this step. See [templates.md](./templates.md).
   33 liturgical labels (seeded as `LiturgicalLabels`, editable under *Lijsten*). The
   element is saved against its `LabelId`. Song elements additionally capture **bundle**,
   **nummer** and **verzen**.
+  - **Verzen-notatie** — verses are entered comma-separated and support ranges, e.g.
+    `1, 3, 5-7`. The field normalizes to this canonical form on blur (spacing tidied, ranges
+    collapsed to `a-b`); only genuinely invalid tokens (non-numbers) are flagged. A persistent
+    hint shows the expected format.
+  - **Hele lied / alle verzen** — an explicit checkbox per lied. When ticked the song counts
+    as fully sung regardless of the catalog; if the catalog verse count is known the verses
+    field is auto-filled to `1-N` and locked. A live **volledig** badge reflects completeness
+    while you edit.
 - **Preektekst** — a structured editor: pick a Bible **book** (names resolve to the chosen
   *Bijbelvertaling* via `GET /api/bible/books?translation=...`), **chapter** and one or more
   **verses**. Multiple references are supported, and a free-text field covers cross-chapter
@@ -47,13 +55,14 @@ under *Lijsten*.
 
 ### Volledig gezongen (completeness)
 
-Whether a song is "sung as a whole" is **computed automatically** — never a manual flag —
-by comparing the sung verse numbers against the song's catalog verse count
-(`Song.NumberOfVerses`). Two states are surfaced with a **volledig** badge in the diensten
-survey: complete **within one onderdeel** (e.g. `Ps1773 93:1,2,3,4`) and complete **across
-the whole service** (e.g. `93:1,2` in one onderdeel and `93:3,4` in another). When the
-catalog count is unknown the song is never counted as complete. See
-`SongCompletenessCalculator`.
+Whether a song is "sung as a whole" comes from **either** an explicit **Hele lied / alle
+verzen** checkbox on the lied **or** an automatic comparison of the sung verse numbers against
+the song's catalog verse count (`Song.NumberOfVerses`). The explicit flag
+(`ServiceElementSong.SungInFull`) always wins and marks the song complete even when the catalog
+count is unknown. Two computed states are surfaced with a **volledig** badge: complete **within
+one onderdeel** (e.g. `Ps1773 93:1,2,3,4`) and complete **across the whole service** (e.g.
+`93:1,2` in one onderdeel and `93:3,4` in another). Without the flag and with an unknown catalog
+count the song is never counted as complete. See `SongCompletenessCalculator`.
 
 ### Concept, autosave & publiceren
 
@@ -127,6 +136,15 @@ and in Ederveen stay distinct), otherwise a new `Congregation` / `Preacher` is c
 automatically (`POST /api/congregations`, `POST /api/preachers`) and its id is used. An
 empty city falls back to `Onbekend`. This keeps the URL-import flow working without manual
 pre-registration; new records can be edited or de-duplicated afterwards under *Lijsten*.
+
+**Kerkgenootschap** is a dropdown in the popup, prefilled from the chosen template. It is
+used **only when creating a brand-new gemeente** (stamped onto the new `Congregation`); for an
+existing gemeente the field is read-only and shows that gemeente's own kerkgenootschap.
+
+> **Reading dropdowns depend on seeded Bible books.** The bijbelboek/hoofdstuk/vers pickers in
+> Preektekst and Schriftlezing are driven by the `BibleBooks` table. These are seeded
+> idempotently on every startup (independently of the demo data), so a freshly deployed or
+> upgraded database always has populated dropdowns.
 
 ## Diensten-overzicht — audit & dupliceren
 

@@ -45,6 +45,7 @@ public class TemplateService : ITemplateService
             .Include(t => t.Occasion)
             .Include(t => t.MusicalAccompaniment)
             .Include(t => t.DefaultBibleTranslation)
+            .Include(t => t.DefaultSongBundle)
             .Include(t => t.Elements).ThenInclude(e => e.Label)
             .Include(t => t.Elements).ThenInclude(e => e.Performer)
             .AsNoTracking()
@@ -70,6 +71,7 @@ public class TemplateService : ITemplateService
             HasBeamerTexts = request.HasBeamerTexts,
             HasBeamerSongs = request.HasBeamerSongs,
             DefaultBibleTranslationId = request.DefaultBibleTranslationId,
+            DefaultSongBundleId = request.DefaultSongBundleId,
             CreatedBy = userId,
             CreatedAt = DateTime.UtcNow,
             Elements = BuildElements(request.Elements)
@@ -104,6 +106,7 @@ public class TemplateService : ITemplateService
         template.HasBeamerTexts = request.HasBeamerTexts;
         template.HasBeamerSongs = request.HasBeamerSongs;
         template.DefaultBibleTranslationId = request.DefaultBibleTranslationId;
+        template.DefaultSongBundleId = request.DefaultSongBundleId;
         template.ModifiedBy = userId;
         template.ModifiedAt = DateTime.UtcNow;
 
@@ -166,6 +169,7 @@ public class TemplateService : ITemplateService
             .Include(t => t.Occasion)
             .Include(t => t.MusicalAccompaniment)
             .Include(t => t.DefaultBibleTranslation)
+            .Include(t => t.DefaultSongBundle)
             .Include(t => t.Elements).ThenInclude(e => e.Label)
             .Include(t => t.Elements).ThenInclude(e => e.Performer)
             .AsNoTracking()
@@ -253,6 +257,8 @@ public class TemplateService : ITemplateService
             t.HasBeamerTexts,
             t.HasBeamerSongs,
             t.DefaultBibleTranslationId,
-            t.DefaultBibleTranslation?.Value);
+            t.DefaultBibleTranslation?.Value,
+            t.DefaultSongBundleId,
+            t.DefaultSongBundle?.Value);
     }
 }

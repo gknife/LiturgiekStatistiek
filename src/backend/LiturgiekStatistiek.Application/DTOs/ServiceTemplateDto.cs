@@ -19,7 +19,9 @@ public record ServiceTemplateDto(
     bool HasBeamerTexts = false,
     bool HasBeamerSongs = false,
     Guid? DefaultBibleTranslationId = null,
-    string? DefaultBibleTranslation = null
+    string? DefaultBibleTranslation = null,
+    Guid? DefaultSongBundleId = null,
+    string? DefaultSongBundle = null
 );
 
 public record ServiceTemplateElementDto(
@@ -62,7 +64,8 @@ public record CreateServiceTemplateRequest(
     bool HasBeamerLiturgy = false,
     bool HasBeamerTexts = false,
     bool HasBeamerSongs = false,
-    Guid? DefaultBibleTranslationId = null
+    Guid? DefaultBibleTranslationId = null,
+    Guid? DefaultSongBundleId = null
 );
 
 public record CreateServiceTemplateElementRequest(

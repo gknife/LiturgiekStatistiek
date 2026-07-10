@@ -36,6 +36,11 @@ public class ServiceTemplateConfiguration : IEntityTypeConfiguration<ServiceTemp
             .HasForeignKey(t => t.DefaultBibleTranslationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(t => t.DefaultSongBundle)
+            .WithMany()
+            .HasForeignKey(t => t.DefaultSongBundleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(t => t.DenominationId);
         builder.HasIndex(t => t.CongregationId);
     }

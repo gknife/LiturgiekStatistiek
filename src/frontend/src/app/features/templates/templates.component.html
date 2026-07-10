@@ -47,6 +47,7 @@
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let t">
             <button mat-icon-button (click)="startEdit(t)" matTooltip="Bewerken"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button (click)="duplicateTemplate(t)" matTooltip="Dupliceren"><mat-icon>content_copy</mat-icon></button>
             <button mat-icon-button color="warn" (click)="deleteTemplate(t)" matTooltip="Verwijderen"><mat-icon>delete</mat-icon></button>
           </td>
         </ng-container>
@@ -114,6 +115,16 @@
               <mat-option [value]="null">— Geen —</mat-option>
               @for (bt of bibleTranslations; track bt.id) {
                 <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Standaard liedbundel</mat-label>
+            <mat-select [(ngModel)]="form.defaultSongBundleId" name="defaultSongBundle">
+              <mat-option [value]="null">— Geen —</mat-option>
+              @for (b of bundles; track b.id) {
+                <mat-option [value]="b.id">{{ b.abbreviation || b.value }}</mat-option>
               }
             </mat-select>
           </mat-form-field>

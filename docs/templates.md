@@ -32,8 +32,17 @@ dienst-metadata when the template is chosen:
 |-------|--------|-------|
 | `MusicalAccompanimentId` | `MusicalAccompaniment` list | Default muzikale begeleiding |
 | `DefaultBibleTranslationId` | `BibleTranslations` list | Pre-fills the translation on reading onderdelen |
+| `DefaultSongBundleId` | `SongBundles` list | Pre-fills the liedbundel on song onderdelen (standaard liedbundel) |
 | `IsReadingService` | bool | Leesdienst |
 | `HasBeamerLiturgy` / `HasBeamerTexts` / `HasBeamerSongs` | bool | Beamer-opties |
+
+The default **Bijbelvertaling** and default **liedbundel** are applied to *every* lezing- resp.
+lied-onderdeel that still lacks one — whether it comes from the scaffold, is added manually, or
+is produced by pasting text / importing a Kerkdienstgemist URL.
+
+The **Kerkgenootschap** selector also doubles as a default: when the dienst chooser creates a
+brand-new gemeente, it is stamped with the template's kerkgenootschap. For an existing gemeente
+the field is read-only and the gemeente's own kerkgenootschap is kept.
 
 ## Matching (`ResolveAsync`)
 
@@ -58,6 +67,14 @@ template's onderdelen as ready-to-use `CreateServiceElementRequest`s.
 | `PUT`  | `/api/templates/{id}` | authenticated | Update (delete-then-insert element graph) |
 | `DELETE` | `/api/templates/{id}` | authenticated | Delete |
 | `POST` | `/api/templates/instantiate` | authenticated | Best-match onderdelen for given selectors |
+
+### Duplicating a template
+
+The Sjablonen-lijst has a **Dupliceren** action (copy icon) next to Bewerken. It loads the full
+template into the editor as a *new, unsaved* copy — every field and onderdeel is prefilled and
+the name becomes `"<naam> (kopie)"`. Saving creates a separate template; the original is left
+untouched. This is the quickest way to derive a variant (e.g. an avonddienst from a
+morgendienst) without re-entering the whole orde van dienst.
 
 ## Use in data entry
 

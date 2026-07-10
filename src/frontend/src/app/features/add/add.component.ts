@@ -35,6 +35,9 @@ interface ElementSong {
   section: string;
   number: number | null;
   versesText: string;
+  sungInFull: boolean;
+  /** Catalog verse count for bundle+number, fetched lazily for the live badge. */
+  catalogVerseCount?: number | null;
 }
 
 interface ReadingRefModel {
@@ -101,6 +104,15 @@ export class AddComponent implements OnInit {
   liturgicalLabels: ListItem[] = [];
   performers: ListItem[] = [];
   serviceOccasions: ListItem[] = [];
+  denominations: ListItem[] = [];
+
+  // Defaults carried over from the chosen template, applied to onderdelen added
+  // later (manually or via paste/URL import), not just the initial scaffold.
+  private templateDefaultTranslationId = '';
+  private templateDefaultBundleId = '';
+
+  // Cache of catalog verse counts keyed by "bundleId|number" for the live badge.
+  private catalogVerseCountCache = new Map<string, number | null>();
 
   // Element type ids (mirror the backend ElementType enum).
   readonly ELEMENT_SONG = 0;
@@ -168,6 +180,7 @@ export class AddComponent implements OnInit {
       timeOfDay: [0, Validators.required],
       congregationId: [''],
       preacherId: [''],
+      denominationId: [''],
       churchCalendarSundayId: [''],
       musicalAccompanimentId: [''],
       specialOccasionId: [''],
@@ -210,6 +223,7 @@ export class AddComponent implements OnInit {
       liturgicalLabels: this.loadListItems('LiturgicalLabels'),
       performers: this.loadListItems('ServicePerformer'),
       serviceOccasions: this.loadListItems('ServiceOccasion'),
+      denominations: this.loadListItems('Denominations'),
     }).subscribe(lists => {
       this.bundles = lists.bundles;
       this.specialOccasions = lists.specialOccasions;
@@ -219,6 +233,7 @@ export class AddComponent implements OnInit {
       this.liturgicalLabels = lists.liturgicalLabels;
       this.performers = lists.performers;
       this.serviceOccasions = lists.serviceOccasions;
+      this.denominations = lists.denominations;
 
       this.loadBibleBooks();
 
@@ -249,10 +264,13 @@ export class AddComponent implements OnInit {
     // fire only on user input; programmatic prefill/select use { emitEvent: false }.
     this.congregationControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
+      // Typing a (new) gemeente name re-enables the kerkgenootschap dropdown.
+      this.metadataForm.get('denominationId')?.enable({ emitEvent: false });
       this.scheduleAutosave();
     });
     this.congregationCityControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
+      this.metadataForm.get('denominationId')?.enable({ emitEvent: false });
       this.scheduleAutosave();
     });
 
@@ -328,6 +346,10 @@ export class AddComponent implements OnInit {
 
     this.congregationControl.setValue(service.congregation.name, { emitEvent: false });
     this.congregationCityControl.setValue(service.congregation.city, { emitEvent: false });
+    // Existing gemeente: reflect its kerkgenootschap (by abbreviation) and lock the field.
+    const denom = this.denominations.find(d => d.abbreviation === service.congregation.denominationAbbreviation);
+    this.metadataForm.patchValue({ denominationId: denom?.id ?? '' }, { emitEvent: false });
+    this.metadataForm.get('denominationId')?.disable({ emitEvent: false });
     if (service.preacher) {
       this.preacherControl.setValue(service.preacher.fullName, { emitEvent: false });
     }
@@ -353,6 +375,7 @@ export class AddComponent implements OnInit {
           section: s.section,
           number: s.songNumber,
           versesText: s.verses.join(', '),
+          sungInFull: s.sungInFull ?? false,
         })),
       }));
 
@@ -363,7 +386,15 @@ export class AddComponent implements OnInit {
       verseEnd: r.verseEnd,
     }));
 
+    this.refreshAllCatalogCounts();
     this.lastSavedSnapshot = this.snapshot();
+  }
+
+  /** Load catalog verse counts for every song currently in the form (for the badge). */
+  private refreshAllCatalogCounts(): void {
+    for (const el of this.elements) {
+      for (const song of el.songs) this.updateCatalogVerseCount(song);
+    }
   }
 
   /** Map the backend ElementType string name to its numeric value. */
@@ -408,6 +439,19 @@ export class AddComponent implements OnInit {
     this.congregationControl.setValue(congregation.name, { emitEvent: false });
     this.congregationCityControl.setValue(congregation.city, { emitEvent: false });
     this.metadataForm.patchValue({ congregationId: congregation.id });
+    // Reflect the existing gemeente's kerkgenootschap (matched by abbreviation) for
+    // display; it is disabled and ignored on save for an existing gemeente.
+    const denom = this.denominations.find(d => d.abbreviation === congregation.denominationAbbreviation);
+    this.metadataForm.patchValue({ denominationId: denom?.id ?? '' }, { emitEvent: false });
+    this.metadataForm.get('denominationId')?.disable({ emitEvent: false });
+  }
+
+  /**
+   * The kerkgenootschap dropdown is only editable when creating a NEW gemeente (no
+   * existing congregation resolved yet); for an existing gemeente it is read-only.
+   */
+  get isNewCongregation(): boolean {
+    return !this.nullableGuid(this.metadataForm?.value.congregationId);
   }
 
   selectPreacher(preacher: PreacherSummary): void {
@@ -424,7 +468,7 @@ export class AddComponent implements OnInit {
       notes: '',
       performerId: '',
       isBeurtzang: false,
-      bibleTranslationId: '',
+      bibleTranslationId: this.templateDefaultTranslationId,
       readingRefs: [],
     });
     this.scheduleAutosave();
@@ -476,6 +520,10 @@ export class AddComponent implements OnInit {
         element.labelId = '';
       }
     }
+    // Default the Bijbelvertaling on a reading onderdeel when none is set yet.
+    if (this.isReadingElement(element) && !element.bibleTranslationId) {
+      element.bibleTranslationId = this.templateDefaultTranslationId;
+    }
     this.scheduleAutosave();
   }
 
@@ -490,13 +538,164 @@ export class AddComponent implements OnInit {
   }
 
   addSong(element: ServiceElementModel): void {
-    element.songs.push({ bundleId: '', section: '', number: null, versesText: '' });
+    element.songs.push({
+      bundleId: this.templateDefaultBundleId,
+      section: '',
+      number: null,
+      versesText: '',
+      sungInFull: false,
+    });
     this.scheduleAutosave();
   }
 
   removeSong(element: ServiceElementModel, index: number): void {
     element.songs.splice(index, 1);
     this.scheduleAutosave();
+  }
+
+  /**
+   * Called when a song's bundle or number changes: refresh its cached catalog verse
+   * count (for the live "volledig" badge and hele-lied auto-fill) and autosave.
+   */
+  onSongIdentityChange(song: ElementSong): void {
+    this.updateCatalogVerseCount(song);
+    this.scheduleAutosave();
+  }
+
+  /** Lazily fetch (and cache) the catalog verse count for a song's bundle+number. */
+  private updateCatalogVerseCount(song: ElementSong): void {
+    if (!song.bundleId || song.number == null) {
+      song.catalogVerseCount = null;
+      return;
+    }
+    const key = `${song.bundleId}|${song.number}`;
+    if (this.catalogVerseCountCache.has(key)) {
+      song.catalogVerseCount = this.catalogVerseCountCache.get(key) ?? null;
+      this.autofillFullVerses(song);
+      return;
+    }
+    this.api.getSongByNumber(song.bundleId, song.number).subscribe({
+      next: s => {
+        const n = s?.numberOfVerses ?? null;
+        this.catalogVerseCountCache.set(key, n);
+        song.catalogVerseCount = n;
+        this.autofillFullVerses(song);
+      },
+      error: () => {
+        this.catalogVerseCountCache.set(key, null);
+        song.catalogVerseCount = null;
+      },
+    });
+  }
+
+  /** Toggle handler for the "Hele lied / alle verzen" checkbox. */
+  onSungInFullChange(song: ElementSong): void {
+    if (song.sungInFull) {
+      this.updateCatalogVerseCount(song);
+      this.autofillFullVerses(song);
+    }
+    this.scheduleAutosave();
+  }
+
+  /** When "hele lied" is set and the catalog count is known, fill verses "1-N". */
+  private autofillFullVerses(song: ElementSong): void {
+    if (song.sungInFull && song.catalogVerseCount && song.catalogVerseCount > 0) {
+      song.versesText = song.catalogVerseCount === 1 ? '1' : `1-${song.catalogVerseCount}`;
+    }
+  }
+
+  /** The verses field is locked when "hele lied" is on and the catalog count is known. */
+  isVersesLocked(song: ElementSong): boolean {
+    return song.sungInFull && !!song.catalogVerseCount && song.catalogVerseCount > 0;
+  }
+
+  /** Normalize the verses text to the canonical form (e.g. "1, 3, 5-7") on blur. */
+  normalizeVersesText(song: ElementSong): void {
+    const normalized = AddComponent.canonicalizeVerses(song.versesText);
+    if (normalized !== song.versesText) {
+      song.versesText = normalized;
+      this.scheduleAutosave();
+    }
+  }
+
+  /** True when the verses text contains tokens that aren't a number or a range. */
+  hasInvalidVerses(song: ElementSong): boolean {
+    return AddComponent.hasInvalidVerseTokens(song.versesText);
+  }
+
+  /**
+   * Canonical verse format: comma+space separated items, hyphen (no spaces) for ranges,
+   * original order preserved. Invalid tokens are kept verbatim so the user can fix them.
+   */
+  static canonicalizeVerses(text: string): string {
+    if (!text) return '';
+    return text
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+      .map(t => {
+        const range = t.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+        if (range) return `${range[1]}-${range[2]}`;
+        return t;
+      })
+      .join(', ');
+  }
+
+  private static hasInvalidVerseTokens(text: string): boolean {
+    if (!text || !text.trim()) return false;
+    return text
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+      .some(t => !/^\d+$/.test(t) && !/^\d+\s*[-–]\s*\d+$/.test(t));
+  }
+
+  /** Parse a verses text into the set of verse numbers (expanding ranges). */
+  private verseNumbersOf(text: string): Set<number> {
+    const result = new Set<number>();
+    for (const raw of (text || '').split(',')) {
+      const t = raw.trim();
+      if (!t) continue;
+      const range = t.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+      if (range) {
+        const start = parseInt(range[1], 10);
+        const end = parseInt(range[2], 10);
+        if (start <= end && end - start < 500) {
+          for (let v = start; v <= end; v++) result.add(v);
+        }
+        continue;
+      }
+      const single = t.match(/^\d+$/);
+      if (single) result.add(parseInt(t, 10));
+    }
+    return result;
+  }
+
+  private sameSongKey(a: ElementSong, b: ElementSong): boolean {
+    return a.bundleId === b.bundleId && (a.section || '') === (b.section || '') && a.number === b.number;
+  }
+
+  /**
+   * Live "volledig" indicator mirroring the backend calculator: complete when the
+   * song is explicitly marked "hele lied", or when the catalog verse count is known
+   * and every verse is covered within this onderdeel or across the whole dienst.
+   */
+  isSongComplete(song: ElementSong): boolean {
+    if (!song.bundleId || song.number == null) return false;
+
+    // Explicit "hele lied" on any entry of the same song counts as complete.
+    const sameKey = this.elements.flatMap(e => e.songs).filter(s => this.sameSongKey(s, song));
+    if (sameKey.some(s => s.sungInFull)) return true;
+
+    const n = song.catalogVerseCount;
+    if (!n || n <= 0) return false;
+
+    const full: number[] = Array.from({ length: n }, (_, i) => i + 1);
+    const serviceVerses = new Set<number>();
+    for (const s of sameKey) {
+      for (const v of this.verseNumbersOf(s.versesText)) serviceVerses.add(v);
+    }
+    return full.every(v => serviceVerses.has(v));
   }
 
   submitPaste(): void {
@@ -564,17 +763,22 @@ export class AddComponent implements OnInit {
       notes: e.notes ?? '',
       performerId: '',
       isBeurtzang: false,
-      bibleTranslationId: '',
+      bibleTranslationId:
+        (e.songNumber == null && this.elementTypeForLabel(e.label) === this.ELEMENT_READING)
+          ? this.templateDefaultTranslationId
+          : '',
       readingRefs: [],
       songs: e.songNumber != null
         ? [{
-            bundleId: this.bundleIdByAbbrev(e.songBundle),
+            bundleId: this.bundleIdByAbbrev(e.songBundle) || this.templateDefaultBundleId,
             section: '',
             number: e.songNumber,
             versesText: (e.verses ?? []).join(', '),
+            sungInFull: false,
           }]
         : [],
     }));
+    this.refreshAllCatalogCounts();
   }
 
   /** Convert a Date (or ISO string) to a 'yyyy-MM-dd' string for the API (DateOnly). */
@@ -632,6 +836,7 @@ export class AddComponent implements OnInit {
           songNumber: s.number,
           position: i + 1,
           verses: this.parseVerses(s.versesText),
+          sungInFull: s.sungInFull,
         })),
     }));
   }
@@ -674,7 +879,8 @@ export class AddComponent implements OnInit {
           r.name.toLowerCase() === name.toLowerCase() &&
           (r.city || '').toLowerCase() === city.toLowerCase());
         if (match) return of(match.id);
-        return this.api.createCongregation({ name, city }).pipe(map(c => c.id));
+        const denominationId = this.nullableGuid(this.metadataForm.value.denominationId);
+        return this.api.createCongregation({ name, city, denominationId }).pipe(map(c => c.id));
       })
     );
   }
@@ -828,14 +1034,20 @@ export class AddComponent implements OnInit {
       timeOfDay: template.timeOfDay ?? this.metadataForm.value.timeOfDay,
       specialOccasionId: template.occasionId ?? this.metadataForm.value.specialOccasionId,
       musicalAccompanimentId: template.musicalAccompanimentId ?? '',
+      denominationId: template.denominationId ?? '',
       isReadingService: template.isReadingService ?? false,
       hasBeamerLiturgy: template.hasBeamerLiturgy ?? false,
       hasBeamerTexts: template.hasBeamerTexts ?? false,
       hasBeamerSongs: template.hasBeamerSongs ?? false,
     }, { emitEvent: false });
 
+    // Remember the template defaults so onderdelen added later (manually or via
+    // paste/URL import) are prefilled too, not just the initial scaffold.
+    this.templateDefaultTranslationId = template.defaultBibleTranslationId ?? '';
+    this.templateDefaultBundleId = template.defaultSongBundleId ?? '';
+
     const defaultPerformer = this.defaultPerformerId();
-    const defaultTranslation = template.defaultBibleTranslationId ?? '';
+    const defaultTranslation = this.templateDefaultTranslationId;
     const scaffold: ServiceElementModel[] = template.elements
       .slice()
       .sort((a, b) => a.position - b.position)

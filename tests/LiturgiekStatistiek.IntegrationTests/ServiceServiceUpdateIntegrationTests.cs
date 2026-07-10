@@ -97,6 +97,58 @@ public class ServiceServiceUpdateIntegrationTests
         Assert.That(song.Verses.Select(v => v.VerseLabel), Is.EquivalentTo(new[] { "1", "2" }));
     }
 
+    [Test]
+    public async Task UpdateServiceAsync_PersistsSungInFull_AndReportsCompleteness()
+    {
+        var service = await _db.Services
+            .Include(s => s.Elements)
+                .ThenInclude(e => e.Songs)
+                    .ThenInclude(sg => sg.Verses)
+            .AsNoTracking()
+            .FirstAsync(s => s.Elements.Any(e => e.Songs.Any(sg => sg.Verses.Any())));
+
+        var id = service.Id;
+        var bundleId = service.Elements.SelectMany(e => e.Songs).First().BundleId;
+
+        var request = BuildRequest(service, TimeOfDay.Morning, new List<CreateServiceElementRequest>
+        {
+            new(
+                Position: 1,
+                ElementType: 0,
+                LabelId: null,
+                ScriptureReference: null,
+                Notes: null,
+                Songs: new List<CreateServiceElementSongRequest>
+                {
+                    new(BundleId: bundleId, Section: null, SongNumber: 42, Position: 1,
+                        Verses: new List<string> { "1" }, SungInFull: true)
+                })
+        });
+
+        var result = await _sut.UpdateServiceAsync(id, request, "tester");
+        Assert.That(result, Is.Not.Null);
+
+        var reloaded = await _db.Services
+            .Include(s => s.Elements)
+                .ThenInclude(e => e.Songs)
+            .AsNoTracking()
+            .FirstAsync(s => s.Id == id);
+
+        var song = reloaded.Elements.Single().Songs.Single();
+        Assert.That(song.SungInFull, Is.True,
+            "The explicit 'hele lied' flag must be persisted on the song.");
+
+        var dto = await _sut.GetServiceByIdAsync(id);
+        var songDto = dto!.Elements.Single().Songs.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(songDto.SungInFull, Is.True);
+            Assert.That(songDto.Completeness, Is.Not.Null);
+            Assert.That(songDto.Completeness!.CompleteInElement, Is.True,
+                "A song marked 'hele lied' is complete regardless of the catalog verse count.");
+        });
+    }
+
     private static UpdateServiceRequest BuildRequest(Service s, TimeOfDay timeOfDay, List<CreateServiceElementRequest> elements) =>
         new(
             Date: s.Date,
