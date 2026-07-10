@@ -329,6 +329,14 @@ export interface ServiceTemplate {
   occasion: string | null;
   isActive: boolean;
   elements: ServiceTemplateElement[];
+  musicalAccompanimentId?: string | null;
+  musicalAccompaniment?: string | null;
+  isReadingService?: boolean;
+  hasBeamerLiturgy?: boolean;
+  hasBeamerTexts?: boolean;
+  hasBeamerSongs?: boolean;
+  defaultBibleTranslationId?: string | null;
+  defaultBibleTranslation?: string | null;
 }
 
 export interface ServiceTemplateSummary {
@@ -362,6 +370,12 @@ export interface CreateServiceTemplateRequest {
   occasionId: string | null;
   isActive: boolean;
   elements: CreateServiceTemplateElementRequest[];
+  musicalAccompanimentId?: string | null;
+  isReadingService?: boolean;
+  hasBeamerLiturgy?: boolean;
+  hasBeamerTexts?: boolean;
+  hasBeamerSongs?: boolean;
+  defaultBibleTranslationId?: string | null;
 }
 
 /** A ready-to-use service element produced by instantiating a template. */

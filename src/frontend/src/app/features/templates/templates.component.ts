@@ -52,6 +52,8 @@ export class TemplatesComponent implements OnInit {
   occasions: ListItem[] = [];
   performers: ListItem[] = [];
   labels: ListItem[] = [];
+  musicalAccompaniments: ListItem[] = [];
+  bibleTranslations: ListItem[] = [];
   congregations: CongregationSummary[] = [];
 
   readonly displayedColumns = ['name', 'denomination', 'timeOfDay', 'occasion', 'elementCount', 'active', 'actions'];
@@ -84,12 +86,16 @@ export class TemplatesComponent implements OnInit {
       occasions: this.api.getListByName('ServiceOccasion'),
       performers: this.api.getListByName('ServicePerformer'),
       labels: this.api.getListByName('LiturgicalLabels'),
+      musicalAccompaniments: this.api.getListByName('MusicalAccompaniment'),
+      bibleTranslations: this.api.getListByName('BibleTranslations'),
     }).subscribe({
       next: (lists) => {
         this.denominations = lists.denominations.items;
         this.occasions = lists.occasions.items;
         this.performers = lists.performers.items;
         this.labels = lists.labels.items;
+        this.musicalAccompaniments = lists.musicalAccompaniments.items;
+        this.bibleTranslations = lists.bibleTranslations.items;
         this.loadTemplates();
       },
       error: () => {
@@ -116,6 +122,12 @@ export class TemplatesComponent implements OnInit {
       occasionId: null,
       isActive: true,
       elements: [],
+      musicalAccompanimentId: null,
+      isReadingService: false,
+      hasBeamerLiturgy: false,
+      hasBeamerTexts: false,
+      hasBeamerSongs: false,
+      defaultBibleTranslationId: null,
     };
   }
 
@@ -146,6 +158,12 @@ export class TemplatesComponent implements OnInit {
         occasionId: t.occasionId,
         isActive: t.isActive,
         elements: [],
+        musicalAccompanimentId: t.musicalAccompanimentId ?? null,
+        isReadingService: t.isReadingService ?? false,
+        hasBeamerLiturgy: t.hasBeamerLiturgy ?? false,
+        hasBeamerTexts: t.hasBeamerTexts ?? false,
+        hasBeamerSongs: t.hasBeamerSongs ?? false,
+        defaultBibleTranslationId: t.defaultBibleTranslationId ?? null,
       };
       this.elements = t.elements.map(e => ({
         position: e.position,

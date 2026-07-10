@@ -31,6 +31,24 @@ public class ServiceTemplate : IHasAuditFields
 
     public bool IsActive { get; set; } = true;
 
+    // --- Default service characteristics prefilled when instantiating ---
+
+    /// <summary>Default muzikale begeleiding (ListItem in the MusicalAccompaniment list).</summary>
+    public Guid? MusicalAccompanimentId { get; set; }
+    public ListItem? MusicalAccompaniment { get; set; }
+
+    /// <summary>Whether this template represents a leesdienst (no preacher present).</summary>
+    public bool IsReadingService { get; set; }
+
+    /// <summary>Beamer/liturgy presentation defaults.</summary>
+    public bool HasBeamerLiturgy { get; set; }
+    public bool HasBeamerTexts { get; set; }
+    public bool HasBeamerSongs { get; set; }
+
+    /// <summary>Default Bijbelvertaling (ListItem in the BibleTranslations list).</summary>
+    public Guid? DefaultBibleTranslationId { get; set; }
+    public ListItem? DefaultBibleTranslation { get; set; }
+
     public string? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? ModifiedBy { get; set; }

@@ -98,6 +98,44 @@ public class TemplateServiceIntegrationTests
             "The congregation-specific template must win over the denomination-only one.");
     }
 
+    [Test]
+    public async Task Create_PersistsDefaultCharacteristics_AndReturnsThemOnGet()
+    {
+        var congregationId = await FirstCongregationIdAsync();
+        var translationId = await FirstBibleTranslationIdAsync();
+        var accompanimentId = await FirstMusicalAccompanimentIdAsync();
+
+        var created = await _sut.CreateTemplateAsync(new CreateServiceTemplateRequest(
+            Name: "ZZ-TEST Kenmerken",
+            DenominationId: null,
+            CongregationId: congregationId,
+            TimeOfDay: (int)TimeOfDay.Morning,
+            OccasionId: null,
+            IsActive: true,
+            Elements: new() { new(1, 0, null, null, false, null) },
+            MusicalAccompanimentId: accompanimentId,
+            IsReadingService: true,
+            HasBeamerLiturgy: true,
+            HasBeamerTexts: false,
+            HasBeamerSongs: true,
+            DefaultBibleTranslationId: translationId), "tester");
+
+        var fetched = await _sut.GetTemplateByIdAsync(created.Id);
+
+        Assert.That(fetched, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(fetched!.MusicalAccompanimentId, Is.EqualTo(accompanimentId));
+            Assert.That(fetched.DefaultBibleTranslationId, Is.EqualTo(translationId));
+            Assert.That(fetched.IsReadingService, Is.True);
+            Assert.That(fetched.HasBeamerLiturgy, Is.True);
+            Assert.That(fetched.HasBeamerTexts, Is.False);
+            Assert.That(fetched.HasBeamerSongs, Is.True);
+            Assert.That(fetched.MusicalAccompaniment, Is.Not.Null.And.Not.Empty);
+            Assert.That(fetched.DefaultBibleTranslation, Is.Not.Null.And.Not.Empty);
+        });
+    }
+
     private async Task<Guid> FirstCongregationIdAsync() =>
         (await _db.Congregations.AsNoTracking().FirstAsync()).Id;
 
@@ -106,4 +144,10 @@ public class TemplateServiceIntegrationTests
 
     private async Task<Guid> FirstDenominationIdAsync() =>
         (await _db.ListItems.AsNoTracking().FirstAsync(i => i.ListDefinition.Name == "Denominations")).Id;
+
+    private async Task<Guid> FirstBibleTranslationIdAsync() =>
+        (await _db.ListItems.AsNoTracking().FirstAsync(i => i.ListDefinition.Name == "BibleTranslations")).Id;
+
+    private async Task<Guid> FirstMusicalAccompanimentIdAsync() =>
+        (await _db.ListItems.AsNoTracking().FirstAsync(i => i.ListDefinition.Name == "MusicalAccompaniment")).Id;
 }

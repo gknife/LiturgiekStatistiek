@@ -43,6 +43,8 @@ public class TemplateService : ITemplateService
             .Include(t => t.Denomination)
             .Include(t => t.Congregation)
             .Include(t => t.Occasion)
+            .Include(t => t.MusicalAccompaniment)
+            .Include(t => t.DefaultBibleTranslation)
             .Include(t => t.Elements).ThenInclude(e => e.Label)
             .Include(t => t.Elements).ThenInclude(e => e.Performer)
             .AsNoTracking()
@@ -62,6 +64,12 @@ public class TemplateService : ITemplateService
             TimeOfDay = request.TimeOfDay.HasValue ? (TimeOfDay)request.TimeOfDay.Value : null,
             OccasionId = request.OccasionId,
             IsActive = request.IsActive,
+            MusicalAccompanimentId = request.MusicalAccompanimentId,
+            IsReadingService = request.IsReadingService,
+            HasBeamerLiturgy = request.HasBeamerLiturgy,
+            HasBeamerTexts = request.HasBeamerTexts,
+            HasBeamerSongs = request.HasBeamerSongs,
+            DefaultBibleTranslationId = request.DefaultBibleTranslationId,
             CreatedBy = userId,
             CreatedAt = DateTime.UtcNow,
             Elements = BuildElements(request.Elements)
@@ -90,6 +98,12 @@ public class TemplateService : ITemplateService
         template.TimeOfDay = request.TimeOfDay.HasValue ? (TimeOfDay)request.TimeOfDay.Value : null;
         template.OccasionId = request.OccasionId;
         template.IsActive = request.IsActive;
+        template.MusicalAccompanimentId = request.MusicalAccompanimentId;
+        template.IsReadingService = request.IsReadingService;
+        template.HasBeamerLiturgy = request.HasBeamerLiturgy;
+        template.HasBeamerTexts = request.HasBeamerTexts;
+        template.HasBeamerSongs = request.HasBeamerSongs;
+        template.DefaultBibleTranslationId = request.DefaultBibleTranslationId;
         template.ModifiedBy = userId;
         template.ModifiedAt = DateTime.UtcNow;
 
@@ -150,6 +164,8 @@ public class TemplateService : ITemplateService
             .Include(t => t.Denomination)
             .Include(t => t.Congregation)
             .Include(t => t.Occasion)
+            .Include(t => t.MusicalAccompaniment)
+            .Include(t => t.DefaultBibleTranslation)
             .Include(t => t.Elements).ThenInclude(e => e.Label)
             .Include(t => t.Elements).ThenInclude(e => e.Performer)
             .AsNoTracking()
@@ -229,6 +245,14 @@ public class TemplateService : ITemplateService
                     e.Performer?.Value,
                     e.IsBeurtzang,
                     e.FixedScriptureReference))
-                .ToList());
+                .ToList(),
+            t.MusicalAccompanimentId,
+            t.MusicalAccompaniment?.Value,
+            t.IsReadingService,
+            t.HasBeamerLiturgy,
+            t.HasBeamerTexts,
+            t.HasBeamerSongs,
+            t.DefaultBibleTranslationId,
+            t.DefaultBibleTranslation?.Value);
     }
 }

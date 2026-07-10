@@ -1,9 +1,32 @@
 <h1>{{ isEditMode ? 'Dienst bewerken' : 'Dienst toevoegen' }}</h1>
 <p class="page-description">{{ isEditMode ? 'Pas de gegevens van deze dienst aan.' : 'Voeg een nieuwe kerkdienst toe aan de database.' }}</p>
 
+@if (!isEditMode && !templateChosen) {
+  <div class="template-chooser">
+    <h2>Kies een sjabloon</h2>
+    <p class="page-description">Start met een sjabloon dat de onderdelen en standaardkenmerken voorvult, of begin met een lege dienst. Je kunt daarna alles nog aanpassen.</p>
+    <div class="template-options">
+      <button mat-stroked-button class="template-option" (click)="skipTemplate()">
+        <mat-icon>note_add</mat-icon>
+        <span>Zonder sjabloon (leeg)</span>
+      </button>
+      @for (t of availableTemplates; track t.id) {
+        <button mat-stroked-button color="primary" class="template-option" (click)="chooseTemplate(t.id)">
+          <mat-icon>dashboard_customize</mat-icon>
+          <span>{{ t.name }}</span>
+          <small>{{ t.denomination || 'Alle kerkgenootschappen' }} · {{ t.elementCount }} onderdelen</small>
+        </button>
+      }
+    </div>
+  </div>
+} @else {
+
 <div class="autosave-indicator" [class.saving]="autoSaving">
   <mat-icon>{{ autoSaving ? 'sync' : 'cloud_done' }}</mat-icon>
   <span>{{ lastSavedLabel }}</span>
+  @if (chosenTemplateName) {
+    <span class="chosen-template">· Sjabloon: {{ chosenTemplateName }}</span>
+  }
 </div>
 
 <mat-tab-group [(selectedIndex)]="selectedTabIndex">
@@ -438,3 +461,4 @@
   </mat-tab>
   }
 </mat-tab-group>
+}

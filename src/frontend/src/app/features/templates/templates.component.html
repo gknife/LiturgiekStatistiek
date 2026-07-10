@@ -96,6 +96,36 @@
           </mat-form-field>
         </div>
 
+        <h3>Standaardkenmerken</h3>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Muzikale begeleiding</mat-label>
+            <mat-select [(ngModel)]="form.musicalAccompanimentId" name="musicalAccompaniment">
+              <mat-option [value]="null">— Geen —</mat-option>
+              @for (m of musicalAccompaniments; track m.id) {
+                <mat-option [value]="m.id">{{ m.value }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Standaard Bijbelvertaling</mat-label>
+            <mat-select [(ngModel)]="form.defaultBibleTranslationId" name="defaultBibleTranslation">
+              <mat-option [value]="null">— Geen —</mat-option>
+              @for (bt of bibleTranslations; track bt.id) {
+                <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="toggle-row">
+          <mat-checkbox [(ngModel)]="form.isReadingService" name="isReadingService">Leesdienst</mat-checkbox>
+          <mat-checkbox [(ngModel)]="form.hasBeamerLiturgy" name="hasBeamerLiturgy">Beamer: liturgie</mat-checkbox>
+          <mat-checkbox [(ngModel)]="form.hasBeamerTexts" name="hasBeamerTexts">Beamer: teksten</mat-checkbox>
+          <mat-checkbox [(ngModel)]="form.hasBeamerSongs" name="hasBeamerSongs">Beamer: liederen</mat-checkbox>
+        </div>
+
         <mat-slide-toggle [(ngModel)]="form.isActive" name="active">Actief</mat-slide-toggle>
 
         <h3>Onderdelen</h3>

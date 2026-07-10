@@ -11,7 +11,15 @@ public record ServiceTemplateDto(
     Guid? OccasionId,
     string? Occasion,
     bool IsActive,
-    List<ServiceTemplateElementDto> Elements
+    List<ServiceTemplateElementDto> Elements,
+    Guid? MusicalAccompanimentId = null,
+    string? MusicalAccompaniment = null,
+    bool IsReadingService = false,
+    bool HasBeamerLiturgy = false,
+    bool HasBeamerTexts = false,
+    bool HasBeamerSongs = false,
+    Guid? DefaultBibleTranslationId = null,
+    string? DefaultBibleTranslation = null
 );
 
 public record ServiceTemplateElementDto(
@@ -48,7 +56,13 @@ public record CreateServiceTemplateRequest(
     int? TimeOfDay,
     Guid? OccasionId,
     bool IsActive,
-    List<CreateServiceTemplateElementRequest> Elements
+    List<CreateServiceTemplateElementRequest> Elements,
+    Guid? MusicalAccompanimentId = null,
+    bool IsReadingService = false,
+    bool HasBeamerLiturgy = false,
+    bool HasBeamerTexts = false,
+    bool HasBeamerSongs = false,
+    Guid? DefaultBibleTranslationId = null
 );
 
 public record CreateServiceTemplateElementRequest(

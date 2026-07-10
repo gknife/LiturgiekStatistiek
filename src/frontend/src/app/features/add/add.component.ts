@@ -20,7 +20,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { ApiService } from '../../core/services/api.service';
 import {
   CongregationSummary, PreacherSummary, ListItem, ServiceDetail,
-  BibleBook, ParsedServiceData,
+  BibleBook, ParsedServiceData, ServiceTemplateSummary, ServiceTemplate,
 } from '../../core/models/api.models';
 import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin, tap, catchError } from 'rxjs';
 import { FormControl } from '@angular/forms';
@@ -136,6 +136,12 @@ export class AddComponent implements OnInit {
 
   editingServiceId: string | null = null;
 
+  // Template-first flow (add mode only): the user picks a sjabloon (or "leeg")
+  // before entering data on any of the tabs.
+  availableTemplates: ServiceTemplateSummary[] = [];
+  templateChosen = false;
+  chosenTemplateName: string | null = null;
+
   get isEditMode(): boolean {
     return this.editingServiceId !== null;
   }
@@ -177,6 +183,17 @@ export class AddComponent implements OnInit {
     // buildRequest path are correct even if a list load fails.
     if (this.dialogData?.serviceId) {
       this.editingServiceId = this.dialogData.serviceId;
+    }
+
+    // Editing an existing service skips the template-first step. For a new
+    // service the user must first choose a sjabloon (or "leeg").
+    if (this.isEditMode) {
+      this.templateChosen = true;
+    } else {
+      this.api.getTemplates().subscribe({
+        next: templates => this.availableTemplates = templates.filter(t => t.isActive),
+        error: () => this.availableTemplates = [],
+      });
     }
 
     // Load dropdown lists. Each list is loaded resiliently: a missing list
@@ -771,7 +788,62 @@ export class AddComponent implements OnInit {
     this.publish();
   }
 
-  /** Pre-fill onderdelen from the best-matching template for the chosen gemeente/tijdstip. */
+  /** Id of the "Voorganger" performer, used as the default for onderdelen. */
+  private defaultPerformerId(): string {
+    return this.performers.find(p => p.value === 'Voorganger')?.id ?? '';
+  }
+
+  /** Proceed without a template (empty service). */
+  skipTemplate(): void {
+    this.chosenTemplateName = null;
+    this.templateChosen = true;
+  }
+
+  /** Choose a template: prefill metadata defaults + onderdelen scaffold, then continue. */
+  chooseTemplate(templateId: string): void {
+    this.api.getTemplate(templateId).subscribe({
+      next: template => {
+        this.applyTemplateDto(template);
+        this.chosenTemplateName = template.name;
+        this.templateChosen = true;
+      },
+      error: () => alert('Kon sjabloon niet laden.'),
+    });
+  }
+
+  /** Prefill metadata defaults and build the onderdelen scaffold from a template. */
+  private applyTemplateDto(template: ServiceTemplate): void {
+    this.metadataForm.patchValue({
+      timeOfDay: template.timeOfDay ?? this.metadataForm.value.timeOfDay,
+      specialOccasionId: template.occasionId ?? this.metadataForm.value.specialOccasionId,
+      musicalAccompanimentId: template.musicalAccompanimentId ?? '',
+      isReadingService: template.isReadingService ?? false,
+      hasBeamerLiturgy: template.hasBeamerLiturgy ?? false,
+      hasBeamerTexts: template.hasBeamerTexts ?? false,
+      hasBeamerSongs: template.hasBeamerSongs ?? false,
+    }, { emitEvent: false });
+
+    const defaultPerformer = this.defaultPerformerId();
+    const defaultTranslation = template.defaultBibleTranslationId ?? '';
+    const scaffold: ServiceElementModel[] = template.elements
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((e, i) => ({
+        position: i + 1,
+        elementType: e.elementTypeValue,
+        labelId: e.labelId ?? '',
+        notes: '',
+        // Template performer override wins; otherwise default to Voorganger.
+        performerId: e.performerId ?? defaultPerformer,
+        isBeurtzang: e.isBeurtzang ?? false,
+        bibleTranslationId: e.elementTypeValue === this.ELEMENT_READING ? defaultTranslation : '',
+        readingRefs: [],
+        songs: [],
+      }));
+    this.elements = this.reconcileWithScaffold(scaffold, this.elements);
+  }
+
+  /** Re-apply a matching template based on the chosen gemeente/tijdstip (from the onderdelen tab). */
   applyTemplate(): void {
     const congregationId = this.nullableGuid(this.metadataForm.value.congregationId);
     const timeOfDay = this.metadataForm.value.timeOfDay;

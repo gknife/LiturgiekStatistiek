@@ -26,6 +26,16 @@ public class ServiceTemplateConfiguration : IEntityTypeConfiguration<ServiceTemp
             .HasForeignKey(t => t.OccasionId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(t => t.MusicalAccompaniment)
+            .WithMany()
+            .HasForeignKey(t => t.MusicalAccompanimentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.DefaultBibleTranslation)
+            .WithMany()
+            .HasForeignKey(t => t.DefaultBibleTranslationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(t => t.DenominationId);
         builder.HasIndex(t => t.CongregationId);
     }
