@@ -23,6 +23,18 @@ Each `ServiceTemplateElement` carries a label + element type and optional defaul
 **performer**, **beurtzang** and a **fixed scripture reference** (for standing readings).
 No week-specific songs or sermon text are stored.
 
+### Default characteristics
+
+Besides the onderdelen, a template also stores **standaardkenmerken** that pre-fill the
+dienst-metadata when the template is chosen:
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| `MusicalAccompanimentId` | `MusicalAccompaniment` list | Default muzikale begeleiding |
+| `DefaultBibleTranslationId` | `BibleTranslations` list | Pre-fills the translation on reading onderdelen |
+| `IsReadingService` | bool | Leesdienst |
+| `HasBeamerLiturgy` / `HasBeamerTexts` / `HasBeamerSongs` | bool | Beamer-opties |
+
 ## Matching (`ResolveAsync`)
 
 Given the selectors of the service being created, the resolver hard-filters on any
@@ -49,8 +61,15 @@ template's onderdelen as ready-to-use `CreateServiceElementRequest`s.
 
 ## Use in data entry
 
-On the **Dienst toevoegen** page, **Sjabloon toepassen** calls `instantiate` for the chosen
-gemeente/dagdeel/gelegenheid. If onderdelen were already parsed or entered, they are
+Creating a dienst now **starts** with a template chooser: before the Handmatig / Plakken /
+URL-import tabs appear, the user picks a sjabloon (or **Zonder sjabloon (leeg)**). The chosen
+template pre-fills the metadata standaardkenmerken and lays out the onderdelen scaffold, with
+each onderdeel's performer defaulting to **Voorganger** (a template performer override wins,
+and manual override is always possible). Editing or **duplicating** an existing dienst skips
+the chooser (the source dienst acts as the template).
+
+The older **Sjabloon toepassen** button on the onderdelen-tab still calls `instantiate` for the
+chosen gemeente/dagdeel/gelegenheid. If onderdelen were already parsed or entered, they are
 **reconciled** into the template scaffold (label match fills slots, empties stay, extras are
 appended). This is also how pasted text and Kerkdienstgemist imports land in the standard
 structure. See [data-entry.md](./data-entry.md).

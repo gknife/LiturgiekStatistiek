@@ -3,6 +3,16 @@
 The **Dienst toevoegen** page (`add.component`) offers three ways to add a service. All
 three converge on the same save path so the resulting data is identical and queryable.
 
+## Template first
+
+For a **new** dienst the dialog opens on a **sjabloon-keuze**: pick a template or
+**Zonder sjabloon (leeg)** before the Handmatig / Plakken / URL-import tabs appear. The
+chosen template pre-fills the standaardkenmerken (muzikale begeleiding, standaard
+Bijbelvertaling, leesdienst, beamer-opties) and lays out the onderdelen scaffold, defaulting
+each onderdeel's performer to **Voorganger** (template override wins; manual override always
+possible). The order and items stay editable. Editing or **duplicating** an existing dienst
+skips this step. See [templates.md](./templates.md).
+
 ## 1. Handmatig (manual)
 
 - **Datum** uses a Dutch date picker (`nl-NL`, `dd-MM-yyyy`).
@@ -20,7 +30,10 @@ three converge on the same save path so the resulting data is identical and quer
 ### Per-element details
 
 Each onderdeel carries a **type** (Lied, Liturgische handeling, Schriftlezing, Gebed,
-Overig). The editor adapts to the type:
+Overig). The editor adapts to the type, and the **Onderdeel** dropdown is filtered to the
+labels classified for the selected type (`ListItem.LiturgicalElementType`; changing the type
+clears a now-mismatched label). Labels are classified in the seeder and editable per item
+under *Lijsten*.
 
 - **Wie doet dit onderdeel** (performer) — on every non-song onderdeel you can pick who
   leads it (voorganger/ouderling/gemeentelid, seeded as the `ServicePerformer` list and
@@ -44,11 +57,11 @@ catalog count is unknown the song is never counted as complete. See
 
 ### Concept, autosave & publiceren
 
-Editing works against a **server-side draft**. While the dialog is open, changes are
-**autosaved** (debounced ~2s) as a `Concept`. Concept services show a *Concept* badge in the
+Editing works against a **server-side draft**. There is no "Opslaan als concept" button:
+while the dialog is open every change is **autosaved** (debounced) as a `Concept`, and each
+tab shows when the last autosave happened. Concept services show a *Concept* badge in the
 diensten list, are visible to all signed-in users, and are **excluded from all queries and
-statistics** until published. Use **Publiceren** to flip the status to `Gepubliceerd`. The
-Save/Publiceren buttons disable while a request is in flight, preventing duplicate saves.
+statistics** until published. Use **Publiceren** to flip the status to `Gepubliceerd`.
 
 ### Sjabloon toepassen (templates)
 
@@ -114,6 +127,16 @@ and in Ederveen stay distinct), otherwise a new `Congregation` / `Preacher` is c
 automatically (`POST /api/congregations`, `POST /api/preachers`) and its id is used. An
 empty city falls back to `Onbekend`. This keeps the URL-import flow working without manual
 pre-registration; new records can be edited or de-duplicated afterwards under *Lijsten*.
+
+## Diensten-overzicht — audit & dupliceren
+
+The Diensten table shows a **Beheer** column (authenticated users) with *toegevoegd door* and
+*laatst bewerkt* info, sourced from the service audit fields (`CreatedBy`/`CreatedAt`/
+`ModifiedBy`/`ModifiedAt`, surfaced on `ServiceSummaryDto`). Each row also has a **Dupliceren**
+action that opens the Add dialog prefilled from the source dienst as a new `Concept` with an
+empty date. List-item changes under *Lijsten* are likewise audited: every add/update/delete
+writes a `ChangeHistory` row (who, when, previous values) and the item's audit info shows as a
+tooltip. List items are ordered alphabetically.
 
 ## Related endpoints
 
