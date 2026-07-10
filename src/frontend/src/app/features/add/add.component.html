@@ -1,6 +1,11 @@
 <h1>{{ isEditMode ? 'Dienst bewerken' : 'Dienst toevoegen' }}</h1>
 <p class="page-description">{{ isEditMode ? 'Pas de gegevens van deze dienst aan.' : 'Voeg een nieuwe kerkdienst toe aan de database.' }}</p>
 
+<div class="autosave-indicator" [class.saving]="autoSaving">
+  <mat-icon>{{ autoSaving ? 'sync' : 'cloud_done' }}</mat-icon>
+  <span>{{ lastSavedLabel }}</span>
+</div>
+
 <mat-tab-group [(selectedIndex)]="selectedTabIndex">
   <!-- Tab 1: Manual entry -->
   <mat-tab label="Handmatig invoeren">
@@ -96,7 +101,7 @@
                 <div class="sermon-ref-row">
                   <mat-form-field appearance="outline" class="ref-book">
                     <mat-label>Bijbelboek</mat-label>
-                    <mat-select [(ngModel)]="ref.bibleBookId" [ngModelOptions]="{ standalone: true }">
+                    <mat-select [(ngModel)]="ref.bibleBookId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                       @for (b of bibleBooks; track b.id) {
                         <mat-option [value]="b.id">{{ b.name }}</mat-option>
                       }
@@ -105,7 +110,7 @@
 
                   <mat-form-field appearance="outline" class="ref-chapter">
                     <mat-label>Hoofdstuk</mat-label>
-                    <mat-select [(ngModel)]="ref.chapter" [ngModelOptions]="{ standalone: true }">
+                    <mat-select [(ngModel)]="ref.chapter" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                       @for (c of chaptersOf(ref.bibleBookId); track c) {
                         <mat-option [value]="c">{{ c }}</mat-option>
                       }
@@ -114,7 +119,7 @@
 
                   <mat-form-field appearance="outline" class="ref-verse">
                     <mat-label>Van vers</mat-label>
-                    <mat-select [(ngModel)]="ref.verseStart" [ngModelOptions]="{ standalone: true }">
+                    <mat-select [(ngModel)]="ref.verseStart" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                       @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
                         <mat-option [value]="v">{{ v }}</mat-option>
                       }
@@ -123,7 +128,7 @@
 
                   <mat-form-field appearance="outline" class="ref-verse">
                     <mat-label>Tot vers</mat-label>
-                    <mat-select [(ngModel)]="ref.verseEnd" [ngModelOptions]="{ standalone: true }">
+                    <mat-select [(ngModel)]="ref.verseEnd" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                       @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
                         <mat-option [value]="v">{{ v }}</mat-option>
                       }
@@ -182,6 +187,12 @@
               <mat-card class="element-card">
                 <div class="element-header">
                   <span class="position-badge">{{ element.position }}</span>
+                  <button mat-icon-button type="button" (click)="moveElement(i, -1)" [disabled]="i === 0" matTooltip="Omhoog">
+                    <mat-icon>arrow_upward</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" (click)="moveElement(i, 1)" [disabled]="i === elements.length - 1" matTooltip="Omlaag">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </button>
                   <mat-form-field appearance="outline" class="element-type-field" subscriptSizing="dynamic">
                     <mat-label>Type</mat-label>
                     <mat-select [(ngModel)]="element.elementType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onElementTypeChange(element)">
@@ -203,7 +214,7 @@
                   <mat-form-field appearance="outline" class="element-notes-field" subscriptSizing="dynamic">
                     <mat-label>Opmerking</mat-label>
                     <input matInput [(ngModel)]="element.notes" [ngModelOptions]="{ standalone: true }"
-                      placeholder="Bijv. staand, gezongen">
+                      (ngModelChange)="scheduleAutosave()" placeholder="Bijv. staand, gezongen">
                   </mat-form-field>
                   <button mat-icon-button color="warn" type="button" (click)="removeElement(i)">
                     <mat-icon>delete</mat-icon>
@@ -214,7 +225,7 @@
                   <div class="element-performer">
                     <mat-form-field appearance="outline" class="performer-field" subscriptSizing="dynamic">
                       <mat-label>Wie doet dit onderdeel</mat-label>
-                      <mat-select [(ngModel)]="element.performerId" [ngModelOptions]="{ standalone: true }">
+                      <mat-select [(ngModel)]="element.performerId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                         <mat-option [value]="''">&mdash; Niet gespecificeerd &mdash;</mat-option>
                         @for (p of performers; track p.id) {
                           <mat-option [value]="p.id">{{ p.value }}</mat-option>
@@ -228,7 +239,7 @@
                   <div class="element-reading">
                     <mat-form-field appearance="outline" class="reading-translation" subscriptSizing="dynamic">
                       <mat-label>Bijbelvertaling</mat-label>
-                      <mat-select [(ngModel)]="element.bibleTranslationId" [ngModelOptions]="{ standalone: true }">
+                      <mat-select [(ngModel)]="element.bibleTranslationId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                         <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
                         @for (bt of bibleTranslations; track bt.id) {
                           <mat-option [value]="bt.id">{{ bt.abbreviation || bt.value }}</mat-option>
@@ -240,7 +251,7 @@
                       <div class="sermon-ref-row">
                         <mat-form-field appearance="outline" class="ref-book" subscriptSizing="dynamic">
                           <mat-label>Bijbelboek</mat-label>
-                          <mat-select [(ngModel)]="ref.bibleBookId" [ngModelOptions]="{ standalone: true }">
+                          <mat-select [(ngModel)]="ref.bibleBookId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                             @for (b of bibleBooks; track b.id) {
                               <mat-option [value]="b.id">{{ b.name }}</mat-option>
                             }
@@ -248,7 +259,7 @@
                         </mat-form-field>
                         <mat-form-field appearance="outline" class="ref-chapter" subscriptSizing="dynamic">
                           <mat-label>Hoofdstuk</mat-label>
-                          <mat-select [(ngModel)]="ref.chapter" [ngModelOptions]="{ standalone: true }">
+                          <mat-select [(ngModel)]="ref.chapter" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                             @for (c of chaptersOf(ref.bibleBookId); track c) {
                               <mat-option [value]="c">{{ c }}</mat-option>
                             }
@@ -256,7 +267,7 @@
                         </mat-form-field>
                         <mat-form-field appearance="outline" class="ref-verse" subscriptSizing="dynamic">
                           <mat-label>Van vers</mat-label>
-                          <mat-select [(ngModel)]="ref.verseStart" [ngModelOptions]="{ standalone: true }">
+                          <mat-select [(ngModel)]="ref.verseStart" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                             @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
                               <mat-option [value]="v">{{ v }}</mat-option>
                             }
@@ -264,7 +275,7 @@
                         </mat-form-field>
                         <mat-form-field appearance="outline" class="ref-verse" subscriptSizing="dynamic">
                           <mat-label>Tot vers</mat-label>
-                          <mat-select [(ngModel)]="ref.verseEnd" [ngModelOptions]="{ standalone: true }">
+                          <mat-select [(ngModel)]="ref.verseEnd" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                             @for (v of versesOf(ref.bibleBookId, ref.chapter); track v) {
                               <mat-option [value]="v">{{ v }}</mat-option>
                             }
@@ -283,12 +294,12 @@
 
                 @if (isSongElement(element)) {
                 <div class="element-songs">
-                  <mat-checkbox [(ngModel)]="element.isBeurtzang" [ngModelOptions]="{ standalone: true }">Beurtzang</mat-checkbox>
+                  <mat-checkbox [(ngModel)]="element.isBeurtzang" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">Beurtzang</mat-checkbox>
                   @for (song of element.songs; track $index; let si = $index) {
                     <div class="song-row">
                       <mat-form-field appearance="outline" class="song-bundle" subscriptSizing="dynamic">
                         <mat-label>Bundel</mat-label>
-                        <mat-select [(ngModel)]="song.bundleId" [ngModelOptions]="{ standalone: true }">
+                        <mat-select [(ngModel)]="song.bundleId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                           @for (b of bundles; track b.id) {
                             <mat-option [value]="b.id">{{ b.abbreviation || b.value }}</mat-option>
                           }
@@ -297,16 +308,16 @@
                       <mat-form-field appearance="outline" class="song-section" subscriptSizing="dynamic">
                         <mat-label>Rubriek</mat-label>
                         <input matInput [(ngModel)]="song.section" [ngModelOptions]="{ standalone: true }"
-                          placeholder="Psalm, Gezang...">
+                          (ngModelChange)="scheduleAutosave()" placeholder="Psalm, Gezang...">
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="song-number" subscriptSizing="dynamic">
                         <mat-label>Nummer</mat-label>
-                        <input matInput type="number" [(ngModel)]="song.number" [ngModelOptions]="{ standalone: true }">
+                        <input matInput type="number" [(ngModel)]="song.number" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="song-verses" subscriptSizing="dynamic">
                         <mat-label>Verzen</mat-label>
                         <input matInput [(ngModel)]="song.versesText" [ngModelOptions]="{ standalone: true }"
-                          placeholder="Bijv. 1, 3, 5">
+                          (ngModelChange)="scheduleAutosave()" placeholder="Bijv. 1, 3, 5">
                       </mat-form-field>
                       <button mat-icon-button color="warn" type="button" (click)="removeSong(element, si)">
                         <mat-icon>close</mat-icon>
@@ -353,12 +364,10 @@
 
             <div class="step-actions">
               <button mat-button matStepperPrevious>Terug</button>
+              <span class="autosave-hint">{{ lastSavedLabel }}</span>
               @if (isInDialog) {
                 <button mat-button (click)="cancel()">Sluiten</button>
               }
-              <button mat-stroked-button color="primary" (click)="saveDraft()" [disabled]="saving || publishing">
-                <mat-icon>save</mat-icon> {{ saving ? 'Opslaan…' : 'Opslaan als concept' }}
-              </button>
               <button mat-raised-button color="primary" (click)="publish()" [disabled]="saving || publishing">
                 <mat-icon>publish</mat-icon> {{ publishing ? 'Publiceren…' : 'Publiceren' }}
               </button>

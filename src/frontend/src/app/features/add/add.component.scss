@@ -16,6 +16,38 @@
   margin-bottom: 1.5rem;
 }
 
+.autosave-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: -0.75rem 0 1rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+
+  mat-icon {
+    font-size: 1.05rem;
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  &.saving mat-icon {
+    animation: autosave-spin 1s linear infinite;
+  }
+}
+
+.autosave-hint {
+  margin-right: auto;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+}
+
+@keyframes autosave-spin {
+  to { transform: rotate(360deg); }
+}
+
 .tab-content {
   padding: 1.5rem 0;
 }

@@ -13,6 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -69,7 +70,7 @@ interface SermonRefModel {
     MatCardModule, MatTabsModule, MatStepperModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule,
     MatAutocompleteModule, MatButtonModule, MatIconModule, MatCheckboxModule,
-    MatChipsModule, MatSlideToggleModule, FormsModule, ReactiveFormsModule,
+    MatChipsModule, MatSlideToggleModule, MatTooltipModule, FormsModule, ReactiveFormsModule,
   ],
   templateUrl: './add.component.html',
   styleUrl: './add.component.scss',
@@ -111,6 +112,8 @@ export class AddComponent implements OnInit {
   status = 1; // 0 = Concept, 1 = Gepubliceerd
   private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSavedSnapshot = '';
+  /** Timestamp of the last successful (auto)save, shown per tab. */
+  lastSavedAt: Date | null = null;
 
   // Bible reference data for the structured Preektekst editor.
   bibleBooks: BibleBook[] = [];
@@ -218,9 +221,11 @@ export class AddComponent implements OnInit {
     // fire only on user input; programmatic prefill/select use { emitEvent: false }.
     this.congregationControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
+      this.scheduleAutosave();
     });
     this.congregationCityControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
+      this.scheduleAutosave();
     });
 
     // Autocomplete for preacher
@@ -231,6 +236,7 @@ export class AddComponent implements OnInit {
 
     this.preacherControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
+      this.scheduleAutosave();
     });
 
     // Autosave: debounced draft save whenever the metadata form changes.
@@ -265,10 +271,12 @@ export class AddComponent implements OnInit {
 
   addSermonRef(): void {
     this.sermonRefs.push({ bibleBookId: '', chapter: null, verseStart: null, verseEnd: null });
+    this.scheduleAutosave();
   }
 
   removeSermonRef(index: number): void {
     this.sermonRefs.splice(index, 1);
+    this.scheduleAutosave();
   }
 
   private prefill(service: ServiceDetail): void {
@@ -391,11 +399,23 @@ export class AddComponent implements OnInit {
       bibleTranslationId: '',
       readingRefs: [],
     });
+    this.scheduleAutosave();
   }
 
   removeElement(index: number): void {
     this.elements.splice(index, 1);
     this.elements.forEach((el, i) => el.position = i + 1);
+    this.scheduleAutosave();
+  }
+
+  /** Move an onderdeel up or down; positions are renumbered. */
+  moveElement(index: number, direction: -1 | 1): void {
+    const target = index + direction;
+    if (target < 0 || target >= this.elements.length) return;
+    const [item] = this.elements.splice(index, 1);
+    this.elements.splice(target, 0, item);
+    this.elements.forEach((el, i) => el.position = i + 1);
+    this.scheduleAutosave();
   }
 
   isSongElement(el: ServiceElementModel): boolean {
@@ -433,18 +453,22 @@ export class AddComponent implements OnInit {
 
   addReadingRef(element: ServiceElementModel): void {
     element.readingRefs.push({ bibleBookId: '', chapter: null, verseStart: null, verseEnd: null });
+    this.scheduleAutosave();
   }
 
   removeReadingRef(element: ServiceElementModel, index: number): void {
     element.readingRefs.splice(index, 1);
+    this.scheduleAutosave();
   }
 
   addSong(element: ServiceElementModel): void {
     element.songs.push({ bundleId: '', section: '', number: null, versesText: '' });
+    this.scheduleAutosave();
   }
 
   removeSong(element: ServiceElementModel, index: number): void {
     element.songs.splice(index, 1);
+    this.scheduleAutosave();
   }
 
   submitPaste(): void {
@@ -673,6 +697,7 @@ export class AddComponent implements OnInit {
           this.editingServiceId = saved.id;
           this.status = saved.statusValue ?? status;
           this.lastSavedSnapshot = this.snapshot();
+          this.lastSavedAt = new Date();
         }));
       })
     );
@@ -694,6 +719,15 @@ export class AddComponent implements OnInit {
   scheduleAutosave(): void {
     if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
     this.autosaveTimer = setTimeout(() => this.autosave(), 2000);
+  }
+
+  /** Human-readable status shown per tab, e.g. "Laatst opgeslagen om 14:03". */
+  get lastSavedLabel(): string {
+    if (this.autoSaving) return 'Bezig met opslaan…';
+    if (!this.lastSavedAt) return 'Nog niet opgeslagen';
+    const hh = String(this.lastSavedAt.getHours()).padStart(2, '0');
+    const mm = String(this.lastSavedAt.getMinutes()).padStart(2, '0');
+    return `Laatst opgeslagen om ${hh}:${mm}`;
   }
 
   private autosave(): void {
