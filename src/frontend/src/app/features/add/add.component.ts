@@ -27,6 +27,7 @@ import { FormControl } from '@angular/forms';
 
 export interface AddDialogData {
   serviceId?: string;
+  duplicateFromId?: string;
 }
 
 interface ElementSong {
@@ -185,9 +186,10 @@ export class AddComponent implements OnInit {
       this.editingServiceId = this.dialogData.serviceId;
     }
 
-    // Editing an existing service skips the template-first step. For a new
+    // Editing an existing service skips the template-first step. Duplicating a
+    // service also skips it (the source dienst acts as the template). For a new
     // service the user must first choose a sjabloon (or "leeg").
-    if (this.isEditMode) {
+    if (this.isEditMode || this.dialogData?.duplicateFromId) {
       this.templateChosen = true;
     } else {
       this.api.getTemplates().subscribe({
@@ -224,6 +226,15 @@ export class AddComponent implements OnInit {
       // needed to resolve labels/bundles/books are present.
       if (this.editingServiceId) {
         this.api.getService(this.editingServiceId).subscribe(service => this.prefill(service));
+      } else if (this.dialogData?.duplicateFromId) {
+        // Duplicate: prefill from the source dienst but keep it a new concept
+        // (no editingServiceId), clear the date and force Concept status.
+        this.api.getService(this.dialogData.duplicateFromId).subscribe(service => {
+          this.prefill(service);
+          this.status = 0;
+          this.metadataForm.patchValue({ date: null }, { emitEvent: false });
+          this.lastSavedSnapshot = this.snapshot();
+        });
       }
     });
 

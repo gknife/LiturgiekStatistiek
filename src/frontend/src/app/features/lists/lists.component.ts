@@ -93,6 +93,14 @@ export class ListsComponent implements OnInit {
     return this.elementTypes.find(t => t.value === value)?.label ?? '';
   }
 
+  auditTooltip(item: ListItem): string {
+    const parts: string[] = [];
+    const fmt = (d?: string | null) => d ? new Date(d).toLocaleString('nl-NL') : '';
+    if (item.createdBy) parts.push(`Toegevoegd door ${item.createdBy}${item.createdAt ? ' op ' + fmt(item.createdAt) : ''}`);
+    if (item.modifiedBy) parts.push(`Laatst bewerkt door ${item.modifiedBy}${item.modifiedAt ? ' op ' + fmt(item.modifiedAt) : ''}`);
+    return parts.join('\n');
+  }
+
   filterLists(): void {
     this.applyFilter();
   }

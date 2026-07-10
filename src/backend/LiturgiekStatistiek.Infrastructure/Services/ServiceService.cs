@@ -75,7 +75,11 @@ public class ServiceService : IServiceService
                 s.BroadcastUrl,
                 s.Congregation.Denomination != null ? s.Congregation.Denomination.Value : null,
                 s.Status.ToString(),
-                (int)s.Status))
+                (int)s.Status,
+                s.CreatedBy,
+                s.CreatedAt,
+                s.ModifiedBy,
+                s.ModifiedAt))
             .ToListAsync();
 
         return new PaginatedResult<ServiceSummaryDto>(items, totalCount, page, pageSize);

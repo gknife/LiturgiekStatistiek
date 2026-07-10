@@ -87,7 +87,7 @@ export class ServicesComponent implements OnInit {
 
   get displayedColumns(): string[] {
     const base = ['date', 'timeOfDay', 'denomination', 'congregation', 'city', 'preacher', 'specialOccasion', 'status', 'elementCount', 'broadcast'];
-    if (this.isAuthenticated) return ['select', ...base, 'actions'];
+    if (this.isAuthenticated) return ['select', ...base, 'audit', 'actions'];
     return base;
   }
 
@@ -249,6 +249,16 @@ export class ServicesComponent implements OnInit {
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: { serviceId: service.id } as AddDialogData,
+    });
+    ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
+  }
+
+  duplicate(service: ServiceSummary): void {
+    const ref = this.dialog.open(AddComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { duplicateFromId: service.id } as AddDialogData,
     });
     ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
   }

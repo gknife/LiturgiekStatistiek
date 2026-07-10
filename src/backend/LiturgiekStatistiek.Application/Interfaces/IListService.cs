@@ -9,5 +9,5 @@ public interface IListService
     Task<ListDefinitionDto> CreateListDefinitionAsync(CreateListDefinitionRequest request, string userId);
     Task<ListItemDto> AddListItemAsync(CreateListItemRequest request, string userId);
     Task<ListItemDto?> UpdateListItemAsync(Guid id, UpdateListItemRequest request, string userId);
-    Task<bool> DeleteListItemAsync(Guid id);
+    Task<bool> DeleteListItemAsync(Guid id, string userId);
 }

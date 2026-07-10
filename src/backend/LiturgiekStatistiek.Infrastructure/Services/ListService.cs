@@ -27,8 +27,8 @@ public class ListService : IListService
                 d.IsSystemList,
                 d.Items
                     .Where(i => i.IsActive)
-                    .OrderBy(i => i.SortOrder)
-                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive, (int?)i.LiturgicalElementType))
+                    .OrderBy(i => i.Value)
+                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive, (int?)i.LiturgicalElementType, i.CreatedBy, i.CreatedAt, i.ModifiedBy, i.ModifiedAt))
                     .ToList()))
             .ToListAsync();
     }
@@ -44,8 +44,8 @@ public class ListService : IListService
                 d.Description,
                 d.IsSystemList,
                 d.Items
-                    .OrderBy(i => i.SortOrder)
-                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive, (int?)i.LiturgicalElementType))
+                    .OrderBy(i => i.Value)
+                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive, (int?)i.LiturgicalElementType, i.CreatedBy, i.CreatedAt, i.ModifiedBy, i.ModifiedAt))
                     .ToList()))
             .FirstOrDefaultAsync();
     }
@@ -83,9 +83,19 @@ public class ListService : IListService
         };
 
         _context.ListItems.Add(item);
+        _context.ChangeHistory.Add(new ChangeHistory
+        {
+            Id = Guid.NewGuid(),
+            EntityType = nameof(ListItem),
+            EntityId = item.Id,
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow,
+            ChangeType = ChangeType.Created,
+            PreviousValues = null
+        });
         await _context.SaveChangesAsync();
 
-        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive, (int?)item.LiturgicalElementType);
+        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive, (int?)item.LiturgicalElementType, item.CreatedBy, item.CreatedAt, item.ModifiedBy, item.ModifiedAt);
     }
 
     public async Task<ListItemDto?> UpdateListItemAsync(Guid id, UpdateListItemRequest request, string userId)
@@ -95,6 +105,15 @@ public class ListService : IListService
         {
             return null;
         }
+
+        var previous = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            item.Value,
+            item.Abbreviation,
+            item.SortOrder,
+            item.IsActive,
+            LiturgicalElementType = (int?)item.LiturgicalElementType
+        });
 
         item.Value = request.Value;
         item.Abbreviation = request.Abbreviation;
@@ -106,11 +125,22 @@ public class ListService : IListService
         item.ModifiedBy = userId;
         item.ModifiedAt = DateTime.UtcNow;
 
+        _context.ChangeHistory.Add(new ChangeHistory
+        {
+            Id = Guid.NewGuid(),
+            EntityType = nameof(ListItem),
+            EntityId = item.Id,
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow,
+            ChangeType = ChangeType.Updated,
+            PreviousValues = previous
+        });
+
         await _context.SaveChangesAsync();
-        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive, (int?)item.LiturgicalElementType);
+        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive, (int?)item.LiturgicalElementType, item.CreatedBy, item.CreatedAt, item.ModifiedBy, item.ModifiedAt);
     }
 
-    public async Task<bool> DeleteListItemAsync(Guid id)
+    public async Task<bool> DeleteListItemAsync(Guid id, string userId)
     {
         var item = await _context.ListItems.FindAsync(id);
         if (item == null)
@@ -118,7 +148,26 @@ public class ListService : IListService
             return false;
         }
 
+        var previous = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            item.Value,
+            item.Abbreviation,
+            item.SortOrder,
+            item.IsActive,
+            LiturgicalElementType = (int?)item.LiturgicalElementType
+        });
+
         _context.ListItems.Remove(item);
+        _context.ChangeHistory.Add(new ChangeHistory
+        {
+            Id = Guid.NewGuid(),
+            EntityType = nameof(ListItem),
+            EntityId = id,
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow,
+            ChangeType = ChangeType.Deleted,
+            PreviousValues = previous
+        });
         await _context.SaveChangesAsync();
         return true;
     }

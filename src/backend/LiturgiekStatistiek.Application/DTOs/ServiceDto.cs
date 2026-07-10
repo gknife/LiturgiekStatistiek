@@ -64,7 +64,11 @@ public record ServiceSummaryDto(
     string? BroadcastUrl,
     string? Denomination = null,
     string Status = "Gepubliceerd",
-    int StatusValue = 1
+    int StatusValue = 1,
+    string? CreatedBy = null,
+    DateTime? CreatedAt = null,
+    string? ModifiedBy = null,
+    DateTime? ModifiedAt = null
 );
 
 public record CreateServiceRequest(

@@ -14,7 +14,11 @@ public record ListItemDto(
     string? Abbreviation,
     int SortOrder,
     bool IsActive,
-    int? LiturgicalElementType = null
+    int? LiturgicalElementType = null,
+    string? CreatedBy = null,
+    DateTime? CreatedAt = null,
+    string? ModifiedBy = null,
+    DateTime? ModifiedAt = null
 );
 
 public record CreateListDefinitionRequest(

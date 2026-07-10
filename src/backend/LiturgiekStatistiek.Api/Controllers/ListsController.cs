@@ -63,7 +63,8 @@ public class ListsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteListItem(Guid id)
     {
-        var success = await _listService.DeleteListItemAsync(id);
+        var userId = User.Identity?.Name ?? "unknown";
+        var success = await _listService.DeleteListItemAsync(id, userId);
         if (!success) return NotFound();
         return NoContent();
     }

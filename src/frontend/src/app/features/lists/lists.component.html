@@ -25,7 +25,8 @@
         <table mat-table [dataSource]="list.items" class="list-table">
           <ng-container matColumnDef="value">
             <th mat-header-cell *matHeaderCellDef>Naam</th>
-            <td mat-cell *matCellDef="let item">{{ item.value }}</td>
+            <td mat-cell *matCellDef="let item"
+              [matTooltip]="auditTooltip(item)" matTooltipClass="audit-tooltip">{{ item.value }}</td>
           </ng-container>
           <ng-container matColumnDef="abbreviation">
             <th mat-header-cell *matHeaderCellDef>Afkorting</th>

@@ -21,6 +21,10 @@ export interface ServiceSummary {
   denomination: string | null;
   status: string | null;
   statusValue: number;
+  createdBy?: string | null;
+  createdAt?: string | null;
+  modifiedBy?: string | null;
+  modifiedAt?: string | null;
 }
 
 export interface ServiceDetail {
@@ -198,6 +202,10 @@ export interface ListItem {
   sortOrder: number;
   isActive: boolean;
   liturgicalElementType?: number | null;
+  createdBy?: string | null;
+  createdAt?: string | null;
+  modifiedBy?: string | null;
+  modifiedAt?: string | null;
 }
 
 export interface SongVerse {
