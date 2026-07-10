@@ -2,6 +2,7 @@ using LiturgiekStatistiek.Application.DTOs;
 using LiturgiekStatistiek.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LiturgiekStatistiek.Api.Auth;
 
 namespace LiturgiekStatistiek.Api.Controllers;
 
@@ -46,7 +47,7 @@ public class PreachersController : ControllerBase
     [Authorize]
     public async Task<ActionResult<PreacherDto>> CreatePreacher([FromBody] CreatePreacherRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _preacherService.CreatePreacherAsync(request, userId);
         return CreatedAtAction(nameof(GetPreacher), new { id = result.Id }, result);
     }
@@ -55,7 +56,7 @@ public class PreachersController : ControllerBase
     [Authorize]
     public async Task<ActionResult<PreacherDto>> UpdatePreacher(Guid id, [FromBody] UpdatePreacherRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _preacherService.UpdatePreacherAsync(id, request, userId);
         if (result == null) return NotFound();
         return Ok(result);

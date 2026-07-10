@@ -2,6 +2,7 @@ using LiturgiekStatistiek.Application.DTOs;
 using LiturgiekStatistiek.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LiturgiekStatistiek.Api.Auth;
 
 namespace LiturgiekStatistiek.Api.Controllers;
 
@@ -42,7 +43,7 @@ public class ServicesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceDto>> CreateService([FromBody] CreateServiceRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _serviceService.CreateServiceAsync(request, userId);
         return CreatedAtAction(nameof(GetService), new { id = result.Id }, result);
     }
@@ -51,7 +52,7 @@ public class ServicesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceDto>> UpdateService(Guid id, [FromBody] UpdateServiceRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _serviceService.UpdateServiceAsync(id, request, userId);
         if (result == null) return NotFound();
         return Ok(result);
@@ -61,7 +62,7 @@ public class ServicesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceDto>> PublishService(Guid id)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _serviceService.PublishServiceAsync(id, userId);
         if (result == null) return NotFound();
         return Ok(result);
@@ -80,7 +81,7 @@ public class ServicesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<BulkOperationResult>> BulkUpdate([FromBody] BulkUpdateServicesRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         try
         {
             var result = await _serviceService.BulkUpdateAsync(request, userId);

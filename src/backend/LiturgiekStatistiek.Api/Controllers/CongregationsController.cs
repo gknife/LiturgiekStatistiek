@@ -2,6 +2,7 @@ using LiturgiekStatistiek.Application.DTOs;
 using LiturgiekStatistiek.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LiturgiekStatistiek.Api.Auth;
 
 namespace LiturgiekStatistiek.Api.Controllers;
 
@@ -46,7 +47,7 @@ public class CongregationsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<CongregationDto>> CreateCongregation([FromBody] CreateCongregationRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _congregationService.CreateCongregationAsync(request, userId);
         return CreatedAtAction(nameof(GetCongregation), new { id = result.Id }, result);
     }
@@ -55,7 +56,7 @@ public class CongregationsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<CongregationDto>> UpdateCongregation(Guid id, [FromBody] UpdateCongregationRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _congregationService.UpdateCongregationAsync(id, request, userId);
         if (result == null) return NotFound();
         return Ok(result);

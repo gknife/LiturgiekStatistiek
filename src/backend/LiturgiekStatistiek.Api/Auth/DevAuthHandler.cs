@@ -29,6 +29,9 @@ public class DevAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
         {
             new Claim(ClaimTypes.Name, "dev@localhost"),
             new Claim(ClaimTypes.NameIdentifier, "dev-user"),
+            // Friendly display name, mirrors the frontend devBypass user so that
+            // audit "who" fields match the name shown in the header ("Ontwikkelaar").
+            new Claim("name", "Ontwikkelaar"),
         };
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);

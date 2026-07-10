@@ -2,6 +2,7 @@ using LiturgiekStatistiek.Application.DTOs;
 using LiturgiekStatistiek.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LiturgiekStatistiek.Api.Auth;
 
 namespace LiturgiekStatistiek.Api.Controllers;
 
@@ -34,7 +35,7 @@ public class TemplatesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceTemplateDto>> CreateTemplate([FromBody] CreateServiceTemplateRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _templateService.CreateTemplateAsync(request, userId);
         return CreatedAtAction(nameof(GetTemplate), new { id = result.Id }, result);
     }
@@ -43,7 +44,7 @@ public class TemplatesController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ServiceTemplateDto>> UpdateTemplate(Guid id, [FromBody] CreateServiceTemplateRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _templateService.UpdateTemplateAsync(id, request, userId);
         if (result == null) return NotFound();
         return Ok(result);

@@ -2,6 +2,7 @@ using LiturgiekStatistiek.Application.DTOs;
 using LiturgiekStatistiek.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LiturgiekStatistiek.Api.Auth;
 
 namespace LiturgiekStatistiek.Api.Controllers;
 
@@ -35,7 +36,7 @@ public class ListsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ListDefinitionDto>> CreateList([FromBody] CreateListDefinitionRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _listService.CreateListDefinitionAsync(request, userId);
         return CreatedAtAction(nameof(GetListByName), new { name = result.Name }, result);
     }
@@ -44,7 +45,7 @@ public class ListsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ListItemDto>> AddListItem([FromBody] CreateListItemRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _listService.AddListItemAsync(request, userId);
         return Created($"/api/lists/items/{result.Id}", result);
     }
@@ -53,7 +54,7 @@ public class ListsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ListItemDto>> UpdateListItem(Guid id, [FromBody] UpdateListItemRequest request)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var result = await _listService.UpdateListItemAsync(id, request, userId);
         if (result == null) return NotFound();
         return Ok(result);
@@ -63,7 +64,7 @@ public class ListsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteListItem(Guid id)
     {
-        var userId = User.Identity?.Name ?? "unknown";
+        var userId = User.GetDisplayName();
         var success = await _listService.DeleteListItemAsync(id, userId);
         if (!success) return NotFound();
         return NoContent();

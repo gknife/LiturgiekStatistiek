@@ -1,4 +1,4 @@
-import { Component, OnInit, Optional, Inject, HostBinding } from '@angular/core';
+import { Component, OnInit, Optional, Inject, HostBinding, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -139,9 +139,9 @@ export class AddComponent implements OnInit {
 
   // Template-first flow (add mode only): the user picks a sjabloon (or "leeg")
   // before entering data on any of the tabs.
-  availableTemplates: ServiceTemplateSummary[] = [];
-  templateChosen = false;
-  chosenTemplateName: string | null = null;
+  availableTemplates = signal<ServiceTemplateSummary[]>([]);
+  templateChosen = signal(false);
+  chosenTemplateName = signal<string | null>(null);
 
   get isEditMode(): boolean {
     return this.editingServiceId !== null;
@@ -190,11 +190,11 @@ export class AddComponent implements OnInit {
     // service also skips it (the source dienst acts as the template). For a new
     // service the user must first choose a sjabloon (or "leeg").
     if (this.isEditMode || this.dialogData?.duplicateFromId) {
-      this.templateChosen = true;
+      this.templateChosen.set(true);
     } else {
       this.api.getTemplates().subscribe({
-        next: templates => this.availableTemplates = templates.filter(t => t.isActive),
-        error: () => this.availableTemplates = [],
+        next: templates => this.availableTemplates.set(templates.filter(t => t.isActive)),
+        error: () => this.availableTemplates.set([]),
       });
     }
 
@@ -806,8 +806,8 @@ export class AddComponent implements OnInit {
 
   /** Proceed without a template (empty service). */
   skipTemplate(): void {
-    this.chosenTemplateName = null;
-    this.templateChosen = true;
+    this.chosenTemplateName.set(null);
+    this.templateChosen.set(true);
   }
 
   /** Choose a template: prefill metadata defaults + onderdelen scaffold, then continue. */
@@ -815,8 +815,8 @@ export class AddComponent implements OnInit {
     this.api.getTemplate(templateId).subscribe({
       next: template => {
         this.applyTemplateDto(template);
-        this.chosenTemplateName = template.name;
-        this.templateChosen = true;
+        this.chosenTemplateName.set(template.name);
+        this.templateChosen.set(true);
       },
       error: () => alert('Kon sjabloon niet laden.'),
     });
