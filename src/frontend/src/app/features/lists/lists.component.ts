@@ -10,10 +10,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ListDefinition, ListItem } from '../../core/models/api.models';
+
+const LITURGICAL_LABELS_LIST = 'LiturgicalLabels';
 
 @Component({
   selector: 'app-lists',
@@ -22,7 +25,7 @@ import { ListDefinition, ListItem } from '../../core/models/api.models';
     MatCardModule, MatTableModule, MatExpansionModule,
     MatChipsModule, MatIconModule, MatInputModule,
     MatFormFieldModule, MatButtonModule, MatTooltipModule, MatDialogModule,
-    MatSnackBarModule, FormsModule,
+    MatSnackBarModule, MatSelectModule, FormsModule,
   ],
   templateUrl: './lists.component.html',
   styleUrl: './lists.component.scss',
@@ -33,8 +36,16 @@ export class ListsComponent implements OnInit {
   searchQuery = '';
   readonly loading = signal(true);
 
+  readonly elementTypes = [
+    { value: 0, label: 'Lied' },
+    { value: 1, label: 'Liturgische handeling' },
+    { value: 2, label: 'Lezing' },
+    { value: 3, label: 'Gebed' },
+    { value: 4, label: 'Overig' },
+  ];
+
   // Inline editing state
-  editingItem: { listId: string; itemId: string | null; value: string; abbreviation: string } | null = null;
+  editingItem: { listId: string; itemId: string | null; value: string; abbreviation: string; liturgicalElementType: number | null } | null = null;
 
   constructor(
     private api: ApiService,
@@ -66,6 +77,22 @@ export class ListsComponent implements OnInit {
     return list.description ?? list.name;
   }
 
+  isLabelsList(list: ListDefinition): boolean {
+    return list.name === LITURGICAL_LABELS_LIST;
+  }
+
+  displayedColumns(list: ListDefinition): string[] {
+    const cols = ['value', 'abbreviation'];
+    if (this.isLabelsList(list)) cols.push('type');
+    if (this.auth.isAuthenticated) cols.push('actions');
+    return cols;
+  }
+
+  elementTypeLabel(value: number | null | undefined): string {
+    if (value === null || value === undefined) return '';
+    return this.elementTypes.find(t => t.value === value)?.label ?? '';
+  }
+
   filterLists(): void {
     this.applyFilter();
   }
@@ -92,11 +119,17 @@ export class ListsComponent implements OnInit {
   // --- Edit functionality ---
 
   startAdd(list: ListDefinition): void {
-    this.editingItem = { listId: list.id, itemId: null, value: '', abbreviation: '' };
+    this.editingItem = { listId: list.id, itemId: null, value: '', abbreviation: '', liturgicalElementType: null };
   }
 
   startEdit(list: ListDefinition, item: ListItem): void {
-    this.editingItem = { listId: list.id, itemId: item.id, value: item.value, abbreviation: item.abbreviation ?? '' };
+    this.editingItem = {
+      listId: list.id,
+      itemId: item.id,
+      value: item.value,
+      abbreviation: item.abbreviation ?? '',
+      liturgicalElementType: item.liturgicalElementType ?? null,
+    };
   }
 
   cancelEdit(): void {
@@ -112,6 +145,7 @@ export class ListsComponent implements OnInit {
         abbreviation: this.editingItem.abbreviation.trim() || null,
         sortOrder: 0,
         isActive: true,
+        liturgicalElementType: this.editingItem.liturgicalElementType,
       }).subscribe({
         next: () => {
           this.snackBar.open('Item bijgewerkt', 'OK', { duration: 2000 });

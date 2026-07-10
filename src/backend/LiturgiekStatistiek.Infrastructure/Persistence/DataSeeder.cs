@@ -401,10 +401,21 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
                 changed = true;
             }
 
+            var isLabels = name == "LiturgicalLabels";
             for (var i = 0; i < items.Length; i++)
             {
                 var (value, abbrev) = items[i];
-                if (def.Items.Any(it => it.Value == value)) continue;
+                var existing = def.Items.FirstOrDefault(it => it.Value == value);
+                if (existing is not null)
+                {
+                    // Backfill classification for labels seeded before this field existed.
+                    if (isLabels && existing.LiturgicalElementType is null)
+                    {
+                        existing.LiturgicalElementType = ClassifyLabel(value);
+                        changed = true;
+                    }
+                    continue;
+                }
                 var item = new ListItem
                 {
                     Id = Guid.NewGuid(),
@@ -413,6 +424,7 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
                     Abbreviation = abbrev,
                     SortOrder = i + 1,
                     IsActive = true,
+                    LiturgicalElementType = isLabels ? ClassifyLabel(value) : null,
                 };
                 def.Items.Add(item);
                 db.ListItems.Add(item);
@@ -421,6 +433,26 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
         }
 
         if (changed) await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Heuristic default classification of a liturgical label into an
+    /// <see cref="ElementType"/>. Mirrors the frontend <c>elementTypeForLabel</c>
+    /// heuristic; the value is editable per label on the Lijsten page.
+    /// </summary>
+    private static ElementType ClassifyLabel(string label)
+    {
+        var l = label.ToLowerInvariant();
+        if (l.Contains("schriftlezing") || l.Contains("lezing")) return ElementType.Reading;
+        if (l.Contains("gebed")) return ElementType.Prayer;
+        if (l.Contains("lied") || l.Contains("zang") || l.Contains("psalm")) return ElementType.Song;
+        if (l.Contains("votum") || l.Contains("groet") || l.Contains("zegen") || l.Contains("collecte") ||
+            l.Contains("vermaan") || l.Contains("belijd") || l.Contains("mededeling") || l.Contains("muziek") ||
+            l.Contains("kindermoment"))
+        {
+            return ElementType.LiturgicalAct;
+        }
+        return ElementType.Other;
     }
 
     private static async Task SeedSongCatalogAsync(ApplicationDbContext db, (ListItem Bundle, string Section, string ResourceFile)[] sources)

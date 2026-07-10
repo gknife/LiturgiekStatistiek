@@ -197,6 +197,7 @@ export interface ListItem {
   abbreviation: string | null;
   sortOrder: number;
   isActive: boolean;
+  liturgicalElementType?: number | null;
 }
 
 export interface SongVerse {

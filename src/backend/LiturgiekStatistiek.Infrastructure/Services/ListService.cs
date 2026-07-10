@@ -28,7 +28,7 @@ public class ListService : IListService
                 d.Items
                     .Where(i => i.IsActive)
                     .OrderBy(i => i.SortOrder)
-                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive))
+                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive, (int?)i.LiturgicalElementType))
                     .ToList()))
             .ToListAsync();
     }
@@ -45,7 +45,7 @@ public class ListService : IListService
                 d.IsSystemList,
                 d.Items
                     .OrderBy(i => i.SortOrder)
-                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive))
+                    .Select(i => new ListItemDto(i.Id, i.Value, i.Abbreviation, i.SortOrder, i.IsActive, (int?)i.LiturgicalElementType))
                     .ToList()))
             .FirstOrDefaultAsync();
     }
@@ -85,7 +85,7 @@ public class ListService : IListService
         _context.ListItems.Add(item);
         await _context.SaveChangesAsync();
 
-        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive);
+        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive, (int?)item.LiturgicalElementType);
     }
 
     public async Task<ListItemDto?> UpdateListItemAsync(Guid id, UpdateListItemRequest request, string userId)
@@ -100,11 +100,14 @@ public class ListService : IListService
         item.Abbreviation = request.Abbreviation;
         item.SortOrder = request.SortOrder;
         item.IsActive = request.IsActive;
+        item.LiturgicalElementType = request.LiturgicalElementType.HasValue
+            ? (ElementType)request.LiturgicalElementType.Value
+            : null;
         item.ModifiedBy = userId;
         item.ModifiedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive);
+        return new ListItemDto(item.Id, item.Value, item.Abbreviation, item.SortOrder, item.IsActive, (int?)item.LiturgicalElementType);
     }
 
     public async Task<bool> DeleteListItemAsync(Guid id)

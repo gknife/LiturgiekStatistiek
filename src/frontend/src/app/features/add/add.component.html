@@ -184,7 +184,7 @@
                   <span class="position-badge">{{ element.position }}</span>
                   <mat-form-field appearance="outline" class="element-type-field" subscriptSizing="dynamic">
                     <mat-label>Type</mat-label>
-                    <mat-select [(ngModel)]="element.elementType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
+                    <mat-select [(ngModel)]="element.elementType" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onElementTypeChange(element)">
                       <mat-option [value]="0">Lied</mat-option>
                       <mat-option [value]="1">Liturgische handeling</mat-option>
                       <mat-option [value]="2">Schriftlezing</mat-option>
@@ -194,8 +194,8 @@
                   </mat-form-field>
                   <mat-form-field appearance="outline" class="element-label-field" subscriptSizing="dynamic">
                     <mat-label>Onderdeel</mat-label>
-                    <mat-select [(ngModel)]="element.labelId" [ngModelOptions]="{ standalone: true }">
-                      @for (l of liturgicalLabels; track l.id) {
+                    <mat-select [(ngModel)]="element.labelId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="scheduleAutosave()">
+                      @for (l of labelsForType(element.elementType); track l.id) {
                         <mat-option [value]="l.id">{{ l.value }}</mat-option>
                       }
                     </mat-select>

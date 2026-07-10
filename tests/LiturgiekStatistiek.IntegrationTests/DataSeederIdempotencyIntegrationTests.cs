@@ -1,3 +1,4 @@
+using LiturgiekStatistiek.Domain.Entities;
 using LiturgiekStatistiek.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -114,5 +115,28 @@ public class DataSeederIdempotencyIntegrationTests
             Assert.That(await verify.ListItems.AnyAsync(i => i.Value == "Band"), Is.True,
                 "A removed item within an existing system list should be backfilled.");
         }
+    }
+
+    [Test]
+    public async Task SeedAsync_ClassifiesLiturgicalLabelsByElementType()
+    {
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            await DataSeeder.SeedAsync(ctx);
+        }
+
+        await using var verify = new ApplicationDbContext(_options);
+        var labels = await verify.ListDefinitions
+            .Include(d => d.Items)
+            .FirstAsync(d => d.Name == "LiturgicalLabels");
+
+        int? TypeOf(string value) => (int?)labels.Items.First(i => i.Value == value).LiturgicalElementType;
+
+        Assert.That(TypeOf("Openingslied"), Is.EqualTo((int)ElementType.Song));
+        Assert.That(TypeOf("Schriftlezing(en)"), Is.EqualTo((int)ElementType.Reading));
+        Assert.That(TypeOf("Dankgebed"), Is.EqualTo((int)ElementType.Prayer));
+        Assert.That(TypeOf("Votum"), Is.EqualTo((int)ElementType.LiturgicalAct));
+        Assert.That(TypeOf("Thema preek"), Is.EqualTo((int)ElementType.Other));
     }
 }

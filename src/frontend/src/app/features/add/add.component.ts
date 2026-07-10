@@ -406,6 +406,31 @@ export class AddComponent implements OnInit {
     return el.elementType === this.ELEMENT_READING;
   }
 
+  /**
+   * Onderdeel options filtered by the element's selected Type. Labels without a
+   * classification are always shown so nothing is hidden unexpectedly.
+   */
+  labelsForType(elementType: number | null | undefined): ListItem[] {
+    if (elementType === null || elementType === undefined) return this.liturgicalLabels;
+    return this.liturgicalLabels.filter(
+      l => l.liturgicalElementType === elementType ||
+        l.liturgicalElementType === null ||
+        l.liturgicalElementType === undefined,
+    );
+  }
+
+  /** When the Type changes, clear a selected label that no longer matches. */
+  onElementTypeChange(element: ServiceElementModel): void {
+    if (element.labelId) {
+      const label = this.liturgicalLabels.find(l => l.id === element.labelId);
+      const type = label?.liturgicalElementType;
+      if (label && type !== null && type !== undefined && type !== element.elementType) {
+        element.labelId = '';
+      }
+    }
+    this.scheduleAutosave();
+  }
+
   addReadingRef(element: ServiceElementModel): void {
     element.readingRefs.push({ bibleBookId: '', chapter: null, verseStart: null, verseEnd: null });
   }

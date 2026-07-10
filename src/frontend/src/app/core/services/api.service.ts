@@ -133,7 +133,7 @@ export class ApiService {
     return this.http.post<ListItem>(`${this.baseUrl}/lists/items`, request);
   }
 
-  updateListItem(id: string, request: { value: string; abbreviation?: string | null; sortOrder: number; isActive: boolean }): Observable<ListItem> {
+  updateListItem(id: string, request: { value: string; abbreviation?: string | null; sortOrder: number; isActive: boolean; liturgicalElementType?: number | null }): Observable<ListItem> {
     return this.http.put<ListItem>(`${this.baseUrl}/lists/items/${id}`, request);
   }
 

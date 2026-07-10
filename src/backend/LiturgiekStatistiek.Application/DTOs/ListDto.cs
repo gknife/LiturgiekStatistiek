@@ -13,7 +13,8 @@ public record ListItemDto(
     string Value,
     string? Abbreviation,
     int SortOrder,
-    bool IsActive
+    bool IsActive,
+    int? LiturgicalElementType = null
 );
 
 public record CreateListDefinitionRequest(
@@ -32,5 +33,6 @@ public record UpdateListItemRequest(
     string Value,
     string? Abbreviation,
     int SortOrder,
-    bool IsActive
+    bool IsActive,
+    int? LiturgicalElementType = null
 );
