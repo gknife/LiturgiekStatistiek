@@ -21,7 +21,7 @@ import {
   CongregationSummary, PreacherSummary, ListItem, ServiceDetail,
   BibleBook, ParsedServiceData,
 } from '../../core/models/api.models';
-import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin, tap } from 'rxjs';
+import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin, tap, catchError } from 'rxjs';
 import { FormControl } from '@angular/forms';
 
 export interface AddDialogData {
@@ -170,34 +170,39 @@ export class AddComponent implements OnInit {
       hasBeamerSongs: [false],
     });
 
-    // Load dropdown lists. Edit-mode prefill maps existing labels/bundles back to
-    // their ids, so it must run only AFTER these lists are available — otherwise the
-    // Onderdeel/bundle dropdowns render empty. forkJoin gates prefill on the loads.
+    // Edit mode: capture the id synchronously so the dialog title and the
+    // buildRequest path are correct even if a list load fails.
+    if (this.dialogData?.serviceId) {
+      this.editingServiceId = this.dialogData.serviceId;
+    }
+
+    // Load dropdown lists. Each list is loaded resiliently: a missing list
+    // (404) must NOT blank every other dropdown or block edit-prefill, so each
+    // call falls back to an empty item list instead of failing the whole join.
     forkJoin({
-      bundles: this.api.getListByName('SongBundles'),
-      specialOccasions: this.api.getListByName('SpecialOccasions'),
-      bibleTranslations: this.api.getListByName('BibleTranslations'),
-      churchCalendarSundays: this.api.getListByName('ChurchCalendarSundays'),
-      musicalAccompaniments: this.api.getListByName('MusicalAccompaniment'),
-      liturgicalLabels: this.api.getListByName('LiturgicalLabels'),
-      performers: this.api.getListByName('ServicePerformer'),
-      serviceOccasions: this.api.getListByName('ServiceOccasion'),
+      bundles: this.loadListItems('SongBundles'),
+      specialOccasions: this.loadListItems('SpecialOccasions'),
+      bibleTranslations: this.loadListItems('BibleTranslations'),
+      churchCalendarSundays: this.loadListItems('ChurchCalendarSundays'),
+      musicalAccompaniments: this.loadListItems('MusicalAccompaniment'),
+      liturgicalLabels: this.loadListItems('LiturgicalLabels'),
+      performers: this.loadListItems('ServicePerformer'),
+      serviceOccasions: this.loadListItems('ServiceOccasion'),
     }).subscribe(lists => {
-      this.bundles = lists.bundles.items;
-      this.specialOccasions = lists.specialOccasions.items;
-      this.bibleTranslations = lists.bibleTranslations.items;
-      this.churchCalendarSundays = lists.churchCalendarSundays.items;
-      this.musicalAccompaniments = lists.musicalAccompaniments.items;
-      this.liturgicalLabels = lists.liturgicalLabels.items;
-      this.performers = lists.performers.items;
-      this.serviceOccasions = lists.serviceOccasions.items;
+      this.bundles = lists.bundles;
+      this.specialOccasions = lists.specialOccasions;
+      this.bibleTranslations = lists.bibleTranslations;
+      this.churchCalendarSundays = lists.churchCalendarSundays;
+      this.musicalAccompaniments = lists.musicalAccompaniments;
+      this.liturgicalLabels = lists.liturgicalLabels;
+      this.performers = lists.performers;
+      this.serviceOccasions = lists.serviceOccasions;
 
       this.loadBibleBooks();
 
       // Edit mode: load the existing service and prefill the form once the lists
       // needed to resolve labels/bundles/books are present.
-      if (this.dialogData?.serviceId) {
-        this.editingServiceId = this.dialogData.serviceId;
+      if (this.editingServiceId) {
         this.api.getService(this.editingServiceId).subscribe(service => this.prefill(service));
       }
     });
@@ -230,6 +235,14 @@ export class AddComponent implements OnInit {
 
     // Autosave: debounced draft save whenever the metadata form changes.
     this.metadataForm.valueChanges.subscribe(() => this.scheduleAutosave());
+  }
+
+  /** Load a list's items, tolerating a missing list (404) by returning []. */
+  private loadListItems(name: string): Observable<ListItem[]> {
+    return this.api.getListByName(name).pipe(
+      map(def => def.items),
+      catchError(() => of<ListItem[]>([])),
+    );
   }
 
   private loadBibleBooks(): void {

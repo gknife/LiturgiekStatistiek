@@ -7,135 +7,34 @@ public static class DataSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext db)
     {
-        if (await db.ListDefinitions.AnyAsync()) return;
+        await EnsureSystemListsAsync(db);
+        await SeedDemoDataAsync(db);
+    }
 
-        // --- Song Bundles ---
-        var bundleList = new ListDefinition { Id = Guid.NewGuid(), Name = "SongBundles", Description = "Liedbundels", IsSystemList = true };
-        db.ListDefinitions.Add(bundleList);
+    private static async Task SeedDemoDataAsync(ApplicationDbContext db)
+    {
+        // Demo/sample data is seeded only into a fresh database; the system lists
+        // are created/backfilled idempotently by EnsureSystemListsAsync.
+        if (await db.Congregations.AnyAsync()) return;
 
-        var ps1773 = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Psalmen 1773", Abbreviation = "Ps1773", SortOrder = 1 };
-        var lvdK = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Liedboek voor de Kerken", Abbreviation = "LvdK", SortOrder = 2 };
-        var wk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Weerklank", Abbreviation = "WK", SortOrder = 3 };
-        var wkPs = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Weerklank Psalmen", Abbreviation = "WKPs", SortOrder = 4 };
-        var opw = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Opwekking", Abbreviation = "Opw", SortOrder = 5 };
-        var gk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bundleList.Id, Value = "Gereformeerd Kerkboek", Abbreviation = "GK", SortOrder = 6 };
-        db.ListItems.AddRange(ps1773, lvdK, wk, wkPs, opw, gk);
+        // Look up the system-list items the demo data wires up by foreign key.
+        var bundleItems = await db.ListItems.Where(i => i.ListDefinition.Name == "SongBundles").ToListAsync();
+        var denomItems = await db.ListItems.Where(i => i.ListDefinition.Name == "Denominations").ToListAsync();
+        var labelItems = await db.ListItems.Where(i => i.ListDefinition.Name == "LiturgicalLabels").ToListAsync();
+        ListItem Bundle(string abbr) => bundleItems.First(i => i.Abbreviation == abbr);
+        ListItem Denom(string abbr) => denomItems.First(i => i.Abbreviation == abbr);
 
-        // --- Denominations ---
-        var denomList = new ListDefinition { Id = Guid.NewGuid(), Name = "Denominations", Description = "Kerkgenootschappen", IsSystemList = true };
-        db.ListDefinitions.Add(denomList);
-        var pkn = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = denomList.Id, Value = "Protestantse Kerk in Nederland", Abbreviation = "PKN", SortOrder = 1 };
-        var ngk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = denomList.Id, Value = "Nederlandse Gereformeerde Kerken", Abbreviation = "NGK", SortOrder = 2 };
-        var gg = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = denomList.Id, Value = "Gereformeerde Gemeenten", Abbreviation = "GG", SortOrder = 3 };
-        var gb = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = denomList.Id, Value = "Gereformeerde Bond", Abbreviation = "GB", SortOrder = 4 };
-        var cgk = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = denomList.Id, Value = "Christelijke Gereformeerde Kerken", Abbreviation = "CGK", SortOrder = 5 };
-        var hh = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = denomList.Id, Value = "Hersteld Hervormd", Abbreviation = "HHK", SortOrder = 6 };
-        db.ListItems.AddRange(pkn, ngk, gg, gb, cgk, hh);
+        var ps1773 = Bundle("Ps1773");
+        var lvdK = Bundle("LvdK");
+        var wk = Bundle("WK");
+        var wkPs = Bundle("WKPs");
+        var opw = Bundle("Opw");
+        var gk = Bundle("GK");
 
-        // --- Special Occasions ---
-        var occasionList = new ListDefinition { Id = Guid.NewGuid(), Name = "SpecialOccasions", Description = "Bijzonderheden", IsSystemList = true };
-        db.ListDefinitions.Add(occasionList);
-        var avondmaal = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Avondmaal", SortOrder = 1 };
-        var doop = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Doop", SortOrder = 2 };
-        var pasen = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Pasen", SortOrder = 3 };
-        var pinksteren = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Pinksteren", SortOrder = 4 };
-        var kerst = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Kerst", SortOrder = 5 };
-        var biddag = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Biddag", SortOrder = 6 };
-        var dankdag = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Dankdag", SortOrder = 7 };
-        var voorbHA = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Voorbereiding HA", SortOrder = 8 };
-        var nabetHA = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = occasionList.Id, Value = "Nabetrachting HA", SortOrder = 9 };
-        db.ListItems.AddRange(avondmaal, doop, pasen, pinksteren, kerst, biddag, dankdag, voorbHA, nabetHA);
+        var pkn = Denom("PKN");
+        var ngk = Denom("NGK");
+        var gg = Denom("GG");
 
-        // --- Service Performers (wie doet het onderdeel) ---
-        var performerList = new ListDefinition { Id = Guid.NewGuid(), Name = "ServicePerformer", Description = "Wie doet het onderdeel", IsSystemList = true };
-        db.ListDefinitions.Add(performerList);
-        var perfVoorganger = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = performerList.Id, Value = "Voorganger", SortOrder = 1 };
-        var perfOuderling = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = performerList.Id, Value = "Ouderling", SortOrder = 2 };
-        var perfGemeentelid = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = performerList.Id, Value = "Gemeentelid", SortOrder = 3 };
-        db.ListItems.AddRange(perfVoorganger, perfOuderling, perfGemeentelid);
-
-        // --- Service Occasion characteristics (voor sjablonen) ---
-        var svcOccasionList = new ListDefinition { Id = Guid.NewGuid(), Name = "ServiceOccasion", Description = "Aard van de dienst (voor sjablonen)", IsSystemList = true };
-        db.ListDefinitions.Add(svcOccasionList);
-        var occRegulier = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Regulier", SortOrder = 1 };
-        var occDoop = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Doop", SortOrder = 2 };
-        var occAvondmaal = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Avondmaal", SortOrder = 3 };
-        var occBelijdenis = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Belijdenis", SortOrder = 4 };
-        var occBevestiging = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = svcOccasionList.Id, Value = "Bevestiging ambtsdragers", SortOrder = 5 };
-        db.ListItems.AddRange(occRegulier, occDoop, occAvondmaal, occBelijdenis, occBevestiging);
-
-        // --- Bible Translations ---
-        var bibleList = new ListDefinition { Id = Guid.NewGuid(), Name = "BibleTranslations", Description = "Bijbelvertalingen", IsSystemList = true };
-        db.ListDefinitions.Add(bibleList);
-        var hsv = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bibleList.Id, Value = "Herziene Statenvertaling", Abbreviation = "HSV", SortOrder = 1 };
-        var sv = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bibleList.Id, Value = "Statenvertaling", Abbreviation = "SV", SortOrder = 2 };
-        var nbv21 = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bibleList.Id, Value = "NBV21", Abbreviation = "NBV21", SortOrder = 3 };
-        var nbg = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = bibleList.Id, Value = "NBG 1951", Abbreviation = "NBG", SortOrder = 4 };
-        db.ListItems.AddRange(hsv, sv, nbv21, nbg);
-
-        // --- Musical Accompaniment ---
-        var musicList = new ListDefinition { Id = Guid.NewGuid(), Name = "MusicalAccompaniment", Description = "Muzikale begeleiding", IsSystemList = true };
-        db.ListDefinitions.Add(musicList);
-        var orgel = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = musicList.Id, Value = "Orgel", SortOrder = 1 };
-        var piano = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = musicList.Id, Value = "Piano", SortOrder = 2 };
-        var band = new ListItem { Id = Guid.NewGuid(), ListDefinitionId = musicList.Id, Value = "Band", SortOrder = 3 };
-        db.ListItems.AddRange(orgel, piano, band);
-
-        // --- Church Calendar ---
-        var calList = new ListDefinition { Id = Guid.NewGuid(), Name = "ChurchCalendarSundays", Description = "Zondagen kerkelijk jaar", IsSystemList = true };
-        db.ListDefinitions.Add(calList);
-        var calItems = new[] { "Eerste Advent", "Tweede Advent", "Derde Advent", "Vierde Advent",
-            "Kerst", "Oudejaarsavond", "Nieuwjaarsdag", "Epifanie",
-            "Septuagesima", "Sexagesima", "Quinquagesima", "Aswoensdag",
-            "Eerste na Trinitatis", "Tweede na Trinitatis", "Derde na Trinitatis",
-            "Goede Vrijdag", "Stille Zaterdag", "Eerste Paasdag", "Tweede Paasdag",
-            "Hemelvaart", "Eerste Pinksterdag", "Tweede Pinksterdag", "Trinitatis" };
-        for (int i = 0; i < calItems.Length; i++)
-            db.ListItems.Add(new ListItem { Id = Guid.NewGuid(), ListDefinitionId = calList.Id, Value = calItems[i], SortOrder = i + 1 });
-
-        // --- Liturgical Labels ---
-        var labelList = new ListDefinition { Id = Guid.NewGuid(), Name = "LiturgicalLabels", Description = "Liturgische labels", IsSystemList = true };
-        db.ListDefinitions.Add(labelList);
-        var labels = new[] {
-            "Muziek voor de dienst (orgel)",
-            "Muziek voor de dienst (anders)",
-            "Repertoire voor dienst (psalmen)",
-            "Repertoire voor dienst (psalmen/gezangen)",
-            "Repertoire voor dienst (psalmen/gezangen/orgelliteratuur)",
-            "Mededelingen",
-            "Votum",
-            "Groet",
-            "Groet (gebeden)",
-            "Vermaan/belijden",
-            "Schriftlezing(en)",
-            "Lector vermaan/belijden",
-            "Lector Schrift",
-            "Gebed om de opening van het Woord",
-            "Grote gebed (met voorbeden/dankzegging)",
-            "Dankgebed",
-            "Dankgebed (met voorbeden/dankzegging)",
-            "Preektekst",
-            "Thema preek",
-            "Voorzang",
-            "Openingslied",
-            "Na vermaan/belijden",
-            "Bij kindermoment",
-            "Voor de preek (zonder collecte)",
-            "Voor de preek (met collecte)",
-            "Tussenzang",
-            "Na de preek",
-            "Slotlied",
-            "Slotlied (met collecte)",
-            "Zegen",
-            "Zegen (gebeden)",
-            "Zegenbede",
-            "Na de zegen (orgelspel of...)",
-            "Collecte aan de deur",
-            "Overig" };
-        for (int i = 0; i < labels.Length; i++)
-            db.ListItems.Add(new ListItem { Id = Guid.NewGuid(), ListDefinitionId = labelList.Id, Value = labels[i], SortOrder = i + 1 });
-
-        // --- Bible Books + versification ---
         foreach (var book in BibleData.GetBooks())
         {
             db.BibleBooks.Add(book);
@@ -178,11 +77,11 @@ public static class DataSeeder
         db.Services.Add(svc1);
 
         // Elements for service 1
-        var label_voorzang = db.ListItems.Local.FirstOrDefault(l => l.Value == "Voorzang");
-        var label_opening = db.ListItems.Local.FirstOrDefault(l => l.Value == "Openingslied");
-        var label_napreek = db.ListItems.Local.FirstOrDefault(l => l.Value == "Na de preek");
-        var label_slotlied = db.ListItems.Local.FirstOrDefault(l => l.Value == "Slotlied");
-        var label_zegen = db.ListItems.Local.FirstOrDefault(l => l.Value == "Zegen");
+        var label_voorzang = labelItems.FirstOrDefault(l => l.Value == "Voorzang");
+        var label_opening = labelItems.FirstOrDefault(l => l.Value == "Openingslied");
+        var label_napreek = labelItems.FirstOrDefault(l => l.Value == "Na de preek");
+        var label_slotlied = labelItems.FirstOrDefault(l => l.Value == "Slotlied");
+        var label_zegen = labelItems.FirstOrDefault(l => l.Value == "Zegen");
 
         var el1_1 = new ServiceElement { Id = Guid.NewGuid(), ServiceId = svc1.Id, Position = 1, LabelId = label_voorzang?.Id, ElementType = ElementType.Song };
         var el1_2 = new ServiceElement { Id = Guid.NewGuid(), ServiceId = svc1.Id, Position = 2, LabelId = label_opening?.Id, ElementType = ElementType.Song };
@@ -423,6 +322,105 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
             (opw, "", "opwekking.json"),
             (gk, "", "gereformeerd-kerkboek.json"),
         });
+    }
+
+    /// <summary>
+    /// Idempotently ensure every system list and its items exist. Runs on every
+    /// startup so a database seeded at an earlier version is backfilled with lists
+    /// (and list items) added later, without touching existing definitions/items.
+    /// </summary>
+    private static async Task EnsureSystemListsAsync(ApplicationDbContext db)
+    {
+        var canonical = new (string Name, string Description, (string Value, string? Abbrev)[] Items)[]
+        {
+            ("SongBundles", "Liedbundels", new[] {
+                ("Psalmen 1773", (string?)"Ps1773"), ("Liedboek voor de Kerken", "LvdK"),
+                ("Weerklank", "WK"), ("Weerklank Psalmen", "WKPs"),
+                ("Opwekking", "Opw"), ("Gereformeerd Kerkboek", "GK") }),
+            ("Denominations", "Kerkgenootschappen", new[] {
+                ("Protestantse Kerk in Nederland", (string?)"PKN"),
+                ("Nederlandse Gereformeerde Kerken", "NGK"),
+                ("Gereformeerde Gemeenten", "GG"),
+                ("Gereformeerde Bond", "GB"),
+                ("Christelijke Gereformeerde Kerken", "CGK"),
+                ("Hersteld Hervormd", "HHK") }),
+            ("SpecialOccasions", "Bijzonderheden", new[] {
+                ("Avondmaal", (string?)null), ("Doop", null), ("Pasen", null),
+                ("Pinksteren", null), ("Kerst", null), ("Biddag", null),
+                ("Dankdag", null), ("Voorbereiding HA", null), ("Nabetrachting HA", null) }),
+            ("ServicePerformer", "Wie doet het onderdeel", new[] {
+                ("Voorganger", (string?)null), ("Ouderling", null), ("Gemeentelid", null) }),
+            ("ServiceOccasion", "Aard van de dienst (voor sjablonen)", new[] {
+                ("Regulier", (string?)null), ("Doop", null), ("Avondmaal", null),
+                ("Belijdenis", null), ("Bevestiging ambtsdragers", null) }),
+            ("BibleTranslations", "Bijbelvertalingen", new[] {
+                ("Herziene Statenvertaling", (string?)"HSV"), ("Statenvertaling", "SV"),
+                ("NBV21", "NBV21"), ("NBG 1951", "NBG") }),
+            ("MusicalAccompaniment", "Muzikale begeleiding", new[] {
+                ("Orgel", (string?)null), ("Piano", null), ("Band", null) }),
+            ("ChurchCalendarSundays", "Zondagen kerkelijk jaar", new[] {
+                ("Eerste Advent", (string?)null), ("Tweede Advent", null), ("Derde Advent", null),
+                ("Vierde Advent", null), ("Kerst", null), ("Oudejaarsavond", null),
+                ("Nieuwjaarsdag", null), ("Epifanie", null), ("Septuagesima", null),
+                ("Sexagesima", null), ("Quinquagesima", null), ("Aswoensdag", null),
+                ("Eerste na Trinitatis", null), ("Tweede na Trinitatis", null), ("Derde na Trinitatis", null),
+                ("Goede Vrijdag", null), ("Stille Zaterdag", null), ("Eerste Paasdag", null),
+                ("Tweede Paasdag", null), ("Hemelvaart", null), ("Eerste Pinksterdag", null),
+                ("Tweede Pinksterdag", null), ("Trinitatis", null) }),
+            ("LiturgicalLabels", "Liturgische labels", new[] {
+                ("Muziek voor de dienst (orgel)", (string?)null),
+                ("Muziek voor de dienst (anders)", null),
+                ("Repertoire voor dienst (psalmen)", null),
+                ("Repertoire voor dienst (psalmen/gezangen)", null),
+                ("Repertoire voor dienst (psalmen/gezangen/orgelliteratuur)", null),
+                ("Mededelingen", null), ("Votum", null), ("Groet", null),
+                ("Groet (gebeden)", null), ("Vermaan/belijden", null),
+                ("Schriftlezing(en)", null), ("Lector vermaan/belijden", null),
+                ("Lector Schrift", null), ("Gebed om de opening van het Woord", null),
+                ("Grote gebed (met voorbeden/dankzegging)", null), ("Dankgebed", null),
+                ("Dankgebed (met voorbeden/dankzegging)", null), ("Preektekst", null),
+                ("Thema preek", null), ("Voorzang", null), ("Openingslied", null),
+                ("Na vermaan/belijden", null), ("Bij kindermoment", null),
+                ("Voor de preek (zonder collecte)", null), ("Voor de preek (met collecte)", null),
+                ("Tussenzang", null), ("Na de preek", null), ("Slotlied", null),
+                ("Slotlied (met collecte)", null), ("Zegen", null), ("Zegen (gebeden)", null),
+                ("Zegenbede", null), ("Na de zegen (orgelspel of...)", null),
+                ("Collecte aan de deur", null), ("Overig", null) }),
+        };
+
+        var changed = false;
+        foreach (var (name, description, items) in canonical)
+        {
+            var def = await db.ListDefinitions
+                .Include(d => d.Items)
+                .FirstOrDefaultAsync(d => d.Name == name);
+            if (def is null)
+            {
+                def = new ListDefinition { Id = Guid.NewGuid(), Name = name, Description = description, IsSystemList = true };
+                db.ListDefinitions.Add(def);
+                changed = true;
+            }
+
+            for (var i = 0; i < items.Length; i++)
+            {
+                var (value, abbrev) = items[i];
+                if (def.Items.Any(it => it.Value == value)) continue;
+                var item = new ListItem
+                {
+                    Id = Guid.NewGuid(),
+                    ListDefinitionId = def.Id,
+                    Value = value,
+                    Abbreviation = abbrev,
+                    SortOrder = i + 1,
+                    IsActive = true,
+                };
+                def.Items.Add(item);
+                db.ListItems.Add(item);
+                changed = true;
+            }
+        }
+
+        if (changed) await db.SaveChangesAsync();
     }
 
     private static async Task SeedSongCatalogAsync(ApplicationDbContext db, (ListItem Bundle, string Section, string ResourceFile)[] sources)
