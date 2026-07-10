@@ -69,6 +69,7 @@ export class QueryComponent implements OnInit {
   readonly aiStatus = signal<AiStatus | null>(null);
 
   readonly congregations = signal<{ id: string; label: string }[]>([]);
+  readonly denominations = signal<{ id: string; label: string }[]>([]);
   readonly bundles = signal<ListItem[]>([]);
   readonly songsByBundle = signal<Record<string, Song[]>>({});
   readonly songVerses = signal<Record<string, { number: number; title: string | null }[]>>({});
@@ -112,6 +113,14 @@ export class QueryComponent implements OnInit {
 
     this.api.getListByName('SongBundles').subscribe({
       next: list => this.bundles.set(list.items),
+    });
+
+    this.api.getListByName('Denominations').subscribe({
+      next: list => this.denominations.set(
+        list.items
+          .map(i => ({ id: i.id, label: i.value }))
+          .sort((a, b) => a.label.localeCompare(b.label, 'nl')),
+      ),
     });
 
     this.loadRecentSearches();
@@ -169,6 +178,8 @@ export class QueryComponent implements OnInit {
   }
 
   isCongregation(p: { type: string }): boolean { return p.type === 'congregation'; }
+  isDenomination(p: { type: string }): boolean { return p.type === 'denomination'; }
+  isDenominations(p: { type: string }): boolean { return p.type === 'denominations'; }
   isBundle(p: { type: string }): boolean { return p.type === 'bundle'; }
   isDate(p: { type: string }): boolean { return p.type === 'date'; }
   isVerse(p: { type: string }): boolean { return p.type === 'verse'; }
@@ -176,8 +187,19 @@ export class QueryComponent implements OnInit {
   isYear(p: { name: string }): boolean { return p.name === 'year'; }
   isMonth(p: { name: string }): boolean { return p.name === 'month'; }
 
+  /** The multi-select denomination value bound as an array (stored comma-separated). */
+  selectedDenominations(p: { name: string }): string[] {
+    const raw = this.templateParams[p.name];
+    return raw ? raw.split(',').filter(Boolean) : [];
+  }
+
+  onDenominationsChange(p: { name: string }, ids: string[]): void {
+    this.templateParams[p.name] = (ids ?? []).join(',');
+  }
+
   isPlainText(p: { name: string; type: string }): boolean {
-    return !this.isCongregation(p) && !this.isBundle(p) && !this.isDate(p)
+    return !this.isCongregation(p) && !this.isDenomination(p) && !this.isDenominations(p)
+      && !this.isBundle(p) && !this.isDate(p)
       && !this.isSongNumber(p) && !this.isYear(p) && !this.isMonth(p) && !this.isVerse(p);
   }
 

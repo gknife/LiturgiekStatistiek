@@ -36,6 +36,26 @@
                     }
                   </mat-select>
                 </mat-form-field>
+              } @else if (isDenomination(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select [(ngModel)]="templateParams[param.name]" [required]="param.required">
+                    @if (!param.required) { <mat-option [value]="''">&mdash; Alle &mdash;</mat-option> }
+                    @for (d of denominations(); track d.id) {
+                      <mat-option [value]="d.id">{{ d.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else if (isDenominations(param)) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ param.label }}</mat-label>
+                  <mat-select multiple [ngModel]="selectedDenominations(param)"
+                    (ngModelChange)="onDenominationsChange(param, $event)" [required]="param.required">
+                    @for (d of denominations(); track d.id) {
+                      <mat-option [value]="d.id">{{ d.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
               } @else if (isBundle(param)) {
                 <mat-form-field appearance="outline">
                   <mat-label>{{ param.label }}</mat-label>

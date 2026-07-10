@@ -31,7 +31,7 @@ public class QueryService : IQueryService
                 Parameters = new()
                 {
                     new() { Name = "congregationId", Label = "Gemeente", Type = "congregation", Required = false },
-                    new() { Name = "denominationId", Label = "Kerkgenootschap", Type = "string", Required = false },
+                    new() { Name = "denominationId", Label = "Kerkgenootschap", Type = "denomination", Required = false },
                     new() { Name = "fromDate", Label = "Vanaf", Type = "date", Required = false },
                     new() { Name = "toDate", Label = "Tot", Type = "date", Required = false },
                 }
@@ -173,7 +173,7 @@ public class QueryService : IQueryService
                 DefaultChartType = "bar",
                 Parameters = new()
                 {
-                    new() { Name = "denominationIds", Label = "Kerkgenootschappen", Type = "string", Required = true },
+                    new() { Name = "denominationIds", Label = "Kerkgenootschappen", Type = "denominations", Required = true },
                     new() { Name = "fromDate", Label = "Vanaf", Type = "date", Required = false },
                     new() { Name = "toDate", Label = "Tot", Type = "date", Required = false },
                 }
