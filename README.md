@@ -175,6 +175,8 @@ Detailed technical docs live under [`docs/`](docs/):
 - [`theming.md`](docs/theming.md) — theming, logo & favicon
 - [`ai-configuration.md`](docs/ai-configuration.md) — Azure OpenAI setup & troubleshooting
 - [`data-entry.md`](docs/data-entry.md) — manual entry, orde-van-dienst dropdown, Preektekst editor, paste & URL parsing
+- [`release-notes.md`](docs/release-notes.md) — user-facing release notes
+- [`features/`](docs/features/) — per-feature delivery docs (brief, plan, review & QA, retro)
 
 ## 📝 License
 
