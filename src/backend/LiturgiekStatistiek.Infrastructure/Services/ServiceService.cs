@@ -130,7 +130,7 @@ public class ServiceService : IServiceService
                 service.Congregation.City,
                 service.Congregation.Denomination?.Abbreviation),
             service.Preacher != null
-                ? new PreacherSummaryDto(service.Preacher.Id, service.Preacher.FullName, service.Preacher.Title)
+                ? new PreacherSummaryDto(service.Preacher.Id, service.Preacher.FullName, service.Preacher.Title, service.Preacher.City)
                 : null,
             service.ChurchCalendarSunday?.Value,
             service.IsReadingService,
@@ -510,7 +510,13 @@ public class ServiceService : IServiceService
         {
             foreach (var refRequest in request.SermonTextReferences)
             {
-                service.SermonTextReferences.Add(new SermonTextReference
+                // Add via the DbSet (not the tracked service.SermonTextReferences
+                // navigation): after the delete was flushed above, adding a fresh row
+                // through the tracked parent makes EF's identity resolution treat it as
+                // an existing row to UPDATE, which throws DbUpdateConcurrencyException
+                // ("expected to affect 1 row(s), but actually affected 0 row(s)").
+                // This mirrors how the Elements graph is re-added.
+                _context.SermonTextReferences.Add(new SermonTextReference
                 {
                     Id = Guid.NewGuid(),
                     ServiceId = service.Id,

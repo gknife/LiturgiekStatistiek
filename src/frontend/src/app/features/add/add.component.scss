@@ -36,6 +36,11 @@
   &.saving mat-icon {
     animation: autosave-spin 1s linear infinite;
   }
+
+  &.failed {
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
 }
 
 .autosave-hint {

@@ -186,6 +186,7 @@ export interface PreacherSummary {
   id: string;
   fullName: string;
   title: string | null;
+  city: string | null;
 }
 
 export interface ListDefinition {

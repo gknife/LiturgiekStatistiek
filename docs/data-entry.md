@@ -128,7 +128,8 @@ The broadcast URL is stored on the service.
 ## Saving — congregation & preacher resolution
 
 The save path is shared by all three flows. **Gemeente** (name, with autocomplete) and
-**Plaats** (city) are separate fields; the preacher is a single autocomplete field. When a
+**Plaats** (city) are separate fields; the preacher is a single autocomplete field with its
+own **Woonplaats voorganger** field beside it. When a
 value is selected from the autocomplete its id is used directly; editing either the name or
 the city clears that id so it is re-resolved on save. On save, an existing congregation is
 matched **case-insensitively on both name and city** (so "Hervormde gemeente" in Randwijk
@@ -136,6 +137,12 @@ and in Ederveen stay distinct), otherwise a new `Congregation` / `Preacher` is c
 automatically (`POST /api/congregations`, `POST /api/preachers`) and its id is used. An
 empty city falls back to `Onbekend`. This keeps the URL-import flow working without manual
 pre-registration; new records can be edited or de-duplicated afterwards under *Lijsten*.
+
+**Woonplaats voorganger** works like the kerkgenootschap field: it is editable **only when
+entering a brand-new voorganger** (the value is stamped onto the new `Preacher` via
+`POST /api/preachers`). When an existing voorganger is selected from the autocomplete the
+field shows that preacher's own woonplaats **read-only**; change it afterwards under
+*Lijsten → Voorgangers*.
 
 **Kerkgenootschap** is a dropdown in the popup, prefilled from the chosen template. It is
 used **only when creating a brand-new gemeente** (stamped onto the new `Congregation`); for an

@@ -21,8 +21,8 @@
   </div>
 } @else {
 
-<div class="autosave-indicator" [class.saving]="autoSaving">
-  <mat-icon>{{ autoSaving ? 'sync' : 'cloud_done' }}</mat-icon>
+<div class="autosave-indicator" [class.saving]="autoSaving" [class.failed]="autosaveFailed">
+  <mat-icon>{{ autoSaving ? 'sync' : (autosaveFailed ? 'error_outline' : 'cloud_done') }}</mat-icon>
   <span>{{ lastSavedLabel }}</span>
   @if (chosenTemplateName()) {
     <span class="chosen-template">· Sjabloon: {{ chosenTemplateName() }}</span>
@@ -98,6 +98,17 @@
                   </mat-option>
                 }
               </mat-autocomplete>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Woonplaats voorganger</mat-label>
+              <input matInput [formControl]="preacherCityControl"
+                placeholder="Woonplaats van de voorganger">
+              @if (preacherCityControl.disabled) {
+                <mat-hint>Woonplaats van de bestaande voorganger (niet wijzigbaar hier).</mat-hint>
+              } @else {
+                <mat-hint>Alleen in te vullen bij een nieuwe voorganger.</mat-hint>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline">

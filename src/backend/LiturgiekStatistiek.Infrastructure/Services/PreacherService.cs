@@ -101,7 +101,7 @@ public class PreacherService : IPreacherService
             .Where(p => p.FullName.Contains(query))
             .OrderBy(p => p.FullName)
             .Take(10)
-            .Select(p => new PreacherSummaryDto(p.Id, p.FullName, p.Title))
+            .Select(p => new PreacherSummaryDto(p.Id, p.FullName, p.Title, p.City))
             .ToListAsync();
     }
 }

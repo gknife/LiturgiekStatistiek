@@ -85,6 +85,7 @@ export class AddComponent implements OnInit {
   congregationControl = new FormControl('');
   congregationCityControl = new FormControl('');
   preacherControl = new FormControl('');
+  preacherCityControl = new FormControl('');
 
   // Autocomplete
   congregationSuggestions: CongregationSummary[] = [];
@@ -122,6 +123,8 @@ export class AddComponent implements OnInit {
   saving = false;
   publishing = false;
   autoSaving = false;
+  /** Set when the last autosave failed, so the UI can surface it instead of losing data silently. */
+  autosaveFailed = false;
   status = 1; // 0 = Concept, 1 = Gepubliceerd
   private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSavedSnapshot = '';
@@ -282,8 +285,13 @@ export class AddComponent implements OnInit {
 
     this.preacherControl.valueChanges.subscribe(() => {
       this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
+      // Typing a (new) voorganger name means we're entering a new preacher, so
+      // the woonplaats becomes editable again.
+      this.preacherCityControl.enable({ emitEvent: false });
       this.scheduleAutosave();
     });
+
+    this.preacherCityControl.valueChanges.subscribe(() => this.scheduleAutosave());
 
     // Autosave: debounced draft save whenever the metadata form changes.
     this.metadataForm.valueChanges.subscribe(() => this.scheduleAutosave());
@@ -352,6 +360,8 @@ export class AddComponent implements OnInit {
     this.metadataForm.get('denominationId')?.disable({ emitEvent: false });
     if (service.preacher) {
       this.preacherControl.setValue(service.preacher.fullName, { emitEvent: false });
+      this.preacherCityControl.setValue(service.preacher.city ?? '', { emitEvent: false });
+      this.preacherCityControl.disable({ emitEvent: false });
     }
 
     this.elements = service.elements
@@ -457,6 +467,9 @@ export class AddComponent implements OnInit {
   selectPreacher(preacher: PreacherSummary): void {
     this.preacherControl.setValue(preacher.fullName, { emitEvent: false });
     this.metadataForm.patchValue({ preacherId: preacher.id });
+    // Existing voorganger: show its woonplaats read-only (edit it via beheer).
+    this.preacherCityControl.setValue(preacher.city ?? '', { emitEvent: false });
+    this.preacherCityControl.disable({ emitEvent: false });
   }
 
   addElement(): void {
@@ -893,11 +906,13 @@ export class AddComponent implements OnInit {
     const name = (this.preacherControl.value || '').trim();
     if (!name) return of(null);
 
+    const city = (this.preacherCityControl.value || '').trim() || null;
+
     return this.api.searchPreachers(name).pipe(
       switchMap(results => {
         const match = results.find(r => r.fullName.toLowerCase() === name.toLowerCase());
         if (match) return of<string | null>(match.id);
-        return this.api.createPreacher({ fullName: name }).pipe(map(p => p.id as string | null));
+        return this.api.createPreacher({ fullName: name, city }).pipe(map(p => p.id as string | null));
       })
     );
   }
@@ -946,6 +961,7 @@ export class AddComponent implements OnInit {
       congregation: this.congregationControl.value,
       city: this.congregationCityControl.value,
       preacher: this.preacherControl.value,
+      preacherCity: this.preacherCityControl.value,
     });
   }
 
@@ -958,6 +974,7 @@ export class AddComponent implements OnInit {
   /** Human-readable status shown per tab, e.g. "Laatst opgeslagen om 14:03". */
   get lastSavedLabel(): string {
     if (this.autoSaving) return 'Bezig met opslaan…';
+    if (this.autosaveFailed) return 'Automatisch opslaan mislukt — sla handmatig op';
     if (!this.lastSavedAt) return 'Nog niet opgeslagen';
     const hh = String(this.lastSavedAt.getHours()).padStart(2, '0');
     const mm = String(this.lastSavedAt.getMinutes()).padStart(2, '0');
@@ -971,10 +988,11 @@ export class AddComponent implements OnInit {
     if (this.snapshot() === this.lastSavedSnapshot) return;
 
     this.autoSaving = true;
+    this.autosaveFailed = false;
     // A brand-new service becomes a Concept draft; an existing one keeps its status.
     this.performSave(this.isEditMode ? this.status : 0).subscribe({
       next: () => { this.autoSaving = false; },
-      error: () => { this.autoSaving = false; },
+      error: () => { this.autoSaving = false; this.autosaveFailed = true; },
     });
   }
 

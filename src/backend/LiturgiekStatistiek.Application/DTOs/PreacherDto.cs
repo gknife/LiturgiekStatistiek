@@ -11,7 +11,8 @@ public record PreacherDto(
 public record PreacherSummaryDto(
     Guid Id,
     string FullName,
-    string? Title
+    string? Title,
+    string? City = null
 );
 
 public record CreatePreacherRequest(
