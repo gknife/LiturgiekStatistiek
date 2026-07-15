@@ -6,7 +6,6 @@ public class Preacher : IHasAuditFields
 {
     public Guid Id { get; set; }
     public string FullName { get; set; } = string.Empty;
-    public string? Title { get; set; }
     public Guid? DenominationId { get; set; }
     public ListItem? Denomination { get; set; }
     public string? City { get; set; }

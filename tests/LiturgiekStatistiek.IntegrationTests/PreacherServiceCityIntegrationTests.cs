@@ -49,7 +49,7 @@ public class PreacherServiceCityIntegrationTests
     public async Task CreatePreacherAsync_PersistsCity()
     {
         var created = await _sut.CreatePreacherAsync(
-            new CreatePreacherRequest(FullName: "Ds. Testpreker", Title: null, DenominationId: null, City: "Barneveld"),
+            new CreatePreacherRequest(FullName: "Ds. Testpreker", DenominationId: null, City: "Barneveld"),
             "tester");
 
         Assert.That(created.City, Is.EqualTo("Barneveld"));

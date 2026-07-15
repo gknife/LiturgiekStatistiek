@@ -473,7 +473,7 @@ export class AddComponent implements OnInit {
   }
 
   addElement(): void {
-    this.elements.push({
+    const element: ServiceElementModel = {
       position: this.elements.length + 1,
       elementType: 0,
       labelId: '',
@@ -483,7 +483,9 @@ export class AddComponent implements OnInit {
       isBeurtzang: false,
       bibleTranslationId: this.templateDefaultTranslationId,
       readingRefs: [],
-    });
+    };
+    this.autoSelectLabel(element);
+    this.elements.push(element);
     this.scheduleAutosave();
   }
 
@@ -533,11 +535,26 @@ export class AddComponent implements OnInit {
         element.labelId = '';
       }
     }
+    this.autoSelectLabel(element);
     // Default the Bijbelvertaling on a reading onderdeel when none is set yet.
     if (this.isReadingElement(element) && !element.bibleTranslationId) {
       element.bibleTranslationId = this.templateDefaultTranslationId;
     }
     this.scheduleAutosave();
+  }
+
+  /**
+   * Prefill the Onderdeel when exactly one classified label matches the selected
+   * Type, so common single-option types (e.g. a lone reading label) fill in.
+   */
+  private autoSelectLabel(element: ServiceElementModel): void {
+    if (element.labelId) return;
+    const matches = this.liturgicalLabels.filter(
+      l => l.liturgicalElementType === element.elementType,
+    );
+    if (matches.length === 1) {
+      element.labelId = matches[0].id;
+    }
   }
 
   addReadingRef(element: ServiceElementModel): void {

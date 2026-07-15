@@ -34,7 +34,6 @@ public class PreacherService : IPreacherService
             .Select(p => new PreacherDto(
                 p.Id,
                 p.FullName,
-                p.Title,
                 p.Denomination != null ? p.Denomination.Value : null,
                 p.City))
             .ToListAsync();
@@ -50,7 +49,6 @@ public class PreacherService : IPreacherService
             .Select(p => new PreacherDto(
                 p.Id,
                 p.FullName,
-                p.Title,
                 p.Denomination != null ? p.Denomination.Value : null,
                 p.City))
             .FirstOrDefaultAsync();
@@ -62,7 +60,6 @@ public class PreacherService : IPreacherService
         {
             Id = Guid.NewGuid(),
             FullName = request.FullName,
-            Title = request.Title,
             DenominationId = request.DenominationId,
             City = request.City,
             CreatedBy = userId,
@@ -84,7 +81,6 @@ public class PreacherService : IPreacherService
         }
 
         preacher.FullName = request.FullName;
-        preacher.Title = request.Title;
         preacher.DenominationId = request.DenominationId;
         preacher.City = request.City;
         preacher.ModifiedBy = userId;
@@ -101,7 +97,7 @@ public class PreacherService : IPreacherService
             .Where(p => p.FullName.Contains(query))
             .OrderBy(p => p.FullName)
             .Take(10)
-            .Select(p => new PreacherSummaryDto(p.Id, p.FullName, p.Title, p.City))
+            .Select(p => new PreacherSummaryDto(p.Id, p.FullName, p.City))
             .ToListAsync();
     }
 }

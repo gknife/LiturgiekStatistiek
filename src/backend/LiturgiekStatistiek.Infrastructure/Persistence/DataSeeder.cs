@@ -73,9 +73,9 @@ public static class DataSeeder
         db.Congregations.AddRange(cong1, cong2, cong3);
 
         // --- Preachers ---
-        var preacher1 = new Preacher { Id = Guid.NewGuid(), FullName = "ds. Janneke Dekker", Title = "ds." };
-        var preacher2 = new Preacher { Id = Guid.NewGuid(), FullName = "ds. R.A.M. Visser", Title = "ds." };
-        var preacher3 = new Preacher { Id = Guid.NewGuid(), FullName = "prop. J. van der Knijff", Title = "prop." };
+        var preacher1 = new Preacher { Id = Guid.NewGuid(), FullName = "ds. Janneke Dekker" };
+        var preacher2 = new Preacher { Id = Guid.NewGuid(), FullName = "ds. R.A.M. Visser" };
+        var preacher3 = new Preacher { Id = Guid.NewGuid(), FullName = "prop. J. van der Knijff" };
         db.Preachers.AddRange(preacher1, preacher2, preacher3);
 
         // --- Sample Services ---

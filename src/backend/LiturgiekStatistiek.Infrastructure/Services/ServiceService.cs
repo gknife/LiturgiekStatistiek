@@ -130,7 +130,7 @@ public class ServiceService : IServiceService
                 service.Congregation.City,
                 service.Congregation.Denomination?.Abbreviation),
             service.Preacher != null
-                ? new PreacherSummaryDto(service.Preacher.Id, service.Preacher.FullName, service.Preacher.Title, service.Preacher.City)
+                ? new PreacherSummaryDto(service.Preacher.Id, service.Preacher.FullName, service.Preacher.City)
                 : null,
             service.ChurchCalendarSunday?.Value,
             service.IsReadingService,

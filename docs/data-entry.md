@@ -39,9 +39,10 @@ skips this step. See [templates.md](./templates.md).
 
 Each onderdeel carries a **type** (Lied, Liturgische handeling, Schriftlezing, Gebed,
 Overig). The editor adapts to the type, and the **Onderdeel** dropdown is filtered to the
-labels classified for the selected type (`ListItem.LiturgicalElementType`; changing the type
-clears a now-mismatched label). Labels are classified in the seeder and editable per item
-under *Lijsten*.
+labels classified for the selected type (`ListItem.LiturgicalElementType`) plus any
+unclassified labels; changing the type clears a now-mismatched label. When exactly one
+classified label matches the chosen type, it is **pre-filled** automatically. Labels are
+classified in the seeder and editable per item under *Lijsten*.
 
 - **Wie doet dit onderdeel** (performer) — on every non-song onderdeel you can pick who
   leads it (voorganger/ouderling/gemeentelid, seeded as the `ServicePerformer` list and

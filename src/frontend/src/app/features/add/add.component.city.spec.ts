@@ -28,7 +28,7 @@ describe('AddComponent preacher city', () => {
     component.ngOnInit();
   });
 
-  const existing: PreacherSummary = { id: 'p1', fullName: 'Ds. Bestaand', title: null, city: 'Ede' };
+  const existing: PreacherSummary = { id: 'p1', fullName: 'Ds. Bestaand', city: 'Ede' };
 
   it('shows an existing preacher city read-only when selected', () => {
     component.selectPreacher(existing);

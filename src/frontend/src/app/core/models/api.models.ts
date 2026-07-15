@@ -177,7 +177,6 @@ export interface CongregationSummary {
 export interface Preacher {
   id: string;
   fullName: string;
-  title: string | null;
   denomination: string | null;
   city: string | null;
 }
@@ -185,7 +184,6 @@ export interface Preacher {
 export interface PreacherSummary {
   id: string;
   fullName: string;
-  title: string | null;
   city: string | null;
 }
 

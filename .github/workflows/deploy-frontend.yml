@@ -22,7 +22,11 @@ jobs:
 
       - name: Install dependencies
         working-directory: src/frontend
-        run: npm ci
+        # Fall back to regenerating the lockfile when npm ci reports it is out of
+        # sync. This happens because npm prunes platform-specific optional peer
+        # deps (e.g. @emnapi/core) from the lockfile on Windows, where the lock is
+        # maintained, so they are missing for the Linux CI runner.
+        run: npm ci || (npm install --package-lock-only --no-audit --no-fund && npm ci)
 
       - name: Run tests
         working-directory: src/frontend
