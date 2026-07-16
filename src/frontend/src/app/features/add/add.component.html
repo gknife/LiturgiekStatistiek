@@ -63,9 +63,10 @@
                 <mat-label>Gemeente</mat-label>
                 <input matInput [formControl]="congregationControl" [matAutocomplete]="congAuto"
                   placeholder="Typ om bestaande gemeente te zoeken...">
-                <mat-autocomplete #congAuto="matAutocomplete">
+                <mat-autocomplete #congAuto="matAutocomplete" [displayWith]="displayCongregation"
+                  (optionSelected)="selectCongregation($event.option.value)">
                   @for (c of congregationSuggestions; track c.id) {
-                    <mat-option [value]="c.name" (onSelectionChange)="$event.isUserInput && selectCongregation(c)">
+                    <mat-option [value]="c">
                       {{ c.name }} &mdash; {{ c.city }} ({{ c.denominationAbbreviation || '—' }})
                     </mat-option>
                   }
@@ -128,12 +129,13 @@
                 <mat-label>Voorganger</mat-label>
                 <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
                   placeholder="Typ om bestaande voorganger te zoeken...">
-                <mat-autocomplete #preachAuto="matAutocomplete">
+                <mat-autocomplete #preachAuto="matAutocomplete" [displayWith]="displayPreacher"
+                  (optionSelected)="selectPreacherOption($event.option.value)">
                   @for (p of preacherOptions(); track p.id) {
-                    <mat-option [value]="p.fullName" (onSelectionChange)="$event.isUserInput && selectPreacherOption(p)">
-                      {{ p.fullName }}
+                    <mat-option [value]="p">
+                      {{ preacherTitlePrefix(p) }}{{ p.fullName }}
+                      @if (p.city) { <span> ({{ p.city }})</span> }
                       @if (p.isPrimaryPastor) { <span> · vaste voorganger</span> }
-                      @if (p.city) { <span> &mdash; {{ p.city }}</span> }
                     </mat-option>
                   }
                 </mat-autocomplete>

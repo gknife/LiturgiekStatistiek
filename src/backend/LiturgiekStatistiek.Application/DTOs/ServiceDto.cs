@@ -59,6 +59,8 @@ public record ServiceSummaryDto(
     string CongregationName,
     string? City,
     string? PreacherName,
+    string? PreacherTitle,
+    string? PreacherCity,
     string? SpecialOccasion,
     int ElementCount,
     string? BroadcastUrl,

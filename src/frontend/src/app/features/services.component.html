@@ -172,7 +172,7 @@
 
         <ng-container matColumnDef="preacher">
           <th mat-header-cell *matHeaderCellDef>Voorganger</th>
-          <td mat-cell *matCellDef="let row">{{ row.preacherName }}</td>
+          <td mat-cell *matCellDef="let row">{{ preacherDisplay(row) }}</td>
         </ng-container>
 
         <ng-container matColumnDef="specialOccasion">

@@ -100,7 +100,7 @@ export class ServicesComponent implements OnInit {
       next: res => this.congregations.set(res.items.map(c => ({ id: c.id, label: `${c.name} (${c.city})` }))),
     });
     this.api.getPreachers({ pageSize: 1000 }).subscribe({
-      next: res => this.preachers.set(res.items.map(p => ({ id: p.id, label: p.city ? `${p.fullName} (${p.city})` : p.fullName }))),
+      next: res => this.preachers.set(res.items.map(p => ({ id: p.id, label: this.formatPreacher(p.title, p.fullName, p.city) }))),
     });
     this.api.getListByName('Denominations').subscribe({
       next: def => this.denominations.set(def.items.map(i => ({ id: i.id, label: i.value }))),
@@ -243,6 +243,16 @@ export class ServicesComponent implements OnInit {
 
   elementHeading(el: ServiceElement): string {
     return el.label || this.elementTypeLabels[el.elementType] || el.elementType || 'Onderdeel';
+  }
+
+  formatPreacher(title: string | null | undefined, name: string | null | undefined, city: string | null | undefined): string {
+    const base = [title, name].filter(v => v && v.trim()).join(' ');
+    if (!base) return '';
+    return city && city.trim() ? `${base} (${city})` : base;
+  }
+
+  preacherDisplay(row: ServiceSummary): string {
+    return this.formatPreacher(row.preacherTitle, row.preacherName, row.preacherCity);
   }
 
   readingRefsLabel(el: ServiceElement): string {

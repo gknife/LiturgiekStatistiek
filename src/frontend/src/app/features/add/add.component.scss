@@ -121,7 +121,11 @@
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.75rem;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 0.9rem;
+  border-left: 3px solid var(--app-accent-dark, #2c5282);
+  border-radius: 6px;
+  background: var(--mat-sys-surface-container-low, rgba(44, 82, 130, 0.04));
 }
 
 .element-performer .performer-field,
@@ -174,12 +178,16 @@
 .element-card {
   padding: 1rem;
   margin-bottom: 0.75rem;
-  
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+
   .element-header {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
   }
 
   .position-badge {
@@ -275,9 +283,12 @@
 .element-songs {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding-left: 2.5rem;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 0.9rem;
+  border-left: 3px solid var(--app-accent-dark, #2c5282);
+  border-radius: 6px;
+  background: var(--mat-sys-surface-container-low, rgba(44, 82, 130, 0.04));
 }
 
 .song-row {
@@ -285,6 +296,10 @@
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  background: var(--mat-sys-surface, #fff);
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
 
   .song-bundle { flex: 1 1 140px; }
   .song-section { flex: 1 1 120px; }
@@ -293,6 +308,7 @@
 
   .song-full {
     flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .song-complete-badge {

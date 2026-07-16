@@ -15,6 +15,8 @@ export interface ServiceSummary {
   congregationName: string;
   city: string | null;
   preacherName: string | null;
+  preacherTitle: string | null;
+  preacherCity: string | null;
   specialOccasion: string | null;
   elementCount: number;
   broadcastUrl: string | null;

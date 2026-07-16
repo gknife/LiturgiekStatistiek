@@ -76,6 +76,8 @@ public class ServiceService : IServiceService
                 s.Congregation.Name,
                 s.Congregation.City,
                 s.Preacher != null ? s.Preacher.FullName : null,
+                s.Preacher != null && s.Preacher.Title != null ? (s.Preacher.Title.Abbreviation ?? s.Preacher.Title.Value) : null,
+                s.Preacher != null ? s.Preacher.City : null,
                 s.SpecialOccasion != null ? s.SpecialOccasion.Value : null,
                 s.Elements.Count,
                 s.BroadcastUrl,

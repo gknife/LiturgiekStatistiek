@@ -291,12 +291,15 @@ export class AddComponent implements OnInit {
     // Autocomplete for congregation (search on the name field).
     this.congregationControl.valueChanges.pipe(
       debounceTime(300),
-      switchMap(val => val && val.length > 1 ? this.api.searchCongregations(val) : of([]))
+      switchMap(val => typeof val === 'string' && val.length > 1 ? this.api.searchCongregations(val) : of([]))
     ).subscribe(results => this.congregationSuggestions = this.prioritizeCongregationsByDenomination(results));
 
     // The autocomplete is select-only: typing filters choices but clears any
     // previously selected id until the user explicitly chooses an option.
-    this.congregationControl.valueChanges.subscribe(() => {
+    // A selected option writes the object (not a string) to the control, so we
+    // only clear on string values (i.e. the user is typing).
+    this.congregationControl.valueChanges.subscribe(value => {
+      if (typeof value !== 'string') return;
       this.selectedCongregation = null;
       this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
       this.congregationCityControl.setValue('', { emitEvent: false });
@@ -307,13 +310,14 @@ export class AddComponent implements OnInit {
     // Autocomplete for preacher
     this.preacherControl.valueChanges.pipe(
       debounceTime(300),
-      switchMap(val => val && val.length > 1 ? this.api.searchPreachers(val) : of([]))
+      switchMap(val => typeof val === 'string' && val.length > 1 ? this.api.searchPreachers(val) : of([]))
     ).subscribe(results => {
       this.preacherSuggestions = results;
       this.prioritizePastorsInSuggestions();
     });
 
-    this.preacherControl.valueChanges.subscribe(() => {
+    this.preacherControl.valueChanges.subscribe(value => {
+      if (typeof value !== 'string') return;
       this.selectedPreacher = null;
       this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
       this.preacherCityControl.setValue('', { emitEvent: false });
@@ -489,6 +493,16 @@ export class AddComponent implements OnInit {
     }
   }
 
+  displayCongregation = (value: CongregationSummary | string | null): string =>
+    value ? (typeof value === 'string' ? value : value.name) : '';
+
+  displayPreacher = (value: PreacherOption | PreacherSummary | string | null): string =>
+    value ? (typeof value === 'string' ? value : value.fullName) : '';
+
+  preacherTitlePrefix(p: PreacherOption): string {
+    return p.title ? `${p.title} ` : '';
+  }
+
   get congregationDenominationLabel(): string {
     const id = this.selectedCongregation?.denominationId ?? this.metadataForm?.value.denominationId ?? '';
     const item = this.denominations.find(d => d.id === id);
@@ -522,7 +536,8 @@ export class AddComponent implements OnInit {
   }
 
   preacherOptions(): PreacherOption[] {
-    const typed = (this.preacherControl.value || '').toLowerCase().trim();
+    const raw = this.preacherControl.value;
+    const typed = (typeof raw === 'string' ? raw : '').toLowerCase().trim();
     const pastors = (this.selectedCongregation?.pastors ?? [])
       .filter(p => !typed || p.fullName.toLowerCase().includes(typed))
       .map(p => this.pastorToPreacherOption(p));
@@ -789,6 +804,12 @@ export class AddComponent implements OnInit {
    * count (for the live "volledig" badge and hele-lied auto-fill) and autosave.
    */
   onSongIdentityChange(song: ElementSong): void {
+    if (song.bundleId && !(song.section || '').trim()) {
+      const bundle = this.bundles.find(b => b.id === song.bundleId);
+      if (bundle?.abbreviation === 'Ps1773') {
+        song.section = 'Psalm';
+      }
+    }
     this.updateCatalogVerseCount(song);
     this.scheduleAutosave();
   }
