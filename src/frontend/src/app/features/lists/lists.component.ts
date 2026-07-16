@@ -197,7 +197,7 @@ export class ListsComponent implements OnInit {
         next: () => {
           this.snackBar.open('Item bijgewerkt', 'OK', { duration: 2000 });
           this.editingItem = null;
-          this.loadLists();
+          this.reloadAfterListChange();
         },
         error: () => this.snackBar.open('Fout bij opslaan', 'OK', { duration: 3000 }),
       });
@@ -213,7 +213,7 @@ export class ListsComponent implements OnInit {
         next: () => {
           this.snackBar.open('Item toegevoegd', 'OK', { duration: 2000 });
           this.editingItem = null;
-          this.loadLists();
+          this.reloadAfterListChange();
         },
         error: () => this.snackBar.open('Fout bij toevoegen', 'OK', { duration: 3000 }),
       });
@@ -225,7 +225,7 @@ export class ListsComponent implements OnInit {
     this.api.deleteListItem(item.id).subscribe({
       next: () => {
         this.snackBar.open('Item verwijderd', 'OK', { duration: 2000 });
-        this.loadLists();
+        this.reloadAfterListChange();
       },
       error: () => this.snackBar.open('Fout bij verwijderen', 'OK', { duration: 3000 }),
     });
@@ -235,12 +235,26 @@ export class ListsComponent implements OnInit {
 
   private loadEntities(): void {
     this.refreshEntities();
+    this.loadDependentOptions();
+  }
+
+  // Denominations/PreacherTitles drive the labels + dropdowns of the Gemeenten
+  // and Voorgangers sections, so they are reloaded whenever a list changes.
+  private loadDependentOptions(): void {
     this.api.getListByName('Denominations').subscribe({
       next: def => this.denominations.set(def.items.map(i => ({ id: i.id, label: i.value }))),
     });
     this.api.getListByName('PreacherTitles').subscribe({
       next: def => this.titles.set(def.items.map(i => ({ id: i.id, label: i.value }))),
     });
+  }
+
+  // A list change can affect the dependent Gemeenten/Voorgangers views (e.g.
+  // renaming a kerkgenootschap or voorganger-titel), so refresh them too.
+  private reloadAfterListChange(): void {
+    this.loadLists();
+    this.loadDependentOptions();
+    this.refreshEntities();
   }
 
   private refreshEntities(): void {

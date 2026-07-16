@@ -7,6 +7,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -16,7 +17,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../core/services/api.service';
 import { AuthService } from '../core/auth/auth.service';
-import { ServiceSummary, ServiceDetail, ServiceElement, ServiceElementSong } from '../core/models/api.models';
+import { ServiceSummary, ServiceDetail, ServiceElement, ServiceElementSong, SermonTextReference } from '../core/models/api.models';
 import { AddComponent, AddDialogData } from './add/add.component';
 
 interface Option {
@@ -29,7 +30,7 @@ interface Option {
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatCardModule, MatTableModule, MatPaginatorModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatAutocompleteModule, MatButtonModule,
     MatIconModule, MatCheckboxModule, MatProgressSpinnerModule, MatTooltipModule,
     MatDialogModule,
   ],
@@ -60,8 +61,10 @@ export class ServicesComponent implements OnInit {
   pageSize = 20;
 
   filterCongregationId = '';
+  filterCongregationText = '';
   filterDenominationId = '';
   filterPreacherId = '';
+  filterPreacherText = '';
   filterFromDate = '';
   filterToDate = '';
   includeConcepts = true;
@@ -97,10 +100,16 @@ export class ServicesComponent implements OnInit {
 
   ngOnInit(): void {
     this.api.getCongregations({ pageSize: 1000 }).subscribe({
-      next: res => this.congregations.set(res.items.map(c => ({ id: c.id, label: `${c.name} (${c.city})` }))),
+      next: res => {
+        this.congregations.set(res.items.map(c => ({ id: c.id, label: `${c.name} (${c.city})` })));
+        this.syncFilterLabels();
+      },
     });
     this.api.getPreachers({ pageSize: 1000 }).subscribe({
-      next: res => this.preachers.set(res.items.map(p => ({ id: p.id, label: this.formatPreacher(p.title, p.fullName, p.city) }))),
+      next: res => {
+        this.preachers.set(res.items.map(p => ({ id: p.id, label: this.formatPreacher(p.title, p.fullName, p.city) })));
+        this.syncFilterLabels();
+      },
     });
     this.api.getListByName('Denominations').subscribe({
       next: def => this.denominations.set(def.items.map(i => ({ id: i.id, label: i.value }))),
@@ -111,9 +120,54 @@ export class ServicesComponent implements OnInit {
       const preacherId = params.get('preacherId');
       if (congregationId) this.filterCongregationId = congregationId;
       if (preacherId) this.filterPreacherId = preacherId;
+      this.syncFilterLabels();
       this.page = 1;
       this.load();
     });
+  }
+
+  // Keep the autocomplete input text in sync with the selected filter ids
+  // (e.g. when a filter is pre-set from a query param or after options load).
+  private syncFilterLabels(): void {
+    if (this.filterCongregationId) {
+      const c = this.congregations().find(x => x.id === this.filterCongregationId);
+      if (c) this.filterCongregationText = c.label;
+    }
+    if (this.filterPreacherId) {
+      const p = this.preachers().find(x => x.id === this.filterPreacherId);
+      if (p) this.filterPreacherText = p.label;
+    }
+  }
+
+  get filteredCongregations(): Option[] {
+    const q = this.filterCongregationText.trim().toLowerCase();
+    const list = this.congregations();
+    return q ? list.filter(c => c.label.toLowerCase().includes(q)) : list;
+  }
+
+  get filteredPreachers(): Option[] {
+    const q = this.filterPreacherText.trim().toLowerCase();
+    const list = this.preachers();
+    return q ? list.filter(p => p.label.toLowerCase().includes(q)) : list;
+  }
+
+  onCongregationInput(): void {
+    // Typing clears any prior selection until an option is explicitly chosen.
+    this.filterCongregationId = '';
+  }
+
+  onCongregationSelected(option: Option | null): void {
+    this.filterCongregationId = option?.id ?? '';
+    this.filterCongregationText = option?.label ?? '';
+  }
+
+  onPreacherInput(): void {
+    this.filterPreacherId = '';
+  }
+
+  onPreacherSelected(option: Option | null): void {
+    this.filterPreacherId = option?.id ?? '';
+    this.filterPreacherText = option?.label ?? '';
   }
 
   load(): void {
@@ -146,8 +200,10 @@ export class ServicesComponent implements OnInit {
 
   clearFilters(): void {
     this.filterCongregationId = '';
+    this.filterCongregationText = '';
     this.filterDenominationId = '';
     this.filterPreacherId = '';
+    this.filterPreacherText = '';
     this.filterFromDate = '';
     this.filterToDate = '';
     this.includeConcepts = true;
@@ -253,6 +309,27 @@ export class ServicesComponent implements OnInit {
 
   preacherDisplay(row: ServiceSummary): string {
     return this.formatPreacher(row.preacherTitle, row.preacherName, row.preacherCity);
+  }
+
+  sermonTextLabel(detail: ServiceDetail): string {
+    if (detail.sermonText?.trim()) return detail.sermonText.trim();
+    return (detail.sermonTextReferences ?? [])
+      .map(r => this.sermonRefLabel(r))
+      .filter(s => s)
+      .join('; ');
+  }
+
+  private sermonRefLabel(r: SermonTextReference): string {
+    if (!r.bookName) return '';
+    let s = r.bookName;
+    if (r.chapter != null) {
+      s += ` ${r.chapter}`;
+      if (r.verseStart != null) {
+        s += `:${r.verseStart}`;
+        if (r.verseEnd != null && r.verseEnd !== r.verseStart) s += `-${r.verseEnd}`;
+      }
+    }
+    return s;
   }
 
   readingRefsLabel(el: ServiceElement): string {

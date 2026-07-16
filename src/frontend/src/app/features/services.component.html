@@ -25,22 +25,28 @@
 
     <mat-form-field appearance="outline">
       <mat-label>Gemeente</mat-label>
-      <mat-select [(ngModel)]="filterCongregationId">
-        <mat-option value="">Alle gemeenten</mat-option>
-        @for (c of congregations(); track c.id) {
-          <mat-option [value]="c.id">{{ c.label }}</mat-option>
+      <input matInput [(ngModel)]="filterCongregationText" [matAutocomplete]="congFilterAuto"
+        (ngModelChange)="onCongregationInput()" placeholder="Alle gemeenten">
+      <mat-autocomplete #congFilterAuto="matAutocomplete"
+        (optionSelected)="onCongregationSelected($event.option.value)">
+        <mat-option [value]="null">Alle gemeenten</mat-option>
+        @for (c of filteredCongregations; track c.id) {
+          <mat-option [value]="c">{{ c.label }}</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Voorganger</mat-label>
-      <mat-select [(ngModel)]="filterPreacherId">
-        <mat-option value="">Alle voorgangers</mat-option>
-        @for (p of preachers(); track p.id) {
-          <mat-option [value]="p.id">{{ p.label }}</mat-option>
+      <input matInput [(ngModel)]="filterPreacherText" [matAutocomplete]="preacherFilterAuto"
+        (ngModelChange)="onPreacherInput()" placeholder="Alle voorgangers">
+      <mat-autocomplete #preacherFilterAuto="matAutocomplete"
+        (optionSelected)="onPreacherSelected($event.option.value)">
+        <mat-option [value]="null">Alle voorgangers</mat-option>
+        @for (p of filteredPreachers; track p.id) {
+          <mat-option [value]="p">{{ p.label }}</mat-option>
         }
-      </mat-select>
+      </mat-autocomplete>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
@@ -254,6 +260,16 @@
               @if (loadingDetailId() === row.id) {
                 <mat-spinner diameter="24"></mat-spinner>
               } @else if (detailFor(row.id); as detail) {
+                @if (detail.sermonTheme || detail.sermonText || detail.sermonTextReferences.length) {
+                  <div class="sermon-detail">
+                    @if (detail.sermonTheme) {
+                      <span class="sermon-item"><strong>Thema preek:</strong> {{ detail.sermonTheme }}</span>
+                    }
+                    @if (sermonTextLabel(detail); as tekst) {
+                      <span class="sermon-item"><strong>Preektekst:</strong> {{ tekst }}</span>
+                    }
+                  </div>
+                }
                 @if (detail.elements.length) {
                   <ol class="element-list">
                     @for (el of detail.elements; track el.id) {

@@ -7,22 +7,15 @@ using NUnit.Framework;
 namespace LiturgiekStatistiek.IntegrationTests;
 
 /// <summary>
-/// Verifies that <see cref="DataSeeder.SeedAsync"/> is idempotent: it backfills
-/// system lists/items that were missing (e.g. a production DB seeded at an
-/// earlier version) without creating duplicates when run repeatedly.
+/// Verifies <see cref="DataSeeder.SeedAsync"/> only seeds a completely empty
+/// database and is a no-op on any database that already holds data, so it can
+/// never overwrite, revert, or duplicate production data.
 /// </summary>
 [TestFixture]
 public class DataSeederIdempotencyIntegrationTests
 {
     private SqliteConnection _connection = null!;
     private DbContextOptions<ApplicationDbContext> _options = null!;
-
-    private static readonly string[] SystemLists =
-    {
-        "SongBundles", "Denominations", "SpecialOccasions", "ServicePerformer",
-        "ServiceOccasion", "BibleTranslations", "MusicalAccompaniment",
-        "ChurchCalendarSundays", "LiturgicalLabels",
-    };
 
     [SetUp]
     public void SetUp()
@@ -68,10 +61,11 @@ public class DataSeederIdempotencyIntegrationTests
     }
 
     [Test]
-    public async Task SeedAsync_WithMissingSystemList_BackfillsItWithoutTouchingExisting()
+    public async Task SeedAsync_OnNonEmptyDatabase_DoesNotReAddRemovedListsOrItems()
     {
-        // Simulate a database seeded at an earlier version by removing a list
-        // that was added later, plus one item from a list that still exists.
+        // Seed once (fresh DB), then simulate an admin deleting a system list and
+        // an item. The database now still holds data, so a subsequent seed must be
+        // a no-op and must not resurrect the removed rows.
         await using (var ctx = new ApplicationDbContext(_options))
         {
             await ctx.Database.EnsureCreatedAsync();
@@ -100,20 +94,10 @@ public class DataSeederIdempotencyIntegrationTests
 
         await using (var verify = new ApplicationDbContext(_options))
         {
-            foreach (var name in SystemLists)
-            {
-                Assert.That(await verify.ListDefinitions.AnyAsync(d => d.Name == name), Is.True,
-                    $"System list '{name}' should exist after backfill.");
-            }
-
-            var restored = await verify.ListDefinitions
-                .Include(d => d.Items)
-                .FirstAsync(d => d.Name == "ChurchCalendarSundays");
-            Assert.That(restored.Items.Count, Is.EqualTo(23),
-                "The removed ChurchCalendarSundays list should be fully restored.");
-
-            Assert.That(await verify.ListItems.AnyAsync(i => i.Value == "Band"), Is.True,
-                "A removed item within an existing system list should be backfilled.");
+            Assert.That(await verify.ListDefinitions.AnyAsync(d => d.Name == "ChurchCalendarSundays"), Is.False,
+                "The seeder must not re-create a list an admin deleted from a non-empty database.");
+            Assert.That(await verify.ListItems.AnyAsync(i => i.Value == "Band"), Is.False,
+                "The seeder must not re-create an item an admin deleted from a non-empty database.");
         }
     }
 
@@ -170,7 +154,7 @@ public class DataSeederIdempotencyIntegrationTests
     }
 
     [Test]
-    public async Task SeedAsync_WithMissingBibleBooks_BackfillsThem()
+    public async Task SeedAsync_OnNonEmptyDatabase_DoesNotReAddRemovedBibleBooks()
     {
         await using (var ctx = new ApplicationDbContext(_options))
         {
@@ -191,8 +175,36 @@ public class DataSeederIdempotencyIntegrationTests
 
         await using (var verify = new ApplicationDbContext(_options))
         {
-            Assert.That(await verify.BibleBooks.CountAsync(), Is.GreaterThan(0),
-                "A production DB seeded before Bible books existed should be backfilled on next startup.");
+            Assert.That(await verify.BibleBooks.CountAsync(), Is.EqualTo(0),
+                "On a non-empty database the seeder must not resurrect deleted Bible books.");
+        }
+    }
+
+    [Test]
+    public async Task SeedAsync_OnNonEmptyDatabase_IsNoOp()
+    {
+        // Pre-populate a single congregation (no lists, no books) so the database
+        // is not empty, then confirm the seeder leaves it completely untouched.
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            ctx.Congregations.Add(new Congregation { Id = Guid.NewGuid(), Name = "Bestaand", City = "Stad" });
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = new ApplicationDbContext(_options))
+        {
+            await DataSeeder.SeedAsync(ctx);
+        }
+
+        await using (var verify = new ApplicationDbContext(_options))
+        {
+            Assert.That(await verify.ListDefinitions.CountAsync(), Is.EqualTo(0),
+                "The seeder must not add system lists to a database that already holds data.");
+            Assert.That(await verify.BibleBooks.CountAsync(), Is.EqualTo(0),
+                "The seeder must not add Bible books to a database that already holds data.");
+            Assert.That(await verify.Congregations.CountAsync(), Is.EqualTo(1),
+                "The pre-existing congregation must be preserved untouched.");
         }
     }
 }

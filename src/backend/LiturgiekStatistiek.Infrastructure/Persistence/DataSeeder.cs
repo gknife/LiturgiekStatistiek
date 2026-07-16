@@ -7,12 +7,36 @@ public static class DataSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext db, bool includeDemoData = true)
     {
+        // Never overwrite or mutate existing data: only seed a completely empty
+        // database. On any database that already holds data (i.e. production) the
+        // seeder is a no-op, so an admin's edits to system lists, congregations,
+        // etc. can never be reverted or duplicated by a restart/redeploy.
+        if (!await IsDatabaseEmptyAsync(db))
+        {
+            return;
+        }
+
         await EnsureSystemListsAsync(db);
         await EnsureBibleBooksAsync(db);
         if (includeDemoData)
         {
             await SeedDemoDataAsync(db);
         }
+    }
+
+    /// <summary>
+    /// True only when the database contains no seedable data at all. Guards the seeder
+    /// so it never touches a database that already holds production data.
+    /// </summary>
+    private static async Task<bool> IsDatabaseEmptyAsync(ApplicationDbContext db)
+    {
+        return !await db.ListDefinitions.AnyAsync()
+            && !await db.BibleBooks.AnyAsync()
+            && !await db.Congregations.AnyAsync()
+            && !await db.Preachers.AnyAsync()
+            && !await db.Services.AnyAsync()
+            && !await db.Songs.AnyAsync()
+            && !await db.ContentPages.AnyAsync();
     }
 
     /// <summary>
