@@ -4,7 +4,7 @@ namespace LiturgiekStatistiek.Application.Interfaces;
 
 public interface IServiceService
 {
-    Task<PaginatedResult<ServiceSummaryDto>> GetServicesAsync(int page = 1, int pageSize = 20, Guid? congregationId = null, DateOnly? fromDate = null, DateOnly? toDate = null, Guid? denominationId = null, bool includeConcepts = true);
+    Task<PaginatedResult<ServiceSummaryDto>> GetServicesAsync(int page = 1, int pageSize = 20, Guid? congregationId = null, DateOnly? fromDate = null, DateOnly? toDate = null, Guid? denominationId = null, bool includeConcepts = true, Guid? preacherId = null);
     Task<ServiceDto?> GetServiceByIdAsync(Guid id);
     Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, string userId);
     Task<ServiceDto?> UpdateServiceAsync(Guid id, UpdateServiceRequest request, string userId);

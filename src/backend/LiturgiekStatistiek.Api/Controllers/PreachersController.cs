@@ -61,4 +61,19 @@ public class PreachersController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> DeletePreacher(Guid id)
+    {
+        var userId = User.GetDisplayName();
+        var outcome = await _preacherService.DeletePreacherAsync(id, userId);
+        return outcome switch
+        {
+            DeleteOutcome.Deleted => NoContent(),
+            DeleteOutcome.NotFound => NotFound(),
+            DeleteOutcome.HasReferences => Conflict(new { message = "Voorganger heeft nog gekoppelde diensten en kan niet worden verwijderd." }),
+            _ => StatusCode(500)
+        };
+    }
 }

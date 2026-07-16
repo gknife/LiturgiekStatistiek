@@ -64,7 +64,7 @@ using (var scope = app.Services.CreateScope())
     {
         await db.Database.MigrateAsync();
     }
-    await DataSeeder.SeedAsync(db);
+    await DataSeeder.SeedAsync(db, includeDemoData: app.Environment.IsDevelopment());
 }
 
 if (app.Environment.IsDevelopment())

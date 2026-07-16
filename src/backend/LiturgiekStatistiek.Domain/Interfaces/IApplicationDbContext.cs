@@ -7,6 +7,7 @@ public interface IApplicationDbContext
 {
     DbSet<Congregation> Congregations { get; }
     DbSet<Preacher> Preachers { get; }
+    DbSet<CongregationPreacher> CongregationPreachers { get; }
     DbSet<Service> Services { get; }
     DbSet<ServiceElement> ServiceElements { get; }
     DbSet<ServiceElementSong> ServiceElementSongs { get; }

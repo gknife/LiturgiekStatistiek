@@ -42,11 +42,13 @@ export class ApiService {
     toDate?: string;
     denominationId?: string;
     includeConcepts?: boolean;
+    preacherId?: string;
   }): Observable<PaginatedResult<ServiceSummary>> {
     let httpParams = new HttpParams();
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.pageSize) httpParams = httpParams.set('pageSize', params.pageSize);
     if (params?.congregationId) httpParams = httpParams.set('congregationId', params.congregationId);
+    if (params?.preacherId) httpParams = httpParams.set('preacherId', params.preacherId);
     if (params?.fromDate) httpParams = httpParams.set('fromDate', params.fromDate);
     if (params?.toDate) httpParams = httpParams.set('toDate', params.toDate);
     if (params?.denominationId) httpParams = httpParams.set('denominationId', params.denominationId);
@@ -97,6 +99,18 @@ export class ApiService {
     return this.http.post<Congregation>(`${this.baseUrl}/congregations`, request);
   }
 
+  getCongregation(id: string): Observable<Congregation> {
+    return this.http.get<Congregation>(`${this.baseUrl}/congregations/${id}`);
+  }
+
+  updateCongregation(id: string, request: any): Observable<Congregation> {
+    return this.http.put<Congregation>(`${this.baseUrl}/congregations/${id}`, request);
+  }
+
+  deleteCongregation(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/congregations/${id}`);
+  }
+
   // Preachers
   getPreachers(params?: {
     page?: number;
@@ -118,6 +132,18 @@ export class ApiService {
 
   createPreacher(request: any): Observable<Preacher> {
     return this.http.post<Preacher>(`${this.baseUrl}/preachers`, request);
+  }
+
+  getPreacher(id: string): Observable<Preacher> {
+    return this.http.get<Preacher>(`${this.baseUrl}/preachers/${id}`);
+  }
+
+  updatePreacher(id: string, request: any): Observable<Preacher> {
+    return this.http.put<Preacher>(`${this.baseUrl}/preachers/${id}`, request);
+  }
+
+  deletePreacher(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/preachers/${id}`);
   }
 
   // Lists

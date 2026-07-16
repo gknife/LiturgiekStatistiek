@@ -13,6 +13,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../core/services/api.service';
 import { AuthService } from '../core/auth/auth.service';
 import { ServiceSummary, ServiceDetail, ServiceElement, ServiceElementSong } from '../core/models/api.models';
@@ -39,6 +40,7 @@ export class ServicesComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
 
   @ViewChild(MatTable) private table?: MatTable<ServiceSummary>;
 
@@ -47,6 +49,7 @@ export class ServicesComponent implements OnInit {
   readonly loading = signal(false);
   readonly congregations = signal<Option[]>([]);
   readonly denominations = signal<Option[]>([]);
+  readonly preachers = signal<Option[]>([]);
   readonly selectedIds = signal<Set<string>>(new Set());
 
   readonly expandedId = signal<string | null>(null);
@@ -58,6 +61,7 @@ export class ServicesComponent implements OnInit {
 
   filterCongregationId = '';
   filterDenominationId = '';
+  filterPreacherId = '';
   filterFromDate = '';
   filterToDate = '';
   includeConcepts = true;
@@ -92,12 +96,23 @@ export class ServicesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.load();
     this.api.getCongregations({ pageSize: 1000 }).subscribe({
       next: res => this.congregations.set(res.items.map(c => ({ id: c.id, label: `${c.name} (${c.city})` }))),
     });
+    this.api.getPreachers({ pageSize: 1000 }).subscribe({
+      next: res => this.preachers.set(res.items.map(p => ({ id: p.id, label: p.city ? `${p.fullName} (${p.city})` : p.fullName }))),
+    });
     this.api.getListByName('Denominations').subscribe({
       next: def => this.denominations.set(def.items.map(i => ({ id: i.id, label: i.value }))),
+    });
+
+    this.route.queryParamMap.subscribe(params => {
+      const congregationId = params.get('congregationId');
+      const preacherId = params.get('preacherId');
+      if (congregationId) this.filterCongregationId = congregationId;
+      if (preacherId) this.filterPreacherId = preacherId;
+      this.page = 1;
+      this.load();
     });
   }
 
@@ -110,6 +125,7 @@ export class ServicesComponent implements OnInit {
       pageSize: this.pageSize,
       congregationId: this.filterCongregationId || undefined,
       denominationId: this.filterDenominationId || undefined,
+      preacherId: this.filterPreacherId || undefined,
       fromDate: this.filterFromDate || undefined,
       toDate: this.filterToDate || undefined,
       includeConcepts: this.includeConcepts,
@@ -131,6 +147,7 @@ export class ServicesComponent implements OnInit {
   clearFilters(): void {
     this.filterCongregationId = '';
     this.filterDenominationId = '';
+    this.filterPreacherId = '';
     this.filterFromDate = '';
     this.filterToDate = '';
     this.includeConcepts = true;
@@ -216,8 +233,16 @@ export class ServicesComponent implements OnInit {
     return `${bundle} ${section}${song.songNumber}${verses}`;
   }
 
+  private readonly elementTypeLabels: Record<string, string> = {
+    Song: 'Lied',
+    LiturgicalAct: 'Liturgische handeling',
+    Reading: 'Lezing',
+    Prayer: 'Gebed',
+    Other: 'Overig',
+  };
+
   elementHeading(el: ServiceElement): string {
-    return el.label || el.elementType || 'Onderdeel';
+    return el.label || this.elementTypeLabels[el.elementType] || el.elementType || 'Onderdeel';
   }
 
   readingRefsLabel(el: ServiceElement): string {

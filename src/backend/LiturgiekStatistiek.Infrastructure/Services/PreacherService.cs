@@ -19,6 +19,7 @@ public class PreacherService : IPreacherService
     {
         var query = _context.Preachers
             .Include(p => p.Denomination)
+            .Include(p => p.Title)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -35,7 +36,11 @@ public class PreacherService : IPreacherService
                 p.Id,
                 p.FullName,
                 p.Denomination != null ? p.Denomination.Value : null,
-                p.City))
+                p.City,
+                p.DenominationId,
+                p.TitleId,
+                p.Title != null ? p.Title.Value : null,
+                p.Services.Count))
             .ToListAsync();
 
         return new PaginatedResult<PreacherDto>(items, totalCount, page, pageSize);
@@ -45,12 +50,17 @@ public class PreacherService : IPreacherService
     {
         return await _context.Preachers
             .Include(p => p.Denomination)
+            .Include(p => p.Title)
             .Where(p => p.Id == id)
             .Select(p => new PreacherDto(
                 p.Id,
                 p.FullName,
                 p.Denomination != null ? p.Denomination.Value : null,
-                p.City))
+                p.City,
+                p.DenominationId,
+                p.TitleId,
+                p.Title != null ? p.Title.Value : null,
+                p.Services.Count))
             .FirstOrDefaultAsync();
     }
 
@@ -61,12 +71,23 @@ public class PreacherService : IPreacherService
             Id = Guid.NewGuid(),
             FullName = request.FullName,
             DenominationId = request.DenominationId,
+            TitleId = request.TitleId,
             City = request.City,
             CreatedBy = userId,
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Preachers.Add(preacher);
+        _context.ChangeHistory.Add(new ChangeHistory
+        {
+            Id = Guid.NewGuid(),
+            EntityType = nameof(Preacher),
+            EntityId = preacher.Id,
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow,
+            ChangeType = ChangeType.Created,
+            PreviousValues = null
+        });
         await _context.SaveChangesAsync();
 
         return await GetPreacherByIdAsync(preacher.Id) ?? throw new InvalidOperationException();
@@ -80,24 +101,86 @@ public class PreacherService : IPreacherService
             return null;
         }
 
+        var previous = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            preacher.FullName,
+            preacher.DenominationId,
+            preacher.TitleId,
+            preacher.City
+        });
+
         preacher.FullName = request.FullName;
         preacher.DenominationId = request.DenominationId;
+        preacher.TitleId = request.TitleId;
         preacher.City = request.City;
         preacher.ModifiedBy = userId;
         preacher.ModifiedAt = DateTime.UtcNow;
+
+        _context.ChangeHistory.Add(new ChangeHistory
+        {
+            Id = Guid.NewGuid(),
+            EntityType = nameof(Preacher),
+            EntityId = preacher.Id,
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow,
+            ChangeType = ChangeType.Updated,
+            PreviousValues = previous
+        });
 
         await _context.SaveChangesAsync();
         return await GetPreacherByIdAsync(id);
     }
 
+    public async Task<DeleteOutcome> DeletePreacherAsync(Guid id, string userId)
+    {
+        var preacher = await _context.Preachers.FindAsync(id);
+        if (preacher == null)
+        {
+            return DeleteOutcome.NotFound;
+        }
+
+        if (await _context.Services.AnyAsync(s => s.PreacherId == id))
+        {
+            return DeleteOutcome.HasReferences;
+        }
+
+        var previous = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            preacher.FullName,
+            preacher.DenominationId,
+            preacher.TitleId,
+            preacher.City
+        });
+
+        _context.Preachers.Remove(preacher);
+        _context.ChangeHistory.Add(new ChangeHistory
+        {
+            Id = Guid.NewGuid(),
+            EntityType = nameof(Preacher),
+            EntityId = id,
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow,
+            ChangeType = ChangeType.Deleted,
+            PreviousValues = previous
+        });
+        await _context.SaveChangesAsync();
+        return DeleteOutcome.Deleted;
+    }
+
     public async Task<List<PreacherSummaryDto>> SearchPreachersAsync(string query)
     {
         return await _context.Preachers
-            .Where(p => p.Services.Any())
+            .Include(p => p.Title)
+            .Include(p => p.Denomination)
             .Where(p => p.FullName.Contains(query))
             .OrderBy(p => p.FullName)
             .Take(10)
-            .Select(p => new PreacherSummaryDto(p.Id, p.FullName, p.City))
+            .Select(p => new PreacherSummaryDto(
+                p.Id,
+                p.FullName,
+                p.City,
+                p.Title != null ? p.Title.Value : null,
+                p.Denomination != null ? p.Denomination.Value : null))
             .ToListAsync();
     }
 }

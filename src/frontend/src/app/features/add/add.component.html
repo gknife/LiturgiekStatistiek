@@ -53,63 +53,140 @@
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Gemeente</mat-label>
-              <input matInput [formControl]="congregationControl" [matAutocomplete]="congAuto"
-                placeholder="Typ om te zoeken...">
-              <mat-autocomplete #congAuto="matAutocomplete">
-                @for (c of congregationSuggestions; track c.id) {
-                  <mat-option [value]="c.name" (onSelectionChange)="selectCongregation(c)">
-                    {{ c.name }} &mdash; {{ c.city }} ({{ c.denominationAbbreviation }})
-                  </mat-option>
+            <div class="sermon-ref-row full-width">
+              <mat-form-field appearance="outline" class="ref-chapter">
+                <mat-label>Kerkgenootschap</mat-label>
+                <input matInput [value]="congregationDenominationLabel" readonly>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="ref-book">
+                <mat-label>Gemeente</mat-label>
+                <input matInput [formControl]="congregationControl" [matAutocomplete]="congAuto"
+                  placeholder="Typ om bestaande gemeente te zoeken...">
+                <mat-autocomplete #congAuto="matAutocomplete">
+                  @for (c of congregationSuggestions; track c.id) {
+                    <mat-option [value]="c.name" (onSelectionChange)="$event.isUserInput && selectCongregation(c)">
+                      {{ c.name }} &mdash; {{ c.city }} ({{ c.denominationAbbreviation || '—' }})
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+                @if (metadataForm.get('congregationId')?.touched && !metadataForm.get('congregationId')?.value) {
+                  <mat-error>Selecteer een bestaande gemeente.</mat-error>
                 }
-              </mat-autocomplete>
-            </mat-form-field>
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Plaats</mat-label>
-              <input matInput [formControl]="congregationCityControl"
-                placeholder="Plaats van de gemeente">
-            </mat-form-field>
+              <mat-form-field appearance="outline" class="ref-chapter">
+                <mat-label>Plaats</mat-label>
+                <input matInput [formControl]="congregationCityControl" readonly>
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Kerkgenootschap</mat-label>
-              <mat-select formControlName="denominationId">
-                <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
-                @for (d of denominations; track d.id) {
-                  <mat-option [value]="d.id">{{ d.value }}</mat-option>
-                }
-              </mat-select>
-              @if (isNewCongregation) {
-                <mat-hint>Wordt gebruikt voor de nieuwe gemeente.</mat-hint>
-              } @else {
-                <mat-hint>Kerkgenootschap van de bestaande gemeente (niet wijzigbaar hier).</mat-hint>
-              }
-            </mat-form-field>
+              <button mat-stroked-button type="button" (click)="openQuickAddCongregation()">
+                <mat-icon>add</mat-icon> Nieuwe
+              </button>
+            </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Voorganger</mat-label>
-              <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
-                placeholder="Typ om te zoeken...">
-              <mat-autocomplete #preachAuto="matAutocomplete">
-                @for (p of preacherSuggestions; track p.id) {
-                  <mat-option [value]="p.fullName" (onSelectionChange)="selectPreacher(p)">
-                    {{ p.fullName }}
-                  </mat-option>
-                }
-              </mat-autocomplete>
-            </mat-form-field>
+            @if (showQuickAddCongregation) {
+              <div class="full-width preektekst-section" [formGroup]="quickAddCongregationForm">
+                <label class="section-label">Nieuwe gemeente</label>
+                <div class="sermon-ref-row">
+                  <mat-form-field appearance="outline" class="ref-book">
+                    <mat-label>Naam</mat-label>
+                    <input matInput formControlName="name">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Plaats</mat-label>
+                    <input matInput formControlName="city">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Kerkgenootschap</mat-label>
+                    <mat-select formControlName="denominationId">
+                      <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
+                      @for (d of denominations; track d.id) {
+                        <mat-option [value]="d.id">{{ d.value }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Locatiedetail</mat-label>
+                    <input matInput formControlName="locationDetail">
+                  </mat-form-field>
+                  <button mat-raised-button color="primary" type="button" (click)="createQuickCongregation()" [disabled]="creatingCongregation">
+                    Opslaan
+                  </button>
+                  <button mat-button type="button" (click)="showQuickAddCongregation = false">Annuleren</button>
+                </div>
+              </div>
+            }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Woonplaats voorganger</mat-label>
-              <input matInput [formControl]="preacherCityControl"
-                placeholder="Woonplaats van de voorganger">
-              @if (preacherCityControl.disabled) {
-                <mat-hint>Woonplaats van de bestaande voorganger (niet wijzigbaar hier).</mat-hint>
-              } @else {
-                <mat-hint>Alleen in te vullen bij een nieuwe voorganger.</mat-hint>
-              }
-            </mat-form-field>
+            <div class="sermon-ref-row full-width">
+              <mat-form-field appearance="outline" class="ref-chapter">
+                <mat-label>Titel</mat-label>
+                <input matInput [value]="preacherTitleLabel" readonly>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="ref-book">
+                <mat-label>Voorganger</mat-label>
+                <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
+                  placeholder="Typ om bestaande voorganger te zoeken...">
+                <mat-autocomplete #preachAuto="matAutocomplete">
+                  @for (p of preacherOptions(); track p.id) {
+                    <mat-option [value]="p.fullName" (onSelectionChange)="$event.isUserInput && selectPreacherOption(p)">
+                      {{ p.fullName }}
+                      @if (p.isPrimaryPastor) { <span> · vaste voorganger</span> }
+                      @if (p.city) { <span> &mdash; {{ p.city }}</span> }
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="ref-chapter">
+                <mat-label>Woonplaats</mat-label>
+                <input matInput [formControl]="preacherCityControl" readonly>
+                <mat-hint>Kerkgenootschap: {{ preacherDenominationLabel }}</mat-hint>
+              </mat-form-field>
+
+              <button mat-stroked-button type="button" (click)="openQuickAddPreacher()">
+                <mat-icon>add</mat-icon> Nieuwe
+              </button>
+            </div>
+
+            @if (showQuickAddPreacher) {
+              <div class="full-width preektekst-section" [formGroup]="quickAddPreacherForm">
+                <label class="section-label">Nieuwe voorganger</label>
+                <div class="sermon-ref-row">
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Titel</mat-label>
+                    <mat-select formControlName="titleId">
+                      <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
+                      @for (t of preacherTitles; track t.id) {
+                        <mat-option [value]="t.id">{{ t.value }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="ref-book">
+                    <mat-label>Naam</mat-label>
+                    <input matInput formControlName="fullName">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Woonplaats</mat-label>
+                    <input matInput formControlName="city">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="ref-chapter">
+                    <mat-label>Kerkgenootschap</mat-label>
+                    <mat-select formControlName="denominationId">
+                      <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
+                      @for (d of denominations; track d.id) {
+                        <mat-option [value]="d.id">{{ d.value }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  <button mat-raised-button color="primary" type="button" (click)="createQuickPreacher()" [disabled]="creatingPreacher">
+                    Opslaan
+                  </button>
+                  <button mat-button type="button" (click)="showQuickAddPreacher = false">Annuleren</button>
+                </div>
+              </div>
+            }
 
             <mat-form-field appearance="outline">
               <mat-label>Zondag kerkelijk jaar</mat-label>

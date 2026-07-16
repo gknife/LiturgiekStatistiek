@@ -25,9 +25,10 @@ public class ServicesController : ControllerBase
         [FromQuery] DateOnly? fromDate = null,
         [FromQuery] DateOnly? toDate = null,
         [FromQuery] Guid? denominationId = null,
-        [FromQuery] bool includeConcepts = true)
+        [FromQuery] bool includeConcepts = true,
+        [FromQuery] Guid? preacherId = null)
     {
-        var result = await _serviceService.GetServicesAsync(page, pageSize, congregationId, fromDate, toDate, denominationId, includeConcepts);
+        var result = await _serviceService.GetServicesAsync(page, pageSize, congregationId, fromDate, toDate, denominationId, includeConcepts, preacherId);
         return Ok(result);
     }
 

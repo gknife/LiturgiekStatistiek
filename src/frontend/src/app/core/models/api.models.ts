@@ -165,6 +165,21 @@ export interface Congregation {
   modality: string | null;
   latitude: number | null;
   longitude: number | null;
+  denominationId: string | null;
+  serviceCount: number;
+  pastors: CongregationPastor[] | null;
+}
+
+export interface CongregationPastor {
+  preacherId: string;
+  fullName: string;
+  city: string | null;
+  isPrimary: boolean;
+}
+
+export interface CongregationPastorInput {
+  preacherId: string;
+  isPrimary: boolean;
 }
 
 export interface CongregationSummary {
@@ -172,6 +187,8 @@ export interface CongregationSummary {
   name: string;
   city: string;
   denominationAbbreviation: string | null;
+  denominationId: string | null;
+  pastors: CongregationPastor[] | null;
 }
 
 export interface Preacher {
@@ -179,13 +196,42 @@ export interface Preacher {
   fullName: string;
   denomination: string | null;
   city: string | null;
+  denominationId: string | null;
+  titleId: string | null;
+  title: string | null;
+  serviceCount: number;
 }
 
 export interface PreacherSummary {
   id: string;
   fullName: string;
   city: string | null;
+  title: string | null;
+  denomination: string | null;
 }
+
+export interface CreateCongregationRequest {
+  name: string;
+  city: string;
+  locationDetail: string | null;
+  denominationId: string | null;
+  modality: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface UpdateCongregationRequest extends CreateCongregationRequest {
+  pastors: CongregationPastorInput[] | null;
+}
+
+export interface CreatePreacherRequest {
+  fullName: string;
+  denominationId: string | null;
+  city: string | null;
+  titleId: string | null;
+}
+
+export type UpdatePreacherRequest = CreatePreacherRequest;
 
 export interface ListDefinition {
   id: string;

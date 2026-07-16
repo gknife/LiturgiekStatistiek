@@ -41,3 +41,29 @@ mat-chip {
 .add-button {
   margin-top: 1rem;
 }
+
+.entity-card {
+  margin-top: 2rem;
+  padding: 1rem 1.5rem 1.5rem;
+
+  h2 {
+    margin-bottom: 0.25rem;
+  }
+}
+
+.section-description {
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: 1rem;
+}
+
+.count-chip {
+  cursor: pointer;
+}
+
+.count-zero {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.entity-edit {
+  align-items: flex-start;
+}

@@ -21,6 +21,7 @@ import { ApiService } from '../../core/services/api.service';
 import {
   CongregationSummary, PreacherSummary, ListItem, ServiceDetail,
   BibleBook, ParsedServiceData, ServiceTemplateSummary, ServiceTemplate,
+  Congregation, Preacher, CongregationPastor,
 } from '../../core/models/api.models';
 import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin, tap, catchError } from 'rxjs';
 import { FormControl } from '@angular/forms';
@@ -66,6 +67,11 @@ interface SermonRefModel {
   verseEnd: number | null;
 }
 
+interface PreacherOption extends PreacherSummary {
+  isAssociatedPastor?: boolean;
+  isPrimaryPastor?: boolean;
+}
+
 @Component({
   selector: 'app-add',
   standalone: true,
@@ -86,10 +92,18 @@ export class AddComponent implements OnInit {
   congregationCityControl = new FormControl('');
   preacherControl = new FormControl('');
   preacherCityControl = new FormControl('');
+  quickAddCongregationForm!: FormGroup;
+  quickAddPreacherForm!: FormGroup;
 
   // Autocomplete
   congregationSuggestions: CongregationSummary[] = [];
   preacherSuggestions: PreacherSummary[] = [];
+  selectedCongregation: CongregationSummary | null = null;
+  selectedPreacher: PreacherSummary | null = null;
+  showQuickAddCongregation = false;
+  showQuickAddPreacher = false;
+  creatingCongregation = false;
+  creatingPreacher = false;
 
   // Lists
   timeOfDayOptions = [
@@ -106,11 +120,15 @@ export class AddComponent implements OnInit {
   performers: ListItem[] = [];
   serviceOccasions: ListItem[] = [];
   denominations: ListItem[] = [];
+  preacherTitles: ListItem[] = [];
 
   // Defaults carried over from the chosen template, applied to onderdelen added
   // later (manually or via paste/URL import), not just the initial scaffold.
   private templateDefaultTranslationId = '';
   private templateDefaultBundleId = '';
+  // Denomination of the chosen template; congregations of this denomination are
+  // surfaced at the top of the gemeente autocomplete.
+  private templateDenominationId = '';
 
   // Cache of catalog verse counts keyed by "bundleId|number" for the live badge.
   private catalogVerseCountCache = new Map<string, number | null>();
@@ -181,7 +199,7 @@ export class AddComponent implements OnInit {
     this.metadataForm = this.fb.group({
       date: [null, Validators.required],
       timeOfDay: [0, Validators.required],
-      congregationId: [''],
+      congregationId: ['', Validators.required],
       preacherId: [''],
       denominationId: [''],
       churchCalendarSundayId: [''],
@@ -194,6 +212,18 @@ export class AddComponent implements OnInit {
       hasBeamerLiturgy: [false],
       hasBeamerTexts: [false],
       hasBeamerSongs: [false],
+    });
+    this.quickAddCongregationForm = this.fb.group({
+      name: ['', Validators.required],
+      city: ['', Validators.required],
+      denominationId: [''],
+      locationDetail: [''],
+    });
+    this.quickAddPreacherForm = this.fb.group({
+      titleId: [''],
+      fullName: ['', Validators.required],
+      city: [''],
+      denominationId: [''],
     });
 
     // Edit mode: capture the id synchronously so the dialog title and the
@@ -227,6 +257,7 @@ export class AddComponent implements OnInit {
       performers: this.loadListItems('ServicePerformer'),
       serviceOccasions: this.loadListItems('ServiceOccasion'),
       denominations: this.loadListItems('Denominations'),
+      preacherTitles: this.loadListItems('PreacherTitles'),
     }).subscribe(lists => {
       this.bundles = lists.bundles;
       this.specialOccasions = lists.specialOccasions;
@@ -237,6 +268,7 @@ export class AddComponent implements OnInit {
       this.performers = lists.performers;
       this.serviceOccasions = lists.serviceOccasions;
       this.denominations = lists.denominations;
+      this.preacherTitles = lists.preacherTitles;
 
       this.loadBibleBooks();
 
@@ -260,20 +292,15 @@ export class AddComponent implements OnInit {
     this.congregationControl.valueChanges.pipe(
       debounceTime(300),
       switchMap(val => val && val.length > 1 ? this.api.searchCongregations(val) : of([]))
-    ).subscribe(results => this.congregationSuggestions = results);
+    ).subscribe(results => this.congregationSuggestions = this.prioritizeCongregationsByDenomination(results));
 
-    // Editing either the name or the city means the previously resolved congregation
-    // id is stale, so clear it and let it be re-resolved (name + city) on save. These
-    // fire only on user input; programmatic prefill/select use { emitEvent: false }.
+    // The autocomplete is select-only: typing filters choices but clears any
+    // previously selected id until the user explicitly chooses an option.
     this.congregationControl.valueChanges.subscribe(() => {
+      this.selectedCongregation = null;
       this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
-      // Typing a (new) gemeente name re-enables the kerkgenootschap dropdown.
-      this.metadataForm.get('denominationId')?.enable({ emitEvent: false });
-      this.scheduleAutosave();
-    });
-    this.congregationCityControl.valueChanges.subscribe(() => {
-      this.metadataForm.patchValue({ congregationId: '' }, { emitEvent: false });
-      this.metadataForm.get('denominationId')?.enable({ emitEvent: false });
+      this.congregationCityControl.setValue('', { emitEvent: false });
+      this.metadataForm.patchValue({ denominationId: '' }, { emitEvent: false });
       this.scheduleAutosave();
     });
 
@@ -281,17 +308,17 @@ export class AddComponent implements OnInit {
     this.preacherControl.valueChanges.pipe(
       debounceTime(300),
       switchMap(val => val && val.length > 1 ? this.api.searchPreachers(val) : of([]))
-    ).subscribe(results => this.preacherSuggestions = results);
-
-    this.preacherControl.valueChanges.subscribe(() => {
-      this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
-      // Typing a (new) voorganger name means we're entering a new preacher, so
-      // the woonplaats becomes editable again.
-      this.preacherCityControl.enable({ emitEvent: false });
-      this.scheduleAutosave();
+    ).subscribe(results => {
+      this.preacherSuggestions = results;
+      this.prioritizePastorsInSuggestions();
     });
 
-    this.preacherCityControl.valueChanges.subscribe(() => this.scheduleAutosave());
+    this.preacherControl.valueChanges.subscribe(() => {
+      this.selectedPreacher = null;
+      this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
+      this.preacherCityControl.setValue('', { emitEvent: false });
+      this.scheduleAutosave();
+    });
 
     // Autosave: debounced draft save whenever the metadata form changes.
     this.metadataForm.valueChanges.subscribe(() => this.scheduleAutosave());
@@ -352,16 +379,18 @@ export class AddComponent implements OnInit {
       hasBeamerSongs: service.hasBeamerSongs,
     });
 
+    this.selectedCongregation = service.congregation;
     this.congregationControl.setValue(service.congregation.name, { emitEvent: false });
     this.congregationCityControl.setValue(service.congregation.city, { emitEvent: false });
-    // Existing gemeente: reflect its kerkgenootschap (by abbreviation) and lock the field.
-    const denom = this.denominations.find(d => d.abbreviation === service.congregation.denominationAbbreviation);
-    this.metadataForm.patchValue({ denominationId: denom?.id ?? '' }, { emitEvent: false });
-    this.metadataForm.get('denominationId')?.disable({ emitEvent: false });
+    this.metadataForm.patchValue({ denominationId: service.congregation.denominationId ?? '' }, { emitEvent: false });
     if (service.preacher) {
+      this.selectedPreacher = service.preacher;
       this.preacherControl.setValue(service.preacher.fullName, { emitEvent: false });
       this.preacherCityControl.setValue(service.preacher.city ?? '', { emitEvent: false });
-      this.preacherCityControl.disable({ emitEvent: false });
+    } else {
+      this.selectedPreacher = null;
+      this.preacherControl.setValue('', { emitEvent: false });
+      this.preacherCityControl.setValue('', { emitEvent: false });
     }
 
     this.elements = service.elements
@@ -446,30 +475,202 @@ export class AddComponent implements OnInit {
   }
 
   selectCongregation(congregation: CongregationSummary): void {
+    this.selectedCongregation = congregation;
     this.congregationControl.setValue(congregation.name, { emitEvent: false });
     this.congregationCityControl.setValue(congregation.city, { emitEvent: false });
-    this.metadataForm.patchValue({ congregationId: congregation.id });
-    // Reflect the existing gemeente's kerkgenootschap (matched by abbreviation) for
-    // display; it is disabled and ignored on save for an existing gemeente.
-    const denom = this.denominations.find(d => d.abbreviation === congregation.denominationAbbreviation);
-    this.metadataForm.patchValue({ denominationId: denom?.id ?? '' }, { emitEvent: false });
-    this.metadataForm.get('denominationId')?.disable({ emitEvent: false });
+    this.metadataForm.patchValue({
+      congregationId: congregation.id,
+      denominationId: congregation.denominationId ?? '',
+    });
+    this.prioritizePastorsInSuggestions();
+    if (!this.nullableGuid(this.metadataForm.value.preacherId) && !(this.preacherControl.value || '').trim()) {
+      const primaryPastor = congregation.pastors?.find(p => p.isPrimary);
+      if (primaryPastor) this.selectPastor(primaryPastor);
+    }
   }
 
-  /**
-   * The kerkgenootschap dropdown is only editable when creating a NEW gemeente (no
-   * existing congregation resolved yet); for an existing gemeente it is read-only.
-   */
-  get isNewCongregation(): boolean {
-    return !this.nullableGuid(this.metadataForm?.value.congregationId);
+  get congregationDenominationLabel(): string {
+    const id = this.selectedCongregation?.denominationId ?? this.metadataForm?.value.denominationId ?? '';
+    const item = this.denominations.find(d => d.id === id);
+    return item?.abbreviation || item?.value || this.selectedCongregation?.denominationAbbreviation || '—';
+  }
+
+  get preacherTitleLabel(): string {
+    return this.selectedPreacher?.title || '—';
+  }
+
+  get preacherDenominationLabel(): string {
+    return this.selectedPreacher?.denomination || '—';
   }
 
   selectPreacher(preacher: PreacherSummary): void {
+    this.selectedPreacher = preacher;
     this.preacherControl.setValue(preacher.fullName, { emitEvent: false });
     this.metadataForm.patchValue({ preacherId: preacher.id });
-    // Existing voorganger: show its woonplaats read-only (edit it via beheer).
     this.preacherCityControl.setValue(preacher.city ?? '', { emitEvent: false });
-    this.preacherCityControl.disable({ emitEvent: false });
+  }
+
+  selectPreacherOption(preacher: PreacherOption): void {
+    if (preacher.isAssociatedPastor && (!preacher.title || !preacher.denomination)) {
+      this.api.getPreacher(preacher.id).subscribe({
+        next: full => this.selectPreacher(this.preacherToSummary(full)),
+        error: () => this.selectPreacher(preacher),
+      });
+      return;
+    }
+    this.selectPreacher(preacher);
+  }
+
+  preacherOptions(): PreacherOption[] {
+    const typed = (this.preacherControl.value || '').toLowerCase().trim();
+    const pastors = (this.selectedCongregation?.pastors ?? [])
+      .filter(p => !typed || p.fullName.toLowerCase().includes(typed))
+      .map(p => this.pastorToPreacherOption(p));
+    const pastorIds = new Set(pastors.map(p => p.id));
+    return [
+      ...pastors,
+      ...this.preacherSuggestions
+        .filter(p => !pastorIds.has(p.id))
+        .map(p => ({ ...p })),
+    ];
+  }
+
+  private pastorToPreacherOption(pastor: CongregationPastor): PreacherOption {
+    return {
+      id: pastor.preacherId,
+      fullName: pastor.fullName,
+      city: pastor.city,
+      title: null,
+      denomination: null,
+      isAssociatedPastor: true,
+      isPrimaryPastor: pastor.isPrimary,
+    };
+  }
+
+  private selectPastor(pastor: CongregationPastor): void {
+    this.api.getPreacher(pastor.preacherId).subscribe({
+      next: preacher => this.selectPreacher(this.preacherToSummary(preacher)),
+      error: () => this.selectPreacher(this.pastorToPreacherOption(pastor)),
+    });
+  }
+
+  private prioritizePastorsInSuggestions(): void {
+    const pastors = this.selectedCongregation?.pastors ?? [];
+    if (!pastors.length || !this.preacherSuggestions.length) return;
+    const order = new Map(pastors.map((p, i) => [p.preacherId, i]));
+    this.preacherSuggestions = this.preacherSuggestions
+      .slice()
+      .sort((a, b) => (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+  }
+
+  // Surface congregations of the chosen template's denomination at the top of the list.
+  private prioritizeCongregationsByDenomination(list: CongregationSummary[]): CongregationSummary[] {
+    if (!this.templateDenominationId) return list;
+    return list
+      .slice()
+      .sort((a, b) => {
+        const aMatch = a.denominationId === this.templateDenominationId ? 0 : 1;
+        const bMatch = b.denominationId === this.templateDenominationId ? 0 : 1;
+        return aMatch - bMatch;
+      });
+  }
+
+  private congregationToSummary(congregation: Congregation): CongregationSummary {
+    return {
+      id: congregation.id,
+      name: congregation.name,
+      city: congregation.city,
+      denominationAbbreviation: congregation.denominationAbbreviation,
+      denominationId: congregation.denominationId,
+      pastors: congregation.pastors,
+    };
+  }
+
+  private preacherToSummary(preacher: Preacher): PreacherSummary {
+    return {
+      id: preacher.id,
+      fullName: preacher.fullName,
+      city: preacher.city,
+      title: preacher.title,
+      denomination: preacher.denomination,
+    };
+  }
+
+  openQuickAddCongregation(): void {
+    this.quickAddCongregationForm.reset({
+      name: (this.congregationControl.value || '').trim(),
+      city: '',
+      denominationId: this.metadataForm.value.denominationId ?? '',
+      locationDetail: '',
+    });
+    this.showQuickAddCongregation = true;
+  }
+
+  createQuickCongregation(): void {
+    if (this.quickAddCongregationForm.invalid || this.creatingCongregation) {
+      this.quickAddCongregationForm.markAllAsTouched();
+      return;
+    }
+    const value = this.quickAddCongregationForm.value;
+    this.creatingCongregation = true;
+    this.api.createCongregation({
+      name: (value.name || '').trim(),
+      city: (value.city || '').trim(),
+      denominationId: this.nullableGuid(value.denominationId),
+      locationDetail: (value.locationDetail || '').trim() || null,
+      modality: null,
+      latitude: null,
+      longitude: null,
+    }).subscribe({
+      next: congregation => {
+        const summary = this.congregationToSummary(congregation);
+        this.congregationSuggestions = [summary, ...this.congregationSuggestions.filter(c => c.id !== summary.id)];
+        this.selectCongregation(summary);
+        this.showQuickAddCongregation = false;
+        this.creatingCongregation = false;
+      },
+      error: err => {
+        this.creatingCongregation = false;
+        alert('Fout bij aanmaken gemeente: ' + (err.message ?? err));
+      },
+    });
+  }
+
+  openQuickAddPreacher(): void {
+    this.quickAddPreacherForm.reset({
+      titleId: '',
+      fullName: (this.preacherControl.value || '').trim(),
+      city: '',
+      denominationId: this.metadataForm.value.denominationId ?? '',
+    });
+    this.showQuickAddPreacher = true;
+  }
+
+  createQuickPreacher(): void {
+    if (this.quickAddPreacherForm.invalid || this.creatingPreacher) {
+      this.quickAddPreacherForm.markAllAsTouched();
+      return;
+    }
+    const value = this.quickAddPreacherForm.value;
+    this.creatingPreacher = true;
+    this.api.createPreacher({
+      fullName: (value.fullName || '').trim(),
+      city: (value.city || '').trim() || null,
+      denominationId: this.nullableGuid(value.denominationId),
+      titleId: this.nullableGuid(value.titleId),
+    }).subscribe({
+      next: preacher => {
+        const summary = this.preacherToSummary(preacher);
+        this.preacherSuggestions = [summary, ...this.preacherSuggestions.filter(p => p.id !== summary.id)];
+        this.selectPreacher(summary);
+        this.showQuickAddPreacher = false;
+        this.creatingPreacher = false;
+      },
+      error: err => {
+        this.creatingPreacher = false;
+        alert('Fout bij aanmaken voorganger: ' + (err.message ?? err));
+      },
+    });
   }
 
   addElement(): void {
@@ -783,7 +984,6 @@ export class AddComponent implements OnInit {
     });
 
     if (data.congregation) this.congregationControl.setValue(data.congregation);
-    if (data.city) this.congregationCityControl.setValue(data.city);
     if (data.preacher) this.preacherControl.setValue(data.preacher);
 
     this.elements = data.elements.map((e, i) => ({
@@ -887,53 +1087,6 @@ export class AddComponent implements OnInit {
       });
   }
 
-  /**
-   * Resolve the congregation to an existing id, creating a new congregation when
-   * the user typed (or a paste/URL import produced) a name that isn't yet in the
-   * database. This keeps the paste and URL flows working end-to-end.
-   */
-  private resolveCongregationId(): Observable<string> {
-    const existing = this.nullableGuid(this.metadataForm.value.congregationId);
-    if (existing) return of(existing);
-
-    const name = (this.congregationControl.value || '').trim();
-    if (!name) return throwError(() => new Error('Gemeente is verplicht.'));
-
-    const city = (this.congregationCityControl.value || '').trim() || 'Onbekend';
-
-    // Match an existing congregation on BOTH name and city so, e.g., "Hervormde
-    // Gemeente" in Randwijk and in Ederveen stay distinct; otherwise create it.
-    return this.api.searchCongregations(name).pipe(
-      switchMap(results => {
-        const match = results.find(r =>
-          r.name.toLowerCase() === name.toLowerCase() &&
-          (r.city || '').toLowerCase() === city.toLowerCase());
-        if (match) return of(match.id);
-        const denominationId = this.nullableGuid(this.metadataForm.value.denominationId);
-        return this.api.createCongregation({ name, city, denominationId }).pipe(map(c => c.id));
-      })
-    );
-  }
-
-  /** Resolve the preacher to an existing id, creating one when a new name was entered. */
-  private resolvePreacherId(): Observable<string | null> {
-    const existing = this.nullableGuid(this.metadataForm.value.preacherId);
-    if (existing) return of(existing);
-
-    const name = (this.preacherControl.value || '').trim();
-    if (!name) return of(null);
-
-    const city = (this.preacherCityControl.value || '').trim() || null;
-
-    return this.api.searchPreachers(name).pipe(
-      switchMap(results => {
-        const match = results.find(r => r.fullName.toLowerCase() === name.toLowerCase());
-        if (match) return of<string | null>(match.id);
-        return this.api.createPreacher({ fullName: name, city }).pipe(map(p => p.id as string | null));
-      })
-    );
-  }
-
   private buildRequest(congregationId: string, preacherId: string | null, status: number) {
     return {
       ...this.metadataForm.value,
@@ -950,23 +1103,22 @@ export class AddComponent implements OnInit {
   }
 
   private performSave(status: number): Observable<ServiceDetail> {
-    return this.resolveCongregationId().pipe(
-      switchMap(congregationId =>
-        this.resolvePreacherId().pipe(map(preacherId => ({ congregationId, preacherId })))
-      ),
-      switchMap(({ congregationId, preacherId }) => {
-        const request = this.buildRequest(congregationId, preacherId, status);
-        const save$ = this.isEditMode && this.editingServiceId
-          ? this.api.updateService(this.editingServiceId, request)
-          : this.api.createService(request);
-        return save$.pipe(tap(saved => {
-          this.editingServiceId = saved.id;
-          this.status = saved.statusValue ?? status;
-          this.lastSavedSnapshot = this.snapshot();
-          this.lastSavedAt = new Date();
-        }));
-      })
-    );
+    const congregationId = this.nullableGuid(this.metadataForm.value.congregationId);
+    if (!congregationId) {
+      this.metadataForm.get('congregationId')?.markAsTouched();
+      return throwError(() => new Error('Selecteer een bestaande gemeente.'));
+    }
+    const preacherId = this.nullableGuid(this.metadataForm.value.preacherId);
+    const request = this.buildRequest(congregationId, preacherId, status);
+    const save$ = this.isEditMode && this.editingServiceId
+      ? this.api.updateService(this.editingServiceId, request)
+      : this.api.createService(request);
+    return save$.pipe(tap(saved => {
+      this.editingServiceId = saved.id;
+      this.status = saved.statusValue ?? status;
+      this.lastSavedSnapshot = this.snapshot();
+      this.lastSavedAt = new Date();
+    }));
   }
 
   /** Snapshot of the editable state, used to skip no-op autosaves. */
@@ -1001,7 +1153,7 @@ export class AddComponent implements OnInit {
   private autosave(): void {
     if (this.saving || this.publishing) return;
     if (!this.metadataForm.get('date')?.value) return;
-    if (!(this.congregationControl.value || this.metadataForm.value.congregationId)) return;
+    if (!this.nullableGuid(this.metadataForm.value.congregationId)) return;
     if (this.snapshot() === this.lastSavedSnapshot) return;
 
     this.autoSaving = true;
@@ -1080,6 +1232,7 @@ export class AddComponent implements OnInit {
     // paste/URL import) are prefilled too, not just the initial scaffold.
     this.templateDefaultTranslationId = template.defaultBibleTranslationId ?? '';
     this.templateDefaultBundleId = template.defaultSongBundleId ?? '';
+    this.templateDenominationId = template.denominationId ?? '';
 
     const defaultPerformer = this.defaultPerformerId();
     const defaultTranslation = this.templateDefaultTranslationId;
@@ -1104,9 +1257,10 @@ export class AddComponent implements OnInit {
   /** Re-apply a matching template based on the chosen gemeente/tijdstip (from the onderdelen tab). */
   applyTemplate(): void {
     const congregationId = this.nullableGuid(this.metadataForm.value.congregationId);
+    const denominationId = this.selectedCongregation?.denominationId ?? this.nullableGuid(this.metadataForm.value.denominationId);
     const timeOfDay = this.metadataForm.value.timeOfDay;
     const occasionId = this.nullableGuid(this.metadataForm.value.specialOccasionId);
-    this.api.instantiateTemplate({ congregationId, timeOfDay, occasionId }).subscribe({
+    this.api.instantiateTemplate({ denominationId, congregationId, timeOfDay, occasionId }).subscribe({
       next: (instances) => {
         if (!instances || instances.length === 0) {
           alert('Geen passend sjabloon gevonden voor deze gemeente/tijdstip.');

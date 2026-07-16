@@ -28,24 +28,23 @@ describe('AddComponent preacher city', () => {
     component.ngOnInit();
   });
 
-  const existing: PreacherSummary = { id: 'p1', fullName: 'Ds. Bestaand', city: 'Ede' };
+  const existing: PreacherSummary = { id: 'p1', fullName: 'Ds. Bestaand', city: 'Ede', title: null, denomination: null };
 
-  it('shows an existing preacher city read-only when selected', () => {
+  it('shows an existing preacher city read-only value when selected', () => {
     component.selectPreacher(existing);
 
     expect(component.preacherCityControl.value).toBe('Ede');
-    expect(component.preacherCityControl.disabled).toBe(true);
     expect(component.metadataForm.value.preacherId).toBe('p1');
   });
 
-  it('re-enables and clears the preacher id when a new name is typed', () => {
+  it('clears the preacher id and city when a new name is typed (select-only)', () => {
     component.selectPreacher(existing);
-    expect(component.preacherCityControl.disabled).toBe(true);
+    expect(component.metadataForm.value.preacherId).toBe('p1');
 
     component.preacherControl.setValue('Ds. Nieuw');
 
-    expect(component.preacherCityControl.enabled).toBe(true);
     expect(component.metadataForm.value.preacherId).toBe('');
+    expect(component.preacherCityControl.value).toBe('');
   });
 
   it('includes the preacher city in the autosave snapshot', () => {

@@ -97,4 +97,202 @@
       </mat-expansion-panel>
     }
   </mat-accordion>
+
+  <!-- Gemeenten -->
+  <mat-card class="entity-card">
+    <h2>Gemeenten</h2>
+    <p class="section-description">Beheer de gemeenten. Verwijderen kan alleen wanneer er geen diensten aan gekoppeld zijn.</p>
+
+    <table mat-table [dataSource]="congregations()" class="list-table">
+      <ng-container matColumnDef="denomination">
+        <th mat-header-cell *matHeaderCellDef>Kerkgenootschap</th>
+        <td mat-cell *matCellDef="let c">{{ denominationLabel(c.denominationId) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Gemeente</th>
+        <td mat-cell *matCellDef="let c">{{ c.name }}</td>
+      </ng-container>
+      <ng-container matColumnDef="city">
+        <th mat-header-cell *matHeaderCellDef>Plaats</th>
+        <td mat-cell *matCellDef="let c">{{ c.city }}</td>
+      </ng-container>
+      <ng-container matColumnDef="services">
+        <th mat-header-cell *matHeaderCellDef>Diensten</th>
+        <td mat-cell *matCellDef="let c">
+          @if (c.serviceCount > 0) {
+            <mat-chip class="count-chip" (click)="viewCongregationServices(c)"
+              matTooltip="Toon diensten van deze gemeente">{{ c.serviceCount }}</mat-chip>
+          } @else {
+            <span class="count-zero">0</span>
+          }
+        </td>
+      </ng-container>
+      @if (auth.isAuthenticated) {
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Acties</th>
+          <td mat-cell *matCellDef="let c">
+            <button mat-icon-button color="primary" (click)="startEditCongregation(c)" matTooltip="Bewerken">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteCongregation(c)"
+              [disabled]="c.serviceCount > 0"
+              [matTooltip]="c.serviceCount > 0 ? 'Kan niet verwijderen: ' + c.serviceCount + ' gekoppelde diensten' : 'Verwijderen'">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+      }
+      <tr mat-header-row *matHeaderRowDef="congregationColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: congregationColumns()"></tr>
+    </table>
+
+    @if (auth.isAuthenticated) {
+      @if (editingCongregation) {
+        <div class="edit-row entity-edit">
+          <mat-form-field appearance="outline">
+            <mat-label>Kerkgenootschap</mat-label>
+            <mat-select [(ngModel)]="editingCongregation.denominationId">
+              <mat-option [value]="null">— Geen —</mat-option>
+              @for (d of denominations(); track d.id) {
+                <mat-option [value]="d.id">{{ d.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Gemeente</mat-label>
+            <input matInput [(ngModel)]="editingCongregation.name">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Plaats</mat-label>
+            <input matInput [(ngModel)]="editingCongregation.city">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Locatie (optioneel)</mat-label>
+            <input matInput [(ngModel)]="editingCongregation.locationDetail">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Voorgangers</mat-label>
+            <mat-select [(ngModel)]="editingCongregation.pastorIds" multiple>
+              @for (p of preachers(); track p.id) {
+                <mat-option [value]="p.id">{{ p.fullName }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          @if (editingCongregation.pastorIds.length > 0) {
+            <mat-form-field appearance="outline">
+              <mat-label>Vaste voorganger</mat-label>
+              <mat-select [(ngModel)]="editingCongregation.primaryPastorId">
+                <mat-option [value]="null">— Geen —</mat-option>
+                @for (id of editingCongregation.pastorIds; track id) {
+                  <mat-option [value]="id">{{ preacherName(id) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+          <button mat-raised-button color="primary" (click)="saveCongregation()">
+            <mat-icon>save</mat-icon> Opslaan
+          </button>
+          <button mat-button (click)="cancelCongregationEdit()">Annuleren</button>
+        </div>
+      } @else {
+        <button mat-stroked-button color="primary" (click)="startAddCongregation()" class="add-button">
+          <mat-icon>add</mat-icon> Gemeente toevoegen
+        </button>
+      }
+    }
+  </mat-card>
+
+  <!-- Voorgangers -->
+  <mat-card class="entity-card">
+    <h2>Voorgangers</h2>
+    <p class="section-description">Beheer de voorgangers. Verwijderen kan alleen wanneer er geen diensten aan gekoppeld zijn.</p>
+
+    <table mat-table [dataSource]="preachers()" class="list-table">
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Titel</th>
+        <td mat-cell *matCellDef="let p">{{ titleLabel(p.titleId) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Naam</th>
+        <td mat-cell *matCellDef="let p">{{ p.fullName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="city">
+        <th mat-header-cell *matHeaderCellDef>Woonplaats</th>
+        <td mat-cell *matCellDef="let p">{{ p.city }}</td>
+      </ng-container>
+      <ng-container matColumnDef="denomination">
+        <th mat-header-cell *matHeaderCellDef>Kerkgenootschap</th>
+        <td mat-cell *matCellDef="let p">{{ denominationLabel(p.denominationId) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="services">
+        <th mat-header-cell *matHeaderCellDef>Diensten</th>
+        <td mat-cell *matCellDef="let p">
+          @if (p.serviceCount > 0) {
+            <mat-chip class="count-chip" (click)="viewPreacherServices(p)"
+              matTooltip="Toon diensten van deze voorganger">{{ p.serviceCount }}</mat-chip>
+          } @else {
+            <span class="count-zero">0</span>
+          }
+        </td>
+      </ng-container>
+      @if (auth.isAuthenticated) {
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Acties</th>
+          <td mat-cell *matCellDef="let p">
+            <button mat-icon-button color="primary" (click)="startEditPreacher(p)" matTooltip="Bewerken">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deletePreacher(p)"
+              [disabled]="p.serviceCount > 0"
+              [matTooltip]="p.serviceCount > 0 ? 'Kan niet verwijderen: ' + p.serviceCount + ' gekoppelde diensten' : 'Verwijderen'">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+      }
+      <tr mat-header-row *matHeaderRowDef="preacherColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: preacherColumns()"></tr>
+    </table>
+
+    @if (auth.isAuthenticated) {
+      @if (editingPreacher) {
+        <div class="edit-row entity-edit">
+          <mat-form-field appearance="outline">
+            <mat-label>Titel</mat-label>
+            <mat-select [(ngModel)]="editingPreacher.titleId">
+              <mat-option [value]="null">— Geen —</mat-option>
+              @for (t of titles(); track t.id) {
+                <mat-option [value]="t.id">{{ t.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Naam</mat-label>
+            <input matInput [(ngModel)]="editingPreacher.fullName">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Woonplaats</mat-label>
+            <input matInput [(ngModel)]="editingPreacher.city">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Kerkgenootschap</mat-label>
+            <mat-select [(ngModel)]="editingPreacher.denominationId">
+              <mat-option [value]="null">— Geen —</mat-option>
+              @for (d of denominations(); track d.id) {
+                <mat-option [value]="d.id">{{ d.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="savePreacher()">
+            <mat-icon>save</mat-icon> Opslaan
+          </button>
+          <button mat-button (click)="cancelPreacherEdit()">Annuleren</button>
+        </div>
+      } @else {
+        <button mat-stroked-button color="primary" (click)="startAddPreacher()" class="add-button">
+          <mat-icon>add</mat-icon> Voorganger toevoegen
+        </button>
+      }
+    }
+  </mat-card>
 }

@@ -9,14 +9,31 @@ public record CongregationDto(
     string? DenominationAbbreviation,
     string? Modality,
     decimal? Latitude,
-    decimal? Longitude
+    decimal? Longitude,
+    Guid? DenominationId = null,
+    int ServiceCount = 0,
+    List<CongregationPastorDto>? Pastors = null
+);
+
+public record CongregationPastorDto(
+    Guid PreacherId,
+    string FullName,
+    string? City,
+    bool IsPrimary
+);
+
+public record CongregationPastorInput(
+    Guid PreacherId,
+    bool IsPrimary
 );
 
 public record CongregationSummaryDto(
     Guid Id,
     string Name,
     string City,
-    string? DenominationAbbreviation
+    string? DenominationAbbreviation,
+    Guid? DenominationId = null,
+    List<CongregationPastorDto>? Pastors = null
 );
 
 public record CreateCongregationRequest(
@@ -36,5 +53,6 @@ public record UpdateCongregationRequest(
     Guid? DenominationId,
     string? Modality,
     decimal? Latitude,
-    decimal? Longitude
+    decimal? Longitude,
+    List<CongregationPastorInput>? Pastors = null
 );

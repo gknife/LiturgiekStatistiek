@@ -8,5 +8,6 @@ public interface IPreacherService
     Task<PreacherDto?> GetPreacherByIdAsync(Guid id);
     Task<PreacherDto> CreatePreacherAsync(CreatePreacherRequest request, string userId);
     Task<PreacherDto?> UpdatePreacherAsync(Guid id, UpdatePreacherRequest request, string userId);
+    Task<DeleteOutcome> DeletePreacherAsync(Guid id, string userId);
     Task<List<PreacherSummaryDto>> SearchPreachersAsync(string query);
 }

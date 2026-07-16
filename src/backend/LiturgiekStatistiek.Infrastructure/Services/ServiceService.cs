@@ -23,7 +23,8 @@ public class ServiceService : IServiceService
         DateOnly? fromDate = null,
         DateOnly? toDate = null,
         Guid? denominationId = null,
-        bool includeConcepts = true)
+        bool includeConcepts = true,
+        Guid? preacherId = null)
     {
         var query = _context.Services
             .Include(s => s.Congregation)
@@ -35,6 +36,11 @@ public class ServiceService : IServiceService
         if (congregationId.HasValue)
         {
             query = query.Where(s => s.CongregationId == congregationId.Value);
+        }
+
+        if (preacherId.HasValue)
+        {
+            query = query.Where(s => s.PreacherId == preacherId.Value);
         }
 
         if (denominationId.HasValue)
@@ -428,9 +434,6 @@ public class ServiceService : IServiceService
             return null;
         }
 
-        var previousCongregationId = service.CongregationId;
-        var previousPreacherId = service.PreacherId;
-
         service.Date = request.Date;
         service.TimeOfDay = (TimeOfDay)request.TimeOfDay;
         service.CongregationId = request.CongregationId;
@@ -532,47 +535,7 @@ public class ServiceService : IServiceService
 
         await _context.SaveChangesAsync();
 
-        // Remove gemeente/voorganger that no longer have any service after a reassign.
-        await CleanupOrphansAsync(previousCongregationId, previousPreacherId);
-
         return await GetServiceByIdAsync(id);
-    }
-
-    /// <summary>
-    /// Hard-deletes a congregation and/or preacher when they have no services left.
-    /// Scope is limited to these auto-created reference entities; curated Lijsten are
-    /// never touched.
-    /// </summary>
-    private async Task CleanupOrphansAsync(Guid? congregationId, Guid? preacherId)
-    {
-        var changed = false;
-
-        if (congregationId.HasValue &&
-            !await _context.Services.AnyAsync(s => s.CongregationId == congregationId.Value))
-        {
-            var congregation = await _context.Congregations.FindAsync(congregationId.Value);
-            if (congregation != null)
-            {
-                _context.Congregations.Remove(congregation);
-                changed = true;
-            }
-        }
-
-        if (preacherId.HasValue &&
-            !await _context.Services.AnyAsync(s => s.PreacherId == preacherId.Value))
-        {
-            var preacher = await _context.Preachers.FindAsync(preacherId.Value);
-            if (preacher != null)
-            {
-                _context.Preachers.Remove(preacher);
-                changed = true;
-            }
-        }
-
-        if (changed)
-        {
-            await _context.SaveChangesAsync();
-        }
     }
 
     public async Task<BulkOperationResult> BulkUpdateAsync(BulkUpdateServicesRequest request, string userId)
@@ -604,20 +567,8 @@ public class ServiceService : IServiceService
             .Where(s => request.ServiceIds.Contains(s.Id))
             .ToListAsync();
 
-        var affectedCongregations = services.Select(s => s.CongregationId).Distinct().ToList();
-        var affectedPreachers = services.Where(s => s.PreacherId.HasValue).Select(s => s.PreacherId!.Value).Distinct().ToList();
-
         _context.Services.RemoveRange(services);
         await _context.SaveChangesAsync();
-
-        foreach (var cid in affectedCongregations)
-        {
-            await CleanupOrphansAsync(cid, null);
-        }
-        foreach (var pid in affectedPreachers)
-        {
-            await CleanupOrphansAsync(null, pid);
-        }
 
         return new BulkOperationResult(services.Count);
     }
@@ -674,13 +625,8 @@ public class ServiceService : IServiceService
             return false;
         }
 
-        var congregationId = service.CongregationId;
-        var preacherId = service.PreacherId;
-
         _context.Services.Remove(service);
         await _context.SaveChangesAsync();
-
-        await CleanupOrphansAsync(congregationId, preacherId);
         return true;
     }
 }

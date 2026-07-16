@@ -10,6 +10,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     public DbSet<Congregation> Congregations => Set<Congregation>();
     public DbSet<Preacher> Preachers => Set<Preacher>();
+    public DbSet<CongregationPreacher> CongregationPreachers => Set<CongregationPreacher>();
     public DbSet<Service> Services => Set<Service>();
     public DbSet<ServiceElement> ServiceElements => Set<ServiceElement>();
     public DbSet<ServiceElementSong> ServiceElementSongs => Set<ServiceElementSong>();

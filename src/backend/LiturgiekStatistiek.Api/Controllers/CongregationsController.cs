@@ -61,4 +61,19 @@ public class CongregationsController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteCongregation(Guid id)
+    {
+        var userId = User.GetDisplayName();
+        var outcome = await _congregationService.DeleteCongregationAsync(id, userId);
+        return outcome switch
+        {
+            DeleteOutcome.Deleted => NoContent(),
+            DeleteOutcome.NotFound => NotFound(),
+            DeleteOutcome.HasReferences => Conflict(new { message = "Gemeente heeft nog gekoppelde diensten en kan niet worden verwijderd." }),
+            _ => StatusCode(500)
+        };
+    }
 }

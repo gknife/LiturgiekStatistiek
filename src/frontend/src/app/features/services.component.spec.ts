@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ServicesComponent } from './services.component';
 import { ApiService } from '../core/services/api.service';
 import { AuthService } from '../core/auth/auth.service';
+import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
@@ -10,7 +11,8 @@ describe('ServicesComponent', () => {
 
   const apiMock = {
     getServices: () => of({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
-    getCongregations: () => of([]),
+    getCongregations: () => of({ items: [], totalCount: 0, page: 1, pageSize: 1000 }),
+    getPreachers: () => of({ items: [], totalCount: 0, page: 1, pageSize: 1000 }),
     getListByName: () => of({ items: [] }),
   } as unknown as ApiService;
 
@@ -20,6 +22,8 @@ describe('ServicesComponent', () => {
 
   const dialogMock = { open: () => ({ afterClosed: () => of(false) }) } as unknown as MatDialog;
 
+  const routeMock = { queryParamMap: of({ get: (_: string) => null }) } as unknown as ActivatedRoute;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ServicesComponent],
@@ -27,6 +31,7 @@ describe('ServicesComponent', () => {
         { provide: ApiService, useValue: apiMock },
         { provide: AuthService, useValue: authMock },
         { provide: MatDialog, useValue: dialogMock },
+        { provide: ActivatedRoute, useValue: routeMock },
       ],
     }).compileComponents();
 

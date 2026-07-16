@@ -19,4 +19,7 @@ public class Congregation : IHasAuditFields
     public DateTime? ModifiedAt { get; set; }
 
     public ICollection<Service> Services { get; set; } = new List<Service>();
+
+    /// <summary>Preachers associated with this congregation (many-to-many); one may be marked primary.</summary>
+    public ICollection<CongregationPreacher> Pastors { get; set; } = new List<CongregationPreacher>();
 }

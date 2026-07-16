@@ -5,11 +5,14 @@ namespace LiturgiekStatistiek.Infrastructure.Persistence;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(ApplicationDbContext db)
+    public static async Task SeedAsync(ApplicationDbContext db, bool includeDemoData = true)
     {
         await EnsureSystemListsAsync(db);
         await EnsureBibleBooksAsync(db);
-        await SeedDemoDataAsync(db);
+        if (includeDemoData)
+        {
+            await SeedDemoDataAsync(db);
+        }
     }
 
     /// <summary>
@@ -365,6 +368,9 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
                 ("Gereformeerde Bond", "GB"),
                 ("Christelijke Gereformeerde Kerken", "CGK"),
                 ("Hersteld Hervormd", "HHK") }),
+            ("PreacherTitles", "Voorganger-titels", new[] {
+                ("Ds.", (string?)null), ("Dr.", null), ("Prof.", null),
+                ("Prof. dr.", null), ("Kand.", null), ("Ev.", null), ("Br.", null) }),
             ("SpecialOccasions", "Bijzonderheden", new[] {
                 ("Avondmaal", (string?)null), ("Doop", null), ("Pasen", null),
                 ("Pinksteren", null), ("Kerst", null), ("Biddag", null),

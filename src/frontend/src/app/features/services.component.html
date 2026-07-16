@@ -34,6 +34,16 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline">
+      <mat-label>Voorganger</mat-label>
+      <mat-select [(ngModel)]="filterPreacherId">
+        <mat-option value="">Alle voorgangers</mat-option>
+        @for (p of preachers(); track p.id) {
+          <mat-option [value]="p.id">{{ p.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
       <mat-label>Van</mat-label>
       <input matInput type="date" [(ngModel)]="filterFromDate">
     </mat-form-field>
@@ -137,7 +147,7 @@
 
         <ng-container matColumnDef="date">
           <th mat-header-cell *matHeaderCellDef>Datum</th>
-          <td mat-cell *matCellDef="let row">{{ row.date }}</td>
+          <td mat-cell *matCellDef="let row">{{ row.date | date:'dd-MM-yyyy' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="timeOfDay">

@@ -9,9 +9,9 @@ using NUnit.Framework;
 namespace LiturgiekStatistiek.IntegrationTests;
 
 /// <summary>
-/// Draft/publish lifecycle and orphan-cleanup behaviour, backed by SQLite so that
-/// foreign-key cascade and the "delete gemeente/voorganger when it has no services
-/// left" rule are exercised the same way as on SQL Server in production.
+/// Draft/publish lifecycle and reference-entity retention behaviour, backed by SQLite
+/// so that foreign-key cascade and the "curated gemeente/voorganger are retained even
+/// with no remaining services" rule are exercised the same way as on SQL Server.
 /// </summary>
 [TestFixture]
 public class ServiceServiceDraftAndOrphanIntegrationTests
@@ -75,7 +75,7 @@ public class ServiceServiceDraftAndOrphanIntegrationTests
     }
 
     [Test]
-    public async Task DeleteServiceAsync_RemovesCongregationThatHasNoServicesLeft()
+    public async Task DeleteServiceAsync_RetainsCongregationThatHasNoServicesLeft()
     {
         var congregationId = await NewCongregationAsync("ZZ-TEST Orphan Gemeente");
         var created = await _sut.CreateServiceAsync(BuildCreateRequest(congregationId), "tester");
@@ -85,8 +85,8 @@ public class ServiceServiceDraftAndOrphanIntegrationTests
 
         await using var verify = new ApplicationDbContext(_options);
         var stillThere = await verify.Congregations.AnyAsync(c => c.Id == congregationId);
-        Assert.That(stillThere, Is.False,
-            "A gemeente with no remaining services must be hard-deleted.");
+        Assert.That(stillThere, Is.True,
+            "A curated gemeente must be retained even when it has no remaining services.");
     }
 
     private async Task<Guid> NewCongregationAsync(string name)
