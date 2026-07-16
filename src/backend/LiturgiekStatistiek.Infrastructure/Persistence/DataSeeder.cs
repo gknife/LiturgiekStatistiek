@@ -297,10 +297,16 @@ public static class DataSeeder
         AddPsalm(svc6.Id, 2, 150, "3");
 
         // --- Content pages ---
-        db.ContentPages.Add(new ContentPage
+        // Guarded independently of the Congregations check above: the homepage has a
+        // unique index on Slug, so re-running the demo seed on a database whose
+        // congregations were emptied (but which still holds the content page) would
+        // otherwise throw a duplicate-key exception and crash the app on startup.
+        if (!await db.ContentPages.AnyAsync(c => c.Slug == "homepage"))
         {
-            Id = Guid.NewGuid(),
-            Slug = "homepage",
+            db.ContentPages.Add(new ContentPage
+            {
+                Id = Guid.NewGuid(),
+                Slug = "homepage",
             TitleNl = "Welkom bij Liturgiek Statistiek",
             ContentMarkdown = @"# Liturgiek Statistiek
 
@@ -323,7 +329,8 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
 - Wat is de relatie tussen seizoen/kerkelijk jaar en liedkeuze?
 ",
             ModifiedAt = DateTime.UtcNow
-        });
+            });
+        }
 
         await db.SaveChangesAsync();
 
