@@ -1287,7 +1287,13 @@ export class AddComponent implements OnInit {
   /** Publish: persists the service and flips it to Gepubliceerd. */
   publish(): void {
     if (this.saving || this.publishing) return;
-    if (!this.metadataForm.valid) { this.metadataForm.markAllAsTouched(); return; }
+    if (!this.metadataForm.valid) {
+      this.metadataForm.markAllAsTouched();
+      // Surface the validation error: switch to the manual tab + metadata step.
+      this.selectedTabIndex = 0;
+      if (this.stepper) this.stepper.selectedIndex = 0;
+      return;
+    }
     this.publishing = true;
     this.performSave(1).subscribe({
       next: () => { this.publishing = false; this.finish(true); },
@@ -1298,11 +1304,6 @@ export class AddComponent implements OnInit {
   /** Back-compat entry point for the primary action button. */
   saveService(): void {
     this.publish();
-  }
-
-  /** Id of the "Voorganger" performer, used as the default for onderdelen. */
-  private defaultPerformerId(): string {
-    return this.performers.find(p => p.value === 'Voorganger')?.id ?? '';
   }
 
   /** Proceed without a template (empty service). */
@@ -1343,7 +1344,6 @@ export class AddComponent implements OnInit {
     this.templateDefaultBundleId = template.defaultSongBundleId ?? '';
     this.templateDenominationId = template.denominationId ?? '';
 
-    const defaultPerformer = this.defaultPerformerId();
     const defaultTranslation = this.templateDefaultTranslationId;
     const scaffold: ServiceElementModel[] = template.elements
       .slice()
@@ -1353,8 +1353,8 @@ export class AddComponent implements OnInit {
         elementType: e.elementTypeValue,
         labelId: e.labelId ?? '',
         notes: '',
-        // Template performer override wins; otherwise default to Voorganger.
-        performerId: e.performerId ?? defaultPerformer,
+        // Honour the template's performer exactly, including an explicit "geen".
+        performerId: e.performerId ?? '',
         isBeurtzang: e.isBeurtzang ?? false,
         bibleTranslationId: e.elementTypeValue === this.ELEMENT_READING ? defaultTranslation : '',
         readingRefs: [],

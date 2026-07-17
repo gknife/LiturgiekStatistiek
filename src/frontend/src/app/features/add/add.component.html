@@ -45,7 +45,7 @@
   <!-- Tab 1: Manual entry -->
   <mat-tab label="Handmatig invoeren">
     <div class="tab-content">
-      <mat-stepper #stepper linear>
+      <mat-stepper #stepper>
         <!-- Step 1: Metadata -->
         <mat-step [stepControl]="metadataForm" label="Metadata">
           <form [formGroup]="metadataForm" class="form-grid">
@@ -65,13 +65,13 @@
               </mat-select>
             </mat-form-field>
 
-            <div class="sermon-ref-row full-width">
+            <div class="metadata-ref-row full-width">
               <div class="readonly-field ref-chapter">
                 <span class="readonly-label">Kerkgenootschap</span>
                 <span class="readonly-value">{{ congregationDenominationLabel }}</span>
               </div>
 
-              <mat-form-field appearance="outline" class="ref-book">
+              <mat-form-field appearance="outline" class="ref-book" subscriptSizing="dynamic">
                 <mat-label>Gemeente</mat-label>
                 <input matInput [formControl]="congregationControl" [matAutocomplete]="congAuto"
                   placeholder="Typ om bestaande gemeente te zoeken...">
@@ -131,13 +131,13 @@
               </div>
             }
 
-            <div class="sermon-ref-row full-width">
+            <div class="metadata-ref-row full-width">
               <div class="readonly-field ref-chapter">
                 <span class="readonly-label">Titel</span>
                 <span class="readonly-value">{{ preacherTitleLabel }}</span>
               </div>
 
-              <mat-form-field appearance="outline" class="ref-book">
+              <mat-form-field appearance="outline" class="ref-book" subscriptSizing="dynamic">
                 <mat-label>Voorganger</mat-label>
                 <input matInput [formControl]="preacherControl" [matAutocomplete]="preachAuto"
                   placeholder="Typ om bestaande voorganger te zoeken...">
@@ -358,7 +358,7 @@
                     <input matInput [(ngModel)]="element.notes" [ngModelOptions]="{ standalone: true }"
                       (ngModelChange)="scheduleAutosave()" placeholder="Bijv. staand, gezongen">
                   </mat-form-field>
-                  <button mat-icon-button color="warn" type="button" (click)="removeElement(i)">
+                  <button mat-icon-button color="warn" type="button" class="element-delete" (click)="removeElement(i)">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>

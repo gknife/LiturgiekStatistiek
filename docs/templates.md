@@ -80,10 +80,11 @@ morgendienst) without re-entering the whole orde van dienst.
 
 Creating a dienst now **starts** with a template chooser: before the Handmatig / Plakken /
 URL-import tabs appear, the user picks a sjabloon (or **Zonder sjabloon (leeg)**). The chosen
-template pre-fills the metadata standaardkenmerken and lays out the onderdelen scaffold, with
-each onderdeel's performer defaulting to **Voorganger** (a template performer override wins,
-and manual override is always possible). Editing or **duplicating** an existing dienst skips
-the chooser (the source dienst acts as the template).
+template pre-fills the metadata standaardkenmerken and lays out the onderdelen scaffold. Each
+onderdeel keeps the **performer that the sjabloon specifies** — including an explicit *geen
+voorganger* (bijv. *Na de zegen (orgelspel of…)*). Onderdelen die je daarna handmatig toevoegt
+starten zonder voorganger; een performer kies je zelf. Editing or **duplicating** an existing
+dienst skips the chooser (the source dienst acts as the template).
 
 The **Sjabloon toepassen** button on the onderdelen-tab calls `instantiate` for the chosen
 gemeente/dagdeel/gelegenheid. If onderdelen were already parsed or entered, they are

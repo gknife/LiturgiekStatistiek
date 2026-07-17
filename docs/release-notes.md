@@ -1,5 +1,31 @@
 # Release notes
 
+## 2026-07-17 — UI-verfijning dienst-dialoog & sjabloon-voorganger
+
+### Changed
+- **Rubriekenlijst (Liedcatalogus).** De rubriek-rijen in het beheerpaneel hebben nu
+  onderlinge marge en een nette horizontale uitlijning (ster, invoerveld, opslaan/verwijderen),
+  zodat de zwevende labels niet meer overlappen.
+- **Uitlijning metadata-tab.** De rijen *Kerkgenootschap/Gemeente/Plaats* en
+  *Titel/Voorganger/Woonplaats/Kerkgenootschap* met hun *Nieuwe*-knop staan nu op een vast
+  raster uitgelijnd (horizontaal én verticaal).
+- **Liedrij-uitlijning.** De invoervelden van een lied (Bundel, Rubriek, Nummer, Verzen) lijnen
+  bovenaan uit; de hint onder *Verzen* duwt het veld niet meer omhoog. De verwijderknop van een
+  onderdeel staat vast rechtsboven in de kaart.
+- **Vrij navigeren.** Je kunt nu tussen de stappen *Metadata → Orde van dienst → Controleren*
+  navigeren zonder eerst een gemeente/voorganger in te vullen. De gemeente blijft verplicht bij
+  **Publiceren**; ontbreekt die, dan springt de dialoog terug naar *Metadata* met de foutmelding.
+
+### Fixed
+- **Sjabloon-voorganger "geen".** Een sjabloon-onderdeel met bewust *geen* voorganger (bv.
+  *Na de zegen (orgelspel of…)*) kreeg bij het aanmaken van een dienst onterecht *Voorganger*
+  toegewezen. De expliciete keuze van het sjabloon wordt nu behouden.
+
+### Test data
+- Nieuw sjabloon **"PKN – Ochtenddienst met orgelspel na de zegen"** met een *Na de zegen
+  (orgelspel of…)*-onderdeel zonder voorganger, zodat het bovenstaande scenario reproduceerbaar
+  blijft.
+
 ## 2026-07-17 — Rubrieken, voorzang, leesdienst & dienst-dialoog
 
 ### Added

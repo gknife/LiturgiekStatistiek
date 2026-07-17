@@ -520,6 +520,35 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
                 false, Bundle("WK"), Translation("HSV"), voorganger, Accompaniment("Piano"), reguliereRows),
         };
 
+        // A template that deliberately leaves the "Na de zegen (orgelspel of...)"
+        // performer unset, so the frontend must preserve an explicit "geen voorganger"
+        // instead of defaulting it to Voorganger when the dienst is created.
+        templates.Add(new ServiceTemplate
+        {
+            Id = Guid.NewGuid(),
+            Name = "PKN – Ochtenddienst met orgelspel na de zegen",
+            DenominationId = Denom("PKN"),
+            TimeOfDay = TimeOfDay.Morning,
+            OccasionId = null,
+            IsActive = true,
+            IsReadingService = false,
+            DefaultSongBundleId = Bundle("LvdK"),
+            DefaultBibleTranslationId = Translation("NBV21"),
+            MusicalAccompanimentId = Accompaniment("Orgel"),
+            HasBeamerLiturgy = false,
+            HasBeamerTexts = false,
+            HasBeamerSongs = false,
+            Elements = new List<ServiceTemplateElement>
+            {
+                new() { Id = Guid.NewGuid(), Position = 1, ElementType = ElementType.LiturgicalAct, LabelId = Label("Votum"), PerformerId = voorganger },
+                new() { Id = Guid.NewGuid(), Position = 2, ElementType = ElementType.Song, LabelId = Label("Openingslied"), PerformerId = null },
+                new() { Id = Guid.NewGuid(), Position = 3, ElementType = ElementType.Reading, LabelId = Label("Schriftlezing(en)"), PerformerId = voorganger },
+                new() { Id = Guid.NewGuid(), Position = 4, ElementType = ElementType.Song, LabelId = Label("Slotlied"), PerformerId = null },
+                new() { Id = Guid.NewGuid(), Position = 5, ElementType = ElementType.LiturgicalAct, LabelId = Label("Zegen"), PerformerId = voorganger },
+                new() { Id = Guid.NewGuid(), Position = 6, ElementType = ElementType.LiturgicalAct, LabelId = Label("Na de zegen (orgelspel of...)"), PerformerId = null },
+            }
+        });
+
         db.ServiceTemplates.AddRange(templates);
 
         // A seeded leesdienst so the grid badge and leesdienst flow are testable and

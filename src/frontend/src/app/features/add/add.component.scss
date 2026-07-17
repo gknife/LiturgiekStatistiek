@@ -255,6 +255,7 @@
 }
 
 .element-card {
+  position: relative;
   padding: 1rem;
   margin-bottom: 0.75rem;
   border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
@@ -265,8 +266,15 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 0.75rem;
+    padding-right: 2.75rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
+  }
+
+  .element-delete {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
   }
 
   .position-badge {
@@ -359,6 +367,32 @@
   .ref-verse { flex: 1 1 100px; }
 }
 
+// Metadata people rows (Kerkgenootschap/Gemeente/Plaats + Titel/Voorganger/Woonplaats)
+// laid out on a fixed grid so the readonly fields, input and "Nieuwe" button line up.
+.metadata-ref-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(220px, 2.2fr) minmax(130px, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 1rem;
+
+  .ref-book,
+  .ref-chapter {
+    flex: none;
+    min-width: 0;
+  }
+
+  button {
+    justify-self: start;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .metadata-ref-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .element-songs {
   display: flex;
   flex-direction: column;
@@ -373,7 +407,7 @@
 .song-row {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   padding: 0.5rem 0.6rem;
   border-radius: 6px;
@@ -385,13 +419,20 @@
   .song-number { flex: 0 1 100px; }
   .song-verses { flex: 1 1 140px; }
 
+  // Align the trailing controls with the input boxes (which top-align via flex-start).
+  > button {
+    margin-top: 0.4rem;
+  }
+
   .song-full {
     flex: 0 0 auto;
     margin-left: auto;
+    margin-top: 0.6rem;
   }
 
   .song-complete-badge {
     flex: 0 0 auto;
+    margin-top: 0.7rem;
     display: inline-flex;
     align-items: center;
     padding: 0.1rem 0.5rem;

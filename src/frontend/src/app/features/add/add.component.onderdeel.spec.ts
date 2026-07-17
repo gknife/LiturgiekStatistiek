@@ -91,4 +91,28 @@ describe('AddComponent onderdeel dropdowns', () => {
 
     expect((element as { labelId: string }).labelId).not.toBe('song1');
   });
+
+  it('honours the template performer, including an explicit "geen", instead of defaulting to Voorganger', () => {
+    // A Voorganger performer exists, so the old behaviour would have defaulted to it.
+    component.performers = [
+      { id: 'voorganger-id', value: 'Voorganger', abbreviation: null, sortOrder: 0, isActive: true, liturgicalElementType: null },
+      { id: 'organist-id', value: 'Organist', abbreviation: null, sortOrder: 1, isActive: true, liturgicalElementType: null },
+    ];
+
+    const template = {
+      id: 't1',
+      name: 'Test',
+      elements: [
+        // No performer set -> must stay empty (not become Voorganger).
+        { id: 'e1', position: 1, elementType: 'LiturgicalAction', elementTypeValue: 1, labelId: null, label: null, performerId: null, performer: null, isBeurtzang: false, fixedScriptureReference: null },
+        // Explicit performer -> must be preserved.
+        { id: 'e2', position: 2, elementType: 'LiturgicalAction', elementTypeValue: 1, labelId: null, label: null, performerId: 'organist-id', performer: 'Organist', isBeurtzang: false, fixedScriptureReference: null },
+      ],
+    };
+
+    (component as never as { applyTemplateDto(t: unknown): void }).applyTemplateDto(template);
+
+    expect(component.elements[0].performerId).toBe('');
+    expect(component.elements[1].performerId).toBe('organist-id');
+  });
 });
