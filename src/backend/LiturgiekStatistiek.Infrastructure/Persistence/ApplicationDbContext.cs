@@ -21,6 +21,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<ListItem> ListItems => Set<ListItem>();
     public DbSet<Song> Songs => Set<Song>();
     public DbSet<SongCatalogVerse> SongCatalogVerses => Set<SongCatalogVerse>();
+    public DbSet<BundleSection> BundleSections => Set<BundleSection>();
     public DbSet<ContentPage> ContentPages => Set<ContentPage>();
     public DbSet<SavedQuery> SavedQueries => Set<SavedQuery>();
     public DbSet<ChangeHistory> ChangeHistory => Set<ChangeHistory>();

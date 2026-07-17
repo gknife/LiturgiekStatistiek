@@ -32,6 +32,10 @@
         [disabled]="!selectedBundle" (click)="deleteBundle()">
         <mat-icon>delete</mat-icon>
       </button>
+      <button mat-stroked-button type="button" matTooltip="Rubrieken/categorieën beheren"
+        [disabled]="!selectedBundleId" (click)="toggleSectionsPanel()">
+        <mat-icon>category</mat-icon> Rubrieken
+      </button>
       <button mat-flat-button color="primary" type="button"
         [disabled]="!selectedBundleId" (click)="openAddSong()">
         <mat-icon>add</mat-icon> Lied
@@ -39,6 +43,52 @@
     </div>
   }
 </div>
+
+@if (showSectionsPanel() && selectedBundleId) {
+  <mat-card class="edit-card">
+    <h2>Rubrieken – {{ selectedBundle?.value }}</h2>
+    <p class="page-description">
+      De categorie/rubriek is de indeling van deze bundel (bv. Psalm, Gezang). De standaardrubriek
+      (met ster) wordt automatisch voorgeselecteerd bij een nieuw lied. Hernoemen past bestaande liederen aan.
+    </p>
+    @if (sections().length === 0) {
+      <p class="verse-empty">Nog geen rubrieken. Voeg er hieronder een toe.</p>
+    }
+    @for (section of sections(); track section.id) {
+      <div class="verse-row">
+        <button mat-icon-button type="button"
+          [matTooltip]="section.isDefault ? 'Standaardrubriek' : 'Als standaard instellen'"
+          (click)="setDefaultSection(section)">
+          <mat-icon>{{ section.isDefault ? 'star' : 'star_border' }}</mat-icon>
+        </button>
+        <mat-form-field appearance="outline" class="grow" subscriptSizing="dynamic">
+          <mat-label>Rubriek</mat-label>
+          <input matInput #ren [value]="section.value">
+        </mat-form-field>
+        <button mat-icon-button type="button" matTooltip="Hernoemen (past liederen aan)"
+          (click)="renameSection(section, ren.value)">
+          <mat-icon>save</mat-icon>
+        </button>
+        <button mat-icon-button type="button" matTooltip="Verwijderen" (click)="deleteSection(section)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    }
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="grow" subscriptSizing="dynamic">
+        <mat-label>Nieuwe rubriek</mat-label>
+        <input matInput [(ngModel)]="newSectionValue" placeholder="bv. Psalm / Gezang"
+          (keyup.enter)="addSection()">
+      </mat-form-field>
+      <button mat-stroked-button type="button" (click)="addSection()">
+        <mat-icon>add</mat-icon> Toevoegen
+      </button>
+    </div>
+    <div class="form-buttons">
+      <button mat-button type="button" (click)="toggleSectionsPanel()">Sluiten</button>
+    </div>
+  </mat-card>
+}
 
 @if (bundleForm(); as bf) {
   <mat-card class="edit-card">
@@ -70,7 +120,16 @@
     <div class="form-row">
       <mat-form-field appearance="outline" class="small">
         <mat-label>Categorie</mat-label>
-        <input matInput [(ngModel)]="sf.section" placeholder="bv. Psalm / Gezang">
+        @if (sections().length > 0) {
+          <mat-select [(ngModel)]="sf.section">
+            <mat-option [value]="''">(geen)</mat-option>
+            @for (section of sections(); track section.id) {
+              <mat-option [value]="section.value">{{ section.value }}</mat-option>
+            }
+          </mat-select>
+        } @else {
+          <input matInput [(ngModel)]="sf.section" placeholder="bv. Psalm / Gezang">
+        }
       </mat-form-field>
       <mat-form-field appearance="outline" class="small">
         <mat-label>Nummer</mat-label>
@@ -85,12 +144,21 @@
     <div class="verses-editor">
       <div class="verses-header">
         <span>Coupletten ({{ sf.verses.length }})</span>
+        <span class="spacer"></span>
+        <button mat-stroked-button type="button" (click)="addNamedVerseRow()"
+          matTooltip="Voeg een genoemd vers toe (bv. Voorzang, Tussenzang, Slotzang)">
+          <mat-icon>bookmark_add</mat-icon> Genoemd vers
+        </button>
         <button mat-stroked-button type="button" (click)="addVerseRow()">
           <mat-icon>add</mat-icon> Couplet
         </button>
       </div>
       @for (v of sf.verses; track $index) {
         <div class="verse-row">
+          <mat-form-field appearance="outline" class="verse-label-field">
+            <mat-label>Label</mat-label>
+            <input matInput [(ngModel)]="v.label" placeholder="bv. Voorzang">
+          </mat-form-field>
           <mat-form-field appearance="outline" class="verse-num-field">
             <mat-label>Nr.</mat-label>
             <input matInput type="number" [(ngModel)]="v.number">
@@ -165,8 +233,15 @@
               <p class="verse-empty">Geen coupletteksten beschikbaar.</p>
             } @else {
               <ul class="verse-list">
-                @for (v of versesOf(song); track v.number) {
-                  <li><span class="verse-num">{{ v.number }}</span> {{ v.title || '–' }}</li>
+                @for (v of versesOf(song); track $index) {
+                  <li>
+                    @if (v.label) {
+                      <span class="verse-num verse-label">{{ v.label }}</span>
+                    } @else {
+                      <span class="verse-num">{{ v.number }}</span>
+                    }
+                    {{ v.title || '–' }}
+                  </li>
                 }
               </ul>
             }

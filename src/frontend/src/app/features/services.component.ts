@@ -350,6 +350,7 @@ export class ServicesComponent implements OnInit {
       width: '900px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+      panelClass: 'dienst-dialog-panel',
       data: {} as AddDialogData,
     });
     ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
@@ -360,6 +361,7 @@ export class ServicesComponent implements OnInit {
       width: '900px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+      panelClass: 'dienst-dialog-panel',
       data: { serviceId: service.id } as AddDialogData,
     });
     ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
@@ -370,6 +372,7 @@ export class ServicesComponent implements OnInit {
       width: '900px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+      panelClass: 'dienst-dialog-panel',
       data: { duplicateFromId: service.id } as AddDialogData,
     });
     ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
@@ -406,3 +409,4 @@ export class ServicesComponent implements OnInit {
     });
   }
 }
+

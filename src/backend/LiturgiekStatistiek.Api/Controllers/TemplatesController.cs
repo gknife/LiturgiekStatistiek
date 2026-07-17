@@ -74,4 +74,21 @@ public class TemplatesController : ControllerBase
         if (result == null) return NoContent();
         return Ok(result);
     }
+
+    /// <summary>
+    /// Resolves the best-matching template for the given selectors and returns the full
+    /// template (including standaardkenmerken such as the default liedbundel and
+    /// bijbelvertaling), so the dienst editor can prefill both metadata and onderdelen.
+    /// </summary>
+    [HttpGet("resolve")]
+    public async Task<ActionResult<ServiceTemplateDto>> Resolve(
+        [FromQuery] Guid? denominationId = null,
+        [FromQuery] Guid? congregationId = null,
+        [FromQuery] int? timeOfDay = null,
+        [FromQuery] Guid? occasionId = null)
+    {
+        var result = await _templateService.ResolveAsync(denominationId, congregationId, timeOfDay, occasionId);
+        if (result == null) return NoContent();
+        return Ok(result);
+    }
 }

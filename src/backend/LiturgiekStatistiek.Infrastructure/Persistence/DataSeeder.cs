@@ -370,6 +370,229 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
             (opw, "", "opwekking.json"),
             (gk, "", "gereformeerd-kerkboek.json"),
         });
+
+        await SeedBundleSectionsAsync(db);
+
+        // Psalm 18 (1773) has a Voorzang sung before verse 1 — model it as a named
+        // catalog verse ordered ahead of verse 1 (SortOrder -1), excluded from the
+        // numbered-verse completeness count.
+        var psalm18 = await db.Songs
+            .Include(s => s.Verses)
+            .FirstOrDefaultAsync(s => s.BundleId == ps1773.Id && s.Section == "Psalm" && s.Number == 18);
+        if (psalm18 != null && psalm18.Verses.All(v => v.Label != "Voorzang"))
+        {
+            db.SongCatalogVerses.Add(new SongCatalogVerse
+            {
+                Id = Guid.NewGuid(),
+                SongId = psalm18.Id,
+                Number = 0,
+                Label = "Voorzang",
+                SortOrder = -1
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await SeedServiceTemplatesAsync(db, cong2.Id);
+    }
+
+    /// <summary>
+    /// Seed the predefined service templates (sjablonen) per kerkgenootschap, occasion
+    /// and dagdeel. Also seeds a leesdienst demo service so the Diensten grid badge and
+    /// the leesdienst flow can be exercised. Runs only on a fresh database.
+    /// </summary>
+    private static async Task SeedServiceTemplatesAsync(ApplicationDbContext db, Guid ggCongregationId)
+    {
+        if (await db.ServiceTemplates.AnyAsync()) return;
+
+        var denomItems = await db.ListItems.Where(i => i.ListDefinition.Name == "Denominations").ToListAsync();
+        var bundleItems = await db.ListItems.Where(i => i.ListDefinition.Name == "SongBundles").ToListAsync();
+        var translationItems = await db.ListItems.Where(i => i.ListDefinition.Name == "BibleTranslations").ToListAsync();
+        var occasionItems = await db.ListItems.Where(i => i.ListDefinition.Name == "ServiceOccasion").ToListAsync();
+        var performerItems = await db.ListItems.Where(i => i.ListDefinition.Name == "ServicePerformer").ToListAsync();
+        var accompanimentItems = await db.ListItems.Where(i => i.ListDefinition.Name == "MusicalAccompaniment").ToListAsync();
+        var labelItems = await db.ListItems.Where(i => i.ListDefinition.Name == "LiturgicalLabels").ToListAsync();
+
+        Guid? Denom(string abbr) => denomItems.FirstOrDefault(i => i.Abbreviation == abbr)?.Id;
+        Guid? Bundle(string abbr) => bundleItems.FirstOrDefault(i => i.Abbreviation == abbr)?.Id;
+        Guid? Translation(string abbr) => translationItems.FirstOrDefault(i => i.Abbreviation == abbr)?.Id;
+        Guid? Occasion(string value) => occasionItems.FirstOrDefault(i => i.Value == value)?.Id;
+        Guid? Performer(string value) => performerItems.FirstOrDefault(i => i.Value == value)?.Id;
+        Guid? Accompaniment(string value) => accompanimentItems.FirstOrDefault(i => i.Value == value)?.Id;
+        Guid? Label(string value) => labelItems.FirstOrDefault(i => i.Value == value)?.Id;
+
+        // A common ordre-van-dienst scaffold reused by the reguliere sjablonen.
+        // Tuple: (label value, element type, is a song element).
+        List<ServiceTemplateElement> Scaffold(Guid? performerId, IEnumerable<(string Label, ElementType Type)> rows)
+        {
+            var pos = 1;
+            var list = new List<ServiceTemplateElement>();
+            foreach (var (label, type) in rows)
+            {
+                list.Add(new ServiceTemplateElement
+                {
+                    Id = Guid.NewGuid(),
+                    Position = pos++,
+                    ElementType = type,
+                    LabelId = Label(label),
+                    PerformerId = type == ElementType.Song ? null : performerId
+                });
+            }
+            return list;
+        }
+
+        var reguliereRows = new (string, ElementType)[]
+        {
+            ("Votum", ElementType.LiturgicalAct),
+            ("Groet", ElementType.LiturgicalAct),
+            ("Openingslied", ElementType.Song),
+            ("Gebed om de opening van het Woord", ElementType.Prayer),
+            ("Schriftlezing(en)", ElementType.Reading),
+            ("Na de preek", ElementType.Song),
+            ("Slotlied", ElementType.Song),
+            ("Zegen", ElementType.LiturgicalAct),
+        };
+
+        var avondmaalRows = new (string, ElementType)[]
+        {
+            ("Votum", ElementType.LiturgicalAct),
+            ("Groet", ElementType.LiturgicalAct),
+            ("Openingslied", ElementType.Song),
+            ("Schriftlezing(en)", ElementType.Reading),
+            ("Na de preek", ElementType.Song),
+            ("Tussenzang", ElementType.Song),
+            ("Slotlied", ElementType.Song),
+            ("Zegen", ElementType.LiturgicalAct),
+        };
+
+        var doopRows = new (string, ElementType)[]
+        {
+            ("Votum", ElementType.LiturgicalAct),
+            ("Groet", ElementType.LiturgicalAct),
+            ("Openingslied", ElementType.Song),
+            ("Schriftlezing(en)", ElementType.Reading),
+            ("Na de preek", ElementType.Song),
+            ("Slotlied", ElementType.Song),
+            ("Zegen", ElementType.LiturgicalAct),
+        };
+
+        ServiceTemplate Template(
+            string name, Guid? denomId, TimeOfDay? timeOfDay, Guid? occasionId,
+            bool isReading, Guid? bundleId, Guid? translationId, Guid? performerId,
+            Guid? accompanimentId, IEnumerable<(string, ElementType)> rows)
+        {
+            return new ServiceTemplate
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                DenominationId = denomId,
+                TimeOfDay = timeOfDay,
+                OccasionId = occasionId,
+                IsActive = true,
+                IsReadingService = isReading,
+                DefaultSongBundleId = bundleId,
+                DefaultBibleTranslationId = translationId,
+                MusicalAccompanimentId = accompanimentId,
+                HasBeamerLiturgy = false,
+                HasBeamerTexts = false,
+                HasBeamerSongs = false,
+                Elements = Scaffold(performerId, rows)
+            };
+        }
+
+        var voorganger = Performer("Voorganger");
+        var ouderling = Performer("Ouderling");
+
+        var templates = new List<ServiceTemplate>
+        {
+            Template("PKN – Reguliere ochtenddienst", Denom("PKN"), TimeOfDay.Morning, null,
+                false, Bundle("LvdK"), Translation("NBV21"), voorganger, Accompaniment("Orgel"), reguliereRows),
+            Template("PKN – Reguliere avonddienst", Denom("PKN"), TimeOfDay.Evening, null,
+                false, Bundle("LvdK"), Translation("NBV21"), voorganger, Accompaniment("Orgel"), reguliereRows),
+            Template("PKN – Avondmaalsdienst", Denom("PKN"), null, Occasion("Avondmaal"),
+                false, Bundle("LvdK"), Translation("NBV21"), voorganger, Accompaniment("Orgel"), avondmaalRows),
+            Template("PKN – Doopdienst", Denom("PKN"), null, Occasion("Doop"),
+                false, Bundle("LvdK"), Translation("NBV21"), voorganger, Accompaniment("Orgel"), doopRows),
+            Template("GG – Reguliere leesdienst", Denom("GG"), TimeOfDay.Morning, null,
+                true, Bundle("Ps1773"), Translation("SV"), ouderling, Accompaniment("Orgel"), reguliereRows),
+            Template("GG – Avondmaalsdienst", Denom("GG"), null, Occasion("Avondmaal"),
+                false, Bundle("Ps1773"), Translation("SV"), voorganger, Accompaniment("Orgel"), avondmaalRows),
+            Template("NGK – Reguliere dienst", Denom("NGK"), TimeOfDay.Morning, null,
+                false, Bundle("WK"), Translation("HSV"), voorganger, Accompaniment("Piano"), reguliereRows),
+        };
+
+        db.ServiceTemplates.AddRange(templates);
+
+        // A seeded leesdienst so the grid badge and leesdienst flow are testable and
+        // stay available for future runs (no preacher).
+        var leesLabelOpening = Label("Openingslied");
+        var leesLabelSlot = Label("Slotlied");
+        var ps1773Id = Bundle("Ps1773");
+        var leesdienst = new Service
+        {
+            Id = Guid.NewGuid(),
+            CongregationId = ggCongregationId,
+            PreacherId = null,
+            IsReadingService = true,
+            Date = new DateOnly(DateTime.Now.Year, 2, 16),
+            TimeOfDay = TimeOfDay.Afternoon,
+            SermonTheme = "Leesdienst – preek gelezen",
+            SermonText = "Zondag 1 Heidelbergse Catechismus"
+        };
+        db.Services.Add(leesdienst);
+        var lesEl1 = new ServiceElement { Id = Guid.NewGuid(), ServiceId = leesdienst.Id, Position = 1, LabelId = leesLabelOpening, ElementType = ElementType.Song };
+        var lesEl2 = new ServiceElement { Id = Guid.NewGuid(), ServiceId = leesdienst.Id, Position = 2, LabelId = leesLabelSlot, ElementType = ElementType.Song };
+        db.ServiceElements.AddRange(lesEl1, lesEl2);
+        if (ps1773Id.HasValue)
+        {
+            var lesSong1 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = lesEl1.Id, BundleId = ps1773Id.Value, Section = "Psalm", SongNumber = 68, Position = 1 };
+            var lesSong2 = new ServiceElementSong { Id = Guid.NewGuid(), ServiceElementId = lesEl2.Id, BundleId = ps1773Id.Value, Section = "Psalm", SongNumber = 134, Position = 1 };
+            db.ServiceElementSongs.AddRange(lesSong1, lesSong2);
+            db.SongVerses.AddRange(
+                new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = lesSong1.Id, VerseLabel = "1", Position = 1 },
+                new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = lesSong2.Id, VerseLabel = "1", Position = 1 },
+                new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = lesSong2.Id, VerseLabel = "2", Position = 2 },
+                new SongVerse { Id = Guid.NewGuid(), ServiceElementSongId = lesSong2.Id, VerseLabel = "3", Position = 3 }
+            );
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Create the per-bundle rubrieken (categorieën) from the distinct non-empty
+    /// <see cref="Song.Section"/> values that were just seeded, marking the most-used
+    /// rubriek per bundle as the default (pre-selected in the Lied dropdown).
+    /// </summary>
+    private static async Task SeedBundleSectionsAsync(ApplicationDbContext db)
+    {
+        if (await db.BundleSections.AnyAsync()) return;
+
+        var groups = await db.Songs
+            .Where(s => s.Section != "")
+            .GroupBy(s => new { s.BundleId, s.Section })
+            .Select(g => new { g.Key.BundleId, g.Key.Section, Count = g.Count() })
+            .ToListAsync();
+
+        foreach (var byBundle in groups.GroupBy(g => g.BundleId))
+        {
+            var ordered = byBundle.OrderByDescending(x => x.Count).ThenBy(x => x.Section).ToList();
+            var order = 0;
+            foreach (var item in ordered)
+            {
+                db.BundleSections.Add(new BundleSection
+                {
+                    Id = Guid.NewGuid(),
+                    BundleId = item.BundleId,
+                    Value = item.Section,
+                    SortOrder = order,
+                    IsDefault = order == 0,
+                    IsActive = true
+                });
+                order++;
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 
     /// <summary>
@@ -539,6 +762,7 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
 
                 if (entry.Verses is { Count: > 0 })
                 {
+                    var order = 0;
                     foreach (var v in entry.Verses)
                     {
                         db.SongCatalogVerses.Add(new SongCatalogVerse
@@ -546,7 +770,8 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
                             Id = Guid.NewGuid(),
                             SongId = song.Id,
                             Number = v.Number,
-                            Title = v.Title
+                            Title = v.Title,
+                            SortOrder = order++
                         });
                     }
                 }

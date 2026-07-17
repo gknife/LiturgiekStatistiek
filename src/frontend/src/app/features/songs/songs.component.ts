@@ -12,14 +12,14 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { ListItem, Song, SongVerse } from '../../core/models/api.models';
+import { ListItem, Song, SongVerse, BundleSection } from '../../core/models/api.models';
 
 interface SongForm {
   id: string | null;
   section: string;
   number: number | null;
   title: string;
-  verses: { number: number; title: string }[];
+  verses: { number: number; title: string; label: string }[];
 }
 
 interface BundleForm {
@@ -57,6 +57,10 @@ export class SongsComponent implements OnInit {
   readonly bundleForm = signal<BundleForm | null>(null);
   readonly saving = signal(false);
 
+  readonly sections = signal<BundleSection[]>([]);
+  readonly showSectionsPanel = signal(false);
+  newSectionValue = '';
+
   constructor(
     private api: ApiService,
     private snackBar: MatSnackBar,
@@ -77,9 +81,11 @@ export class SongsComponent implements OnInit {
             ? selectId
             : (list.items.some((b) => b.id === this.selectedBundleId) ? this.selectedBundleId : list.items[0].id);
           this.loadSongs();
+          this.loadSections();
         } else {
           this.selectedBundleId = null;
           this.songs.set([]);
+          this.sections.set([]);
           this.totalCount.set(0);
         }
       },
@@ -109,7 +115,9 @@ export class SongsComponent implements OnInit {
   onBundleChange(): void {
     this.page = 1;
     this.expandedSongId.set(null);
+    this.showSectionsPanel.set(false);
     this.loadSongs();
+    this.loadSections();
   }
 
   onPageChange(event: PageEvent): void {
@@ -162,7 +170,7 @@ export class SongsComponent implements OnInit {
     this.bundleForm.set(null);
     this.songForm.set({
       id: null,
-      section: this.selectedBundle?.value === 'Psalmen 1773' ? 'Psalm' : '',
+      section: this.defaultSectionValue,
       number: null,
       title: '',
       verses: [],
@@ -178,7 +186,7 @@ export class SongsComponent implements OnInit {
           section: full.section ?? '',
           number: full.number,
           title: full.title ?? '',
-          verses: (full.verses ?? []).map((v) => ({ number: v.number, title: v.title ?? '' })),
+          verses: (full.verses ?? []).map((v) => ({ number: v.number, title: v.title ?? '', label: v.label ?? '' })),
         });
       },
     });
@@ -192,7 +200,13 @@ export class SongsComponent implements OnInit {
     const form = this.songForm();
     if (!form) return;
     const next = form.verses.length > 0 ? Math.max(...form.verses.map((v) => v.number)) + 1 : 1;
-    this.songForm.set({ ...form, verses: [...form.verses, { number: next, title: '' }] });
+    this.songForm.set({ ...form, verses: [...form.verses, { number: next, title: '', label: '' }] });
+  }
+
+  addNamedVerseRow(): void {
+    const form = this.songForm();
+    if (!form) return;
+    this.songForm.set({ ...form, verses: [...form.verses, { number: 0, title: '', label: 'Voorzang' }] });
   }
 
   removeVerseRow(index: number): void {
@@ -209,7 +223,11 @@ export class SongsComponent implements OnInit {
       this.snackBar.open('Nummer is verplicht', 'OK', { duration: 3000 });
       return;
     }
-    const verses: SongVerse[] = form.verses.map((v) => ({ number: v.number, title: v.title || null }));
+    const verses: SongVerse[] = form.verses.map((v) => ({
+      number: v.number,
+      title: v.title || null,
+      label: v.label?.trim() ? v.label.trim() : null,
+    }));
     this.saving.set(true);
     const done = (msg: string) => {
       this.snackBar.open(msg, 'OK', { duration: 2000 });
@@ -257,6 +275,88 @@ export class SongsComponent implements OnInit {
       next: () => {
         this.snackBar.open('Lied verwijderd', 'OK', { duration: 2000 });
         this.loadSongs();
+      },
+      error: () => this.snackBar.open('Fout bij verwijderen', 'OK', { duration: 3000 }),
+    });
+  }
+
+  // --- Rubriek (section) management ---
+  loadSections(): void {
+    if (!this.selectedBundleId) {
+      this.sections.set([]);
+      return;
+    }
+    this.api.getBundleSections(this.selectedBundleId).subscribe({
+      next: (s) => this.sections.set(s),
+      error: () => this.sections.set([]),
+    });
+  }
+
+  get defaultSectionValue(): string {
+    return this.sections().find((s) => s.isDefault)?.value ?? '';
+  }
+
+  toggleSectionsPanel(): void {
+    this.songForm.set(null);
+    this.bundleForm.set(null);
+    this.showSectionsPanel.update((v) => !v);
+  }
+
+  addSection(): void {
+    const val = this.newSectionValue.trim();
+    if (!val || !this.selectedBundleId) return;
+    const isFirst = this.sections().length === 0;
+    this.api.createBundleSection(this.selectedBundleId, {
+      value: val,
+      sortOrder: this.sections().length,
+      isDefault: isFirst,
+    }).subscribe({
+      next: () => {
+        this.newSectionValue = '';
+        this.loadSections();
+        this.snackBar.open('Rubriek toegevoegd', 'OK', { duration: 2000 });
+      },
+      error: () => this.snackBar.open('Fout bij opslaan (bestaat de rubriek al?)', 'OK', { duration: 3000 }),
+    });
+  }
+
+  renameSection(section: BundleSection, newValue: string): void {
+    const val = newValue.trim();
+    if (!val || val === section.value) return;
+    this.api.updateBundleSection(section.id, {
+      value: val,
+      sortOrder: section.sortOrder,
+      isDefault: section.isDefault,
+      isActive: section.isActive,
+    }).subscribe({
+      next: () => {
+        this.loadSections();
+        this.loadSongs();
+        this.snackBar.open('Rubriek hernoemd', 'OK', { duration: 2000 });
+      },
+      error: () => this.snackBar.open('Fout bij opslaan', 'OK', { duration: 3000 }),
+    });
+  }
+
+  setDefaultSection(section: BundleSection): void {
+    if (section.isDefault) return;
+    this.api.updateBundleSection(section.id, {
+      value: section.value,
+      sortOrder: section.sortOrder,
+      isDefault: true,
+      isActive: section.isActive,
+    }).subscribe({
+      next: () => this.loadSections(),
+      error: () => this.snackBar.open('Fout bij opslaan', 'OK', { duration: 3000 }),
+    });
+  }
+
+  deleteSection(section: BundleSection): void {
+    if (!confirm(`Rubriek "${section.value}" verwijderen? Bestaande liederen behouden hun categorie.`)) return;
+    this.api.deleteBundleSection(section.id).subscribe({
+      next: () => {
+        this.loadSections();
+        this.snackBar.open('Rubriek verwijderd', 'OK', { duration: 2000 });
       },
       error: () => this.snackBar.open('Fout bij verwijderen', 'OK', { duration: 3000 }),
     });

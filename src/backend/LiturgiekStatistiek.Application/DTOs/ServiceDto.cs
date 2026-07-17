@@ -70,7 +70,8 @@ public record ServiceSummaryDto(
     string? CreatedBy = null,
     DateTime? CreatedAt = null,
     string? ModifiedBy = null,
-    DateTime? ModifiedAt = null
+    DateTime? ModifiedAt = null,
+    bool IsReadingService = false
 );
 
 public record CreateServiceRequest(

@@ -11,12 +11,14 @@ public class SongCatalogVerseConfiguration : IEntityTypeConfiguration<SongCatalo
         builder.HasKey(v => v.Id);
         builder.Property(v => v.Number).IsRequired();
         builder.Property(v => v.Title).HasMaxLength(300);
+        builder.Property(v => v.Label).HasMaxLength(50);
+        builder.Property(v => v.SortOrder).IsRequired();
 
         builder.HasOne(v => v.Song)
             .WithMany(s => s.Verses)
             .HasForeignKey(v => v.SongId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(v => new { v.SongId, v.Number }).IsUnique();
+        builder.HasIndex(v => new { v.SongId, v.SortOrder }).IsUnique();
     }
 }

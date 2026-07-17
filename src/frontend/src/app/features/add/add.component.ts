@@ -1,8 +1,8 @@
-import { Component, OnInit, Optional, Inject, HostBinding, signal } from '@angular/core';
+import { Component, OnInit, Optional, Inject, HostBinding, signal, ViewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatStepperModule, MatStepper } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -21,7 +21,7 @@ import { ApiService } from '../../core/services/api.service';
 import {
   CongregationSummary, PreacherSummary, ListItem, ServiceDetail,
   BibleBook, ParsedServiceData, ServiceTemplateSummary, ServiceTemplate,
-  Congregation, Preacher, CongregationPastor,
+  Congregation, Preacher, CongregationPastor, BundleSection,
 } from '../../core/models/api.models';
 import { debounceTime, switchMap, of, map, throwError, Observable, forkJoin, tap, catchError } from 'rxjs';
 import { FormControl } from '@angular/forms';
@@ -86,6 +86,8 @@ interface PreacherOption extends PreacherSummary {
   styleUrl: './add.component.scss',
 })
 export class AddComponent implements OnInit {
+  @ViewChild('stepper') stepper?: MatStepper;
+
   // Form
   metadataForm!: FormGroup;
   congregationControl = new FormControl('');
@@ -132,6 +134,9 @@ export class AddComponent implements OnInit {
 
   // Cache of catalog verse counts keyed by "bundleId|number" for the live badge.
   private catalogVerseCountCache = new Map<string, number | null>();
+
+  // Cache of rubrieken (categorieën) per liedbundel, for the per-song dropdown.
+  sectionsByBundle: Record<string, BundleSection[]> = {};
 
   // Element type ids (mirror the backend ElementType enum).
   readonly ELEMENT_SONG = 0;
@@ -197,7 +202,7 @@ export class AddComponent implements OnInit {
 
   ngOnInit(): void {
     this.metadataForm = this.fb.group({
-      date: [null, Validators.required],
+      date: [new Date(), Validators.required],
       timeOfDay: [0, Validators.required],
       congregationId: ['', Validators.required],
       preacherId: [''],
@@ -326,6 +331,26 @@ export class AddComponent implements OnInit {
 
     // Autosave: debounced draft save whenever the metadata form changes.
     this.metadataForm.valueChanges.subscribe(() => this.scheduleAutosave());
+
+    // Leesdienst: a reading service has no preacher, so clear + disable the
+    // voorganger fields when the toggle is on (enforced again on save).
+    this.metadataForm.get('isReadingService')!.valueChanges.subscribe((v: boolean) =>
+      this.applyReadingServiceState(!!v));
+  }
+
+  /** Clear and lock the voorganger fields for a leesdienst; unlock otherwise. */
+  private applyReadingServiceState(isReading: boolean): void {
+    if (isReading) {
+      this.selectedPreacher = null;
+      this.metadataForm.patchValue({ preacherId: '' }, { emitEvent: false });
+      this.preacherControl.setValue('', { emitEvent: false });
+      this.preacherControl.disable({ emitEvent: false });
+      this.preacherCityControl.setValue('', { emitEvent: false });
+      this.preacherCityControl.disable({ emitEvent: false });
+    } else {
+      this.preacherControl.enable({ emitEvent: false });
+      this.preacherCityControl.enable({ emitEvent: false });
+    }
   }
 
   /** Load a list's items, tolerating a missing list (404) by returning []. */
@@ -436,7 +461,10 @@ export class AddComponent implements OnInit {
   /** Load catalog verse counts for every song currently in the form (for the badge). */
   private refreshAllCatalogCounts(): void {
     for (const el of this.elements) {
-      for (const song of el.songs) this.updateCatalogVerseCount(song);
+      for (const song of el.songs) {
+        this.updateCatalogVerseCount(song);
+        if (song.bundleId) this.loadSectionsForBundle(song.bundleId);
+      }
     }
   }
 
@@ -515,6 +543,32 @@ export class AddComponent implements OnInit {
 
   get preacherDenominationLabel(): string {
     return this.selectedPreacher?.denomination || '—';
+  }
+
+  /** Formatted "Voorganger" value for the review card (or a leesdienst marker). */
+  get preacherReviewLabel(): string {
+    if (this.metadataForm?.value.isReadingService) return 'Leesdienst (geen voorganger)';
+    return (this.preacherControl.value || '').trim() || '—';
+  }
+
+  /** Human-readable summary of the structured preektekst references (review card). */
+  get sermonRefsSummary(): string {
+    return this.sermonRefs
+      .map(r => {
+        const book = this.bibleBooks.find(b => b.id === r.bibleBookId);
+        if (!book) return '';
+        let s = book.name;
+        if (r.chapter != null) {
+          s += ` ${r.chapter}`;
+          if (r.verseStart != null) {
+            s += `:${r.verseStart}`;
+            if (r.verseEnd != null && r.verseEnd !== r.verseStart) s += `-${r.verseEnd}`;
+          }
+        }
+        return s;
+      })
+      .filter(s => s)
+      .join('; ');
   }
 
   selectPreacher(preacher: PreacherSummary): void {
@@ -784,13 +838,17 @@ export class AddComponent implements OnInit {
   }
 
   addSong(element: ServiceElementModel): void {
-    element.songs.push({
+    const song: ElementSong = {
       bundleId: this.templateDefaultBundleId,
       section: '',
       number: null,
       versesText: '',
       sungInFull: false,
-    });
+    };
+    element.songs.push(song);
+    if (song.bundleId) {
+      this.loadSectionsForBundle(song.bundleId, () => this.applyDefaultSection(song));
+    }
     this.scheduleAutosave();
   }
 
@@ -804,14 +862,42 @@ export class AddComponent implements OnInit {
    * count (for the live "volledig" badge and hele-lied auto-fill) and autosave.
    */
   onSongIdentityChange(song: ElementSong): void {
-    if (song.bundleId && !(song.section || '').trim()) {
-      const bundle = this.bundles.find(b => b.id === song.bundleId);
-      if (bundle?.abbreviation === 'Ps1773') {
-        song.section = 'Psalm';
-      }
+    if (song.bundleId) {
+      this.loadSectionsForBundle(song.bundleId, () => {
+        if (!(song.section || '').trim()) this.applyDefaultSection(song);
+      });
     }
     this.updateCatalogVerseCount(song);
     this.scheduleAutosave();
+  }
+
+  /** Rubrieken (categorieën) available for a song's bundle. */
+  sectionsFor(song: ElementSong): BundleSection[] {
+    return this.sectionsByBundle[song.bundleId] ?? [];
+  }
+
+  /** Lazily load (and cache) the rubrieken for a bundle, then run an optional callback. */
+  private loadSectionsForBundle(bundleId: string, done?: () => void): void {
+    if (this.sectionsByBundle[bundleId]) {
+      done?.();
+      return;
+    }
+    this.api.getBundleSections(bundleId).subscribe({
+      next: (sections) => {
+        this.sectionsByBundle[bundleId] = sections;
+        done?.();
+      },
+      error: () => {
+        this.sectionsByBundle[bundleId] = [];
+        done?.();
+      },
+    });
+  }
+
+  /** Prefill the song's rubriek with the bundle's default rubriek, if any. */
+  private applyDefaultSection(song: ElementSong): void {
+    const def = (this.sectionsByBundle[song.bundleId] ?? []).find(s => s.isDefault);
+    if (def && !(song.section || '').trim()) song.section = def.value;
   }
 
   /** Lazily fetch (and cache) the catalog verse count for a song's bundle+number. */
@@ -899,7 +985,8 @@ export class AddComponent implements OnInit {
       .split(',')
       .map(t => t.trim())
       .filter(t => t.length > 0)
-      .some(t => !/^\d+$/.test(t) && !/^\d+\s*[-–]\s*\d+$/.test(t));
+      // Valid tokens: a number, a range (1-3), or a named vers label (e.g. Voorzang).
+      .some(t => !/^\d+$/.test(t) && !/^\d+\s*[-–]\s*\d+$/.test(t) && !/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9 '.-]*$/.test(t));
   }
 
   /** Parse a verses text into the set of verse numbers (expanding ranges). */
@@ -1248,6 +1335,7 @@ export class AddComponent implements OnInit {
       hasBeamerTexts: template.hasBeamerTexts ?? false,
       hasBeamerSongs: template.hasBeamerSongs ?? false,
     }, { emitEvent: false });
+    this.applyReadingServiceState(template.isReadingService ?? false);
 
     // Remember the template defaults so onderdelen added later (manually or via
     // paste/URL import) are prefilled too, not just the initial scaffold.
@@ -1281,24 +1369,15 @@ export class AddComponent implements OnInit {
     const denominationId = this.selectedCongregation?.denominationId ?? this.nullableGuid(this.metadataForm.value.denominationId);
     const timeOfDay = this.metadataForm.value.timeOfDay;
     const occasionId = this.nullableGuid(this.metadataForm.value.specialOccasionId);
-    this.api.instantiateTemplate({ denominationId, congregationId, timeOfDay, occasionId }).subscribe({
-      next: (instances) => {
-        if (!instances || instances.length === 0) {
+    this.api.resolveTemplate({ denominationId, congregationId, timeOfDay, occasionId }).subscribe({
+      next: (template) => {
+        if (!template) {
           alert('Geen passend sjabloon gevonden voor deze gemeente/tijdstip.');
           return;
         }
-        const scaffold: ServiceElementModel[] = instances.map((inst, i) => ({
-          position: inst.position || i + 1,
-          elementType: inst.elementType,
-          labelId: inst.labelId ?? '',
-          notes: '',
-          performerId: inst.performerId ?? '',
-          isBeurtzang: inst.isBeurtzang ?? false,
-          bibleTranslationId: inst.bibleTranslationId ?? '',
-          readingRefs: [],
-          songs: [],
-        }));
-        this.elements = this.reconcileWithScaffold(scaffold, this.elements);
+        // Reuse the full-template path so the standaard liedbundel/vertaling are
+        // captured too, and are applied to onderdelen added afterwards.
+        this.applyTemplateDto(template);
         this.scheduleAutosave();
       },
       error: () => alert('Kon sjabloon niet laden.'),
@@ -1349,5 +1428,28 @@ export class AddComponent implements OnInit {
 
   cancel(): void {
     this.dialogRef?.close(false);
+  }
+
+  // --- Persistent footer navigation (drives the Handmatig stepper) ---
+
+  /** True when the footer step navigation applies (Handmatig tab active). */
+  get onManualTab(): boolean {
+    return this.selectedTabIndex === 0;
+  }
+
+  get canStepBack(): boolean {
+    return this.onManualTab && !!this.stepper && this.stepper.selectedIndex > 0;
+  }
+
+  get canStepNext(): boolean {
+    return this.onManualTab && !!this.stepper && this.stepper.selectedIndex < this.stepper.steps.length - 1;
+  }
+
+  stepBack(): void {
+    this.stepper?.previous();
+  }
+
+  stepNext(): void {
+    this.stepper?.next();
   }
 }

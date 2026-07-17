@@ -13,6 +13,7 @@ import {
   ListDefinition,
   Song,
   SongVerse,
+  BundleSection,
   ContentPage,
   ListItem,
   AiStatus,
@@ -193,6 +194,23 @@ export class ApiService {
     return this.http.delete<void>(`${this.baseUrl}/songs/${id}`);
   }
 
+  // Bundle sections (rubrieken/categorieën per liedbundel)
+  getBundleSections(bundleId: string): Observable<BundleSection[]> {
+    return this.http.get<BundleSection[]>(`${this.baseUrl}/songs/bundle/${bundleId}/sections`);
+  }
+
+  createBundleSection(bundleId: string, request: { value: string; sortOrder?: number; isDefault?: boolean }): Observable<BundleSection> {
+    return this.http.post<BundleSection>(`${this.baseUrl}/songs/bundle/${bundleId}/sections`, request);
+  }
+
+  updateBundleSection(id: string, request: { value: string; sortOrder?: number; isDefault?: boolean; isActive?: boolean }): Observable<BundleSection> {
+    return this.http.put<BundleSection>(`${this.baseUrl}/songs/sections/${id}`, request);
+  }
+
+  deleteBundleSection(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/songs/sections/${id}`);
+  }
+
   // Content
   getContent(slug: string): Observable<ContentPage> {
     return this.http.get<ContentPage>(`${this.baseUrl}/content/${slug}`);
@@ -308,6 +326,21 @@ export class ApiService {
     if (params.timeOfDay !== null && params.timeOfDay !== undefined) httpParams = httpParams.set('timeOfDay', params.timeOfDay);
     if (params.occasionId) httpParams = httpParams.set('occasionId', params.occasionId);
     return this.http.get<TemplateElementInstance[]>(`${this.baseUrl}/templates/instantiate`, { params: httpParams });
+  }
+
+  /** Resolve the best-matching template (with its standaardkenmerken) for the given selectors. */
+  resolveTemplate(params: {
+    denominationId?: string | null;
+    congregationId?: string | null;
+    timeOfDay?: number | null;
+    occasionId?: string | null;
+  }): Observable<ServiceTemplate | null> {
+    let httpParams = new HttpParams();
+    if (params.denominationId) httpParams = httpParams.set('denominationId', params.denominationId);
+    if (params.congregationId) httpParams = httpParams.set('congregationId', params.congregationId);
+    if (params.timeOfDay !== null && params.timeOfDay !== undefined) httpParams = httpParams.set('timeOfDay', params.timeOfDay);
+    if (params.occasionId) httpParams = httpParams.set('occasionId', params.occasionId);
+    return this.http.get<ServiceTemplate | null>(`${this.baseUrl}/templates/resolve`, { params: httpParams });
   }
 
   // User settings (authenticated)

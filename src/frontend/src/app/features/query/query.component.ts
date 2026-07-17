@@ -188,9 +188,19 @@ export class QueryComponent implements OnInit {
   isMonth(p: { name: string }): boolean { return p.name === 'month'; }
 
   /** The multi-select denomination value bound as an array (stored comma-separated). */
+  // Cache the parsed array per param so the template binding returns a STABLE
+  // reference across change-detection cycles. Returning a fresh array each call
+  // drives mat-select[multiple] into an infinite change-detection loop that hangs
+  // the browser, so only rebuild the array when the underlying string changes.
+  private denominationSelectionCache: Record<string, { raw: string; ids: string[] }> = {};
+
   selectedDenominations(p: { name: string }): string[] {
-    const raw = this.templateParams[p.name];
-    return raw ? raw.split(',').filter(Boolean) : [];
+    const raw = this.templateParams[p.name] ?? '';
+    const cached = this.denominationSelectionCache[p.name];
+    if (cached && cached.raw === raw) return cached.ids;
+    const ids = raw ? raw.split(',').filter(Boolean) : [];
+    this.denominationSelectionCache[p.name] = { raw, ids };
+    return ids;
   }
 
   onDenominationsChange(p: { name: string }, ids: string[]): void {

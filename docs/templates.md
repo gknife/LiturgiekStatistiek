@@ -85,8 +85,10 @@ each onderdeel's performer defaulting to **Voorganger** (a template performer ov
 and manual override is always possible). Editing or **duplicating** an existing dienst skips
 the chooser (the source dienst acts as the template).
 
-The older **Sjabloon toepassen** button on the onderdelen-tab still calls `instantiate` for the
-chosen gemeente/dagdeel/gelegenheid. If onderdelen were already parsed or entered, they are
+The **Sjabloon toepassen** button on the onderdelen-tab calls `instantiate` for the chosen
+gemeente/dagdeel/gelegenheid. If onderdelen were already parsed or entered, they are
 **reconciled** into the template scaffold (label match fills slots, empties stay, extras are
 appended). This is also how pasted text and Kerkdienstgemist imports land in the standard
-structure. See [data-entry.md](./data-entry.md).
+structure. It is only shown while **creating a new dienst** — once a dienst exists, editing it
+no longer offers *Sjabloon toepassen* (a template is a starting point, not a re-apply on
+existing data). See [data-entry.md](./data-entry.md).

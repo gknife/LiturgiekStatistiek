@@ -87,7 +87,8 @@ public class ServiceService : IServiceService
                 s.CreatedBy,
                 s.CreatedAt,
                 s.ModifiedBy,
-                s.ModifiedAt))
+                s.ModifiedAt,
+                s.IsReadingService))
             .ToListAsync();
 
         return new PaginatedResult<ServiceSummaryDto>(items, totalCount, page, pageSize);
@@ -287,7 +288,7 @@ public class ServiceService : IServiceService
             Date = request.Date,
             TimeOfDay = (TimeOfDay)request.TimeOfDay,
             CongregationId = request.CongregationId,
-            PreacherId = request.PreacherId,
+            PreacherId = request.IsReadingService ? null : request.PreacherId,
             ChurchCalendarSundayId = request.ChurchCalendarSundayId,
             IsReadingService = request.IsReadingService,
             ReadSermonBy = request.ReadSermonBy,
@@ -439,7 +440,7 @@ public class ServiceService : IServiceService
         service.Date = request.Date;
         service.TimeOfDay = (TimeOfDay)request.TimeOfDay;
         service.CongregationId = request.CongregationId;
-        service.PreacherId = request.PreacherId;
+        service.PreacherId = request.IsReadingService ? null : request.PreacherId;
         service.ChurchCalendarSundayId = request.ChurchCalendarSundayId;
         service.IsReadingService = request.IsReadingService;
         service.ReadSermonBy = request.ReadSermonBy;

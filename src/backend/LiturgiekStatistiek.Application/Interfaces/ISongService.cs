@@ -10,4 +10,10 @@ public interface ISongService
     Task<SongDto> CreateSongAsync(CreateSongRequest request, string userId);
     Task<SongDto?> UpdateSongAsync(Guid id, UpdateSongRequest request, string userId);
     Task<bool> DeleteSongAsync(Guid id);
+
+    // --- Per-bundle rubrieken (categorieën) ---
+    Task<IReadOnlyList<BundleSectionDto>> GetSectionsAsync(Guid bundleId);
+    Task<BundleSectionDto> CreateSectionAsync(Guid bundleId, CreateBundleSectionRequest request, string userId);
+    Task<BundleSectionDto?> UpdateSectionAsync(Guid id, UpdateBundleSectionRequest request, string userId);
+    Task<bool> DeleteSectionAsync(Guid id);
 }

@@ -184,3 +184,14 @@
     height: 1rem;
   }
 }
+
+.leesdienst-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-secondary-container, #33321a);
+  background: var(--mat-sys-secondary-container, #e6e0b0);
+}

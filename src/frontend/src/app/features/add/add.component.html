@@ -1,5 +1,25 @@
-<h1>{{ isEditMode ? 'Dienst bewerken' : 'Dienst toevoegen' }}</h1>
-<p class="page-description">{{ isEditMode ? 'Pas de gegevens van deze dienst aan.' : 'Voeg een nieuwe kerkdienst toe aan de database.' }}</p>
+<div class="dialog-shell">
+  <header class="dialog-header">
+    <div class="header-main">
+      <h2 class="dialog-title">{{ isEditMode ? 'Dienst bewerken' : 'Dienst toevoegen' }}</h2>
+      @if (isEditMode || templateChosen()) {
+        <div class="autosave-indicator" [class.saving]="autoSaving" [class.failed]="autosaveFailed">
+          <mat-icon>{{ autoSaving ? 'sync' : (autosaveFailed ? 'error_outline' : 'cloud_done') }}</mat-icon>
+          <span>{{ lastSavedLabel }}</span>
+          @if (chosenTemplateName()) {
+            <span class="chosen-template">· Sjabloon: {{ chosenTemplateName() }}</span>
+          }
+        </div>
+      }
+    </div>
+    @if (isInDialog) {
+      <button mat-icon-button type="button" class="dialog-close" matTooltip="Sluiten" (click)="cancel()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </header>
+
+  <div class="dialog-body">
 
 @if (!isEditMode && !templateChosen()) {
   <div class="template-chooser">
@@ -21,19 +41,11 @@
   </div>
 } @else {
 
-<div class="autosave-indicator" [class.saving]="autoSaving" [class.failed]="autosaveFailed">
-  <mat-icon>{{ autoSaving ? 'sync' : (autosaveFailed ? 'error_outline' : 'cloud_done') }}</mat-icon>
-  <span>{{ lastSavedLabel }}</span>
-  @if (chosenTemplateName()) {
-    <span class="chosen-template">· Sjabloon: {{ chosenTemplateName() }}</span>
-  }
-</div>
-
 <mat-tab-group [(selectedIndex)]="selectedTabIndex">
   <!-- Tab 1: Manual entry -->
   <mat-tab label="Handmatig invoeren">
     <div class="tab-content">
-      <mat-stepper linear>
+      <mat-stepper #stepper linear>
         <!-- Step 1: Metadata -->
         <mat-step [stepControl]="metadataForm" label="Metadata">
           <form [formGroup]="metadataForm" class="form-grid">
@@ -54,10 +66,10 @@
             </mat-form-field>
 
             <div class="sermon-ref-row full-width">
-              <mat-form-field appearance="outline" class="ref-chapter">
-                <mat-label>Kerkgenootschap</mat-label>
-                <input matInput [value]="congregationDenominationLabel" readonly>
-              </mat-form-field>
+              <div class="readonly-field ref-chapter">
+                <span class="readonly-label">Kerkgenootschap</span>
+                <span class="readonly-value">{{ congregationDenominationLabel }}</span>
+              </div>
 
               <mat-form-field appearance="outline" class="ref-book">
                 <mat-label>Gemeente</mat-label>
@@ -76,10 +88,10 @@
                 }
               </mat-form-field>
 
-              <mat-form-field appearance="outline" class="ref-chapter">
-                <mat-label>Plaats</mat-label>
-                <input matInput [formControl]="congregationCityControl" readonly>
-              </mat-form-field>
+              <div class="readonly-field ref-chapter">
+                <span class="readonly-label">Plaats</span>
+                <span class="readonly-value">{{ congregationCityControl.value || '—' }}</span>
+              </div>
 
               <button mat-stroked-button type="button" (click)="openQuickAddCongregation()">
                 <mat-icon>add</mat-icon> Nieuwe
@@ -120,10 +132,10 @@
             }
 
             <div class="sermon-ref-row full-width">
-              <mat-form-field appearance="outline" class="ref-chapter">
-                <mat-label>Titel</mat-label>
-                <input matInput [value]="preacherTitleLabel" readonly>
-              </mat-form-field>
+              <div class="readonly-field ref-chapter">
+                <span class="readonly-label">Titel</span>
+                <span class="readonly-value">{{ preacherTitleLabel }}</span>
+              </div>
 
               <mat-form-field appearance="outline" class="ref-book">
                 <mat-label>Voorganger</mat-label>
@@ -139,15 +151,19 @@
                     </mat-option>
                   }
                 </mat-autocomplete>
+                @if (metadataForm.get('isReadingService')?.value) {
+                  <mat-hint>Leesdienst: geen voorganger</mat-hint>
+                }
               </mat-form-field>
 
-              <mat-form-field appearance="outline" class="ref-chapter">
-                <mat-label>Woonplaats</mat-label>
-                <input matInput [formControl]="preacherCityControl" readonly>
-                <mat-hint>Kerkgenootschap: {{ preacherDenominationLabel }}</mat-hint>
-              </mat-form-field>
+              <div class="readonly-field ref-chapter">
+                <span class="readonly-label">Woonplaats</span>
+                <span class="readonly-value">{{ preacherCityControl.value || '—' }}</span>
+                <span class="readonly-sub">Kerkgenootschap: {{ preacherDenominationLabel }}</span>
+              </div>
 
-              <button mat-stroked-button type="button" (click)="openQuickAddPreacher()">
+              <button mat-stroked-button type="button" (click)="openQuickAddPreacher()"
+                [disabled]="metadataForm.get('isReadingService')?.value">
                 <mat-icon>add</mat-icon> Nieuwe
               </button>
             </div>
@@ -295,10 +311,6 @@
               <mat-slide-toggle formControlName="hasBeamerTexts">Beamer (teksten)</mat-slide-toggle>
               <mat-slide-toggle formControlName="hasBeamerSongs">Beamer (liederen)</mat-slide-toggle>
             </div>
-
-            <div class="step-actions">
-              <button mat-raised-button color="primary" matStepperNext>Volgende</button>
-            </div>
           </form>
         </mat-step>
 
@@ -307,9 +319,11 @@
           <div class="elements-section">
             <p class="section-hint">Voeg de onderdelen van de dienst toe in de juiste volgorde.</p>
 
-            <button mat-stroked-button color="accent" type="button" (click)="applyTemplate()">
-              <mat-icon>dashboard_customize</mat-icon> Sjabloon toepassen
-            </button>
+            @if (!isEditMode) {
+              <button mat-stroked-button color="accent" type="button" (click)="applyTemplate()">
+                <mat-icon>dashboard_customize</mat-icon> Sjabloon toepassen
+              </button>
+            }
 
             @for (element of elements; track element.position; let i = $index) {
               <mat-card class="element-card">
@@ -435,8 +449,18 @@
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="song-section" subscriptSizing="dynamic">
                         <mat-label>Rubriek</mat-label>
-                        <input matInput [(ngModel)]="song.section" [ngModelOptions]="{ standalone: true }"
-                          (ngModelChange)="scheduleAutosave()" placeholder="Psalm, Gezang...">
+                        @if (sectionsFor(song).length > 0) {
+                          <mat-select [(ngModel)]="song.section" [ngModelOptions]="{ standalone: true }"
+                            (ngModelChange)="scheduleAutosave()">
+                            <mat-option [value]="''">&mdash; Geen &mdash;</mat-option>
+                            @for (sec of sectionsFor(song); track sec.id) {
+                              <mat-option [value]="sec.value">{{ sec.value }}</mat-option>
+                            }
+                          </mat-select>
+                        } @else {
+                          <input matInput [(ngModel)]="song.section" [ngModelOptions]="{ standalone: true }"
+                            (ngModelChange)="scheduleAutosave()" placeholder="Psalm, Gezang...">
+                        }
                       </mat-form-field>
                       <mat-form-field appearance="outline" class="song-number" subscriptSizing="dynamic">
                         <mat-label>Nummer</mat-label>
@@ -450,7 +474,7 @@
                           placeholder="Bijv. 1, 3, 5-7">
                         <mat-hint>Komma's tussen verzen, koppelteken voor een reeks (bijv. 1, 3, 5-7)</mat-hint>
                         @if (hasInvalidVerses(song)) {
-                          <mat-hint class="verses-invalid">Alleen cijfers en reeksen (bijv. 1, 3, 5-7)</mat-hint>
+                          <mat-hint class="verses-invalid">Alleen cijfers, reeksen of benamingen (bijv. 1, 3, 5-7 of Voorzang)</mat-hint>
                         }
                       </mat-form-field>
                       <button mat-icon-button color="warn" type="button" (click)="removeSong(element, si)">
@@ -475,11 +499,6 @@
               <mat-icon>add</mat-icon> Onderdeel toevoegen
             </button>
           </div>
-
-          <div class="step-actions">
-            <button mat-button matStepperPrevious>Terug</button>
-            <button mat-raised-button color="primary" matStepperNext>Volgende</button>
-          </div>
         </mat-step>
 
         <!-- Step 3: Review & Save -->
@@ -495,22 +514,16 @@
               <p><strong>Datum:</strong> {{ metadataForm.get('date')?.value | date:'d MMMM yyyy' }}</p>
               <p><strong>Dagdeel:</strong> {{ timeOfDayOptions[metadataForm.get('timeOfDay')?.value]?.label }}</p>
               <p><strong>Gemeente:</strong> {{ congregationControl.value }}{{ congregationCityControl.value ? ' — ' + congregationCityControl.value : '' }}</p>
-              <p><strong>Voorganger:</strong> {{ preacherControl.value }}</p>
-              <p><strong>Preektekst:</strong> {{ metadataForm.get('sermonText')?.value }}</p>
-              <p><strong>Thema:</strong> {{ metadataForm.get('sermonTheme')?.value }}</p>
+              <p><strong>Voorganger:</strong> {{ preacherReviewLabel }}</p>
+              <p><strong>Preektekst:</strong>
+                {{ sermonRefsSummary || metadataForm.get('sermonText')?.value || '—' }}
+                @if (sermonRefsSummary && metadataForm.get('sermonText')?.value) {
+                  <span class="review-extra"> · {{ metadataForm.get('sermonText')?.value }}</span>
+                }
+              </p>
+              <p><strong>Thema:</strong> {{ metadataForm.get('sermonTheme')?.value || '—' }}</p>
               <p><strong>Onderdelen:</strong> {{ elements.length }}</p>
             </mat-card>
-
-            <div class="step-actions">
-              <button mat-button matStepperPrevious>Terug</button>
-              <span class="autosave-hint">{{ lastSavedLabel }}</span>
-              @if (isInDialog) {
-                <button mat-button (click)="cancel()">Sluiten</button>
-              }
-              <button mat-raised-button color="primary" (click)="publish()" [disabled]="saving || publishing">
-                <mat-icon>publish</mat-icon> {{ publishing ? 'Publiceren…' : 'Publiceren' }}
-              </button>
-            </div>
           </div>
         </mat-step>
       </mat-stepper>
@@ -578,3 +591,23 @@
   }
 </mat-tab-group>
 }
+
+  </div><!-- /dialog-body -->
+
+  @if (isEditMode || templateChosen()) {
+    <footer class="dialog-footer">
+      <button mat-button type="button" [disabled]="!canStepBack" (click)="stepBack()">
+        <mat-icon>arrow_back</mat-icon> Terug
+      </button>
+      <span class="footer-spacer"></span>
+      @if (canStepNext) {
+        <button mat-stroked-button type="button" (click)="stepNext()">
+          Volgende <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
+      }
+      <button mat-raised-button color="primary" type="button" (click)="publish()" [disabled]="saving || publishing">
+        <mat-icon>publish</mat-icon> {{ publishing ? 'Publiceren…' : 'Publiceren' }}
+      </button>
+    </footer>
+  }
+</div><!-- /dialog-shell -->

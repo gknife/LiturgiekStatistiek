@@ -2,7 +2,9 @@ namespace LiturgiekStatistiek.Application.DTOs;
 
 public record SongVerseDto(
     int Number,
-    string? Title
+    string? Title,
+    string? Label = null,
+    int SortOrder = 0
 );
 
 public record SongDto(

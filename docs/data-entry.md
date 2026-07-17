@@ -15,11 +15,19 @@ skips this step. See [templates.md](./templates.md).
 
 ## 1. Handmatig (manual)
 
-- **Datum** uses a Dutch date picker (`nl-NL`, `dd-MM-yyyy`).
+- **Datum** uses a Dutch date picker (`nl-NL`, `dd-MM-yyyy`) and defaults to **today** for a
+  new dienst.
+- **Leesdienst** — a dienst without a voorganger. Ticking **Leesdienst** disables and clears
+  the **Voorganger** field (a *Gelezen preek door* field takes its place). The service layer
+  also enforces this on save: a reading service never keeps a `PreacherId`, on both create and
+  update. In the diensten-overzicht the Voorganger column shows a **Leesdienst** badge for
+  these services.
 - **Orde van dienst** — each element's *Onderdeel* is chosen from a fixed dropdown of the
   33 liturgical labels (seeded as `LiturgicalLabels`, editable under *Lijsten*). The
   element is saved against its `LabelId`. Song elements additionally capture **bundle**,
-  **nummer** and **verzen**.
+  **categorie/rubriek**, **nummer** and **verzen**. The **categorie/rubriek** is chosen from the
+  bundle's own editable rubrieken-lijst (managed on the **Liedcatalogus** page) and pre-fills
+  with that bundle's **default** rubriek.
   - **Verzen-notatie** — verses are entered comma-separated and support ranges, e.g.
     `1, 3, 5-7`. The field normalizes to this canonical form on blur (spacing tidied, ranges
     collapsed to `a-b`); only genuinely invalid tokens (non-numbers) are flagged. A persistent
@@ -68,10 +76,17 @@ count the song is never counted as complete. See `SongCompletenessCalculator`.
 ### Concept, autosave & publiceren
 
 Editing works against a **server-side draft**. There is no "Opslaan als concept" button:
-while the dialog is open every change is **autosaved** (debounced) as a `Concept`, and each
-tab shows when the last autosave happened. Concept services show a *Concept* badge in the
-diensten list, are visible to all signed-in users, and are **excluded from all queries and
-statistics** until published. Use **Publiceren** to flip the status to `Gepubliceerd`.
+while the dialog is open every change is **autosaved** (debounced) as a `Concept`, and the
+dialog **header** shows when the last autosave happened. Concept services show a *Concept*
+badge in the diensten list, are visible to all signed-in users, and are **excluded from all
+queries and statistics** until published. Use **Publiceren** to flip the status to
+`Gepubliceerd`.
+
+The dialog keeps its **header** (title + autosave-indicator + sluiten-kruisje rechtsboven) and
+its **footer** (Terug / Volgende / Publiceren) always visible; only the onderdelen-tab body
+scrolls, with the scrollbar inside the afgeronde hoeken. You can navigate, publish and close
+from every tab — there is no separate *Sluiten*-knop (use the kruisje) and the "laatst
+opgeslagen" melding lives only in the header.
 
 ### Sjabloon toepassen (templates)
 
@@ -79,7 +94,8 @@ statistics** until published. Use **Publiceren** to flip the status to `Gepublic
 chosen gemeente/kerkgenootschap, dagdeel and gelegenheid (Doop, Avondmaal, …). When you
 already parsed or entered onderdelen, applying a template **reconciles** them into the
 template scaffold: matching labels fill the template slots, empty slots stay, and extra
-onderdelen are appended. Templates are managed on the **Sjablonen** page (see
+onderdelen are appended. It is available **only while creating a new dienst**; the edit
+dialog for an existing dienst omits it. Templates are managed on the **Sjablonen** page (see
 [templates.md](./templates.md)).
 
 ## 2. Plakken & verwerken (paste)

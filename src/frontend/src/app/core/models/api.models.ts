@@ -27,6 +27,7 @@ export interface ServiceSummary {
   createdAt?: string | null;
   modifiedBy?: string | null;
   modifiedAt?: string | null;
+  isReadingService?: boolean;
 }
 
 export interface ServiceDetail {
@@ -259,6 +260,17 @@ export interface ListItem {
 export interface SongVerse {
   number: number;
   title: string | null;
+  label?: string | null;
+  sortOrder?: number;
+}
+
+export interface BundleSection {
+  id: string;
+  bundleId: string;
+  value: string;
+  sortOrder: number;
+  isDefault: boolean;
+  isActive: boolean;
 }
 
 export interface Song {

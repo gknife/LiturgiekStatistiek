@@ -56,6 +56,16 @@
     font-weight: 600;
     color: var(--app-accent);
   }
+
+  .verse-label {
+    min-width: auto;
+    padding: 0 0.4rem;
+    margin-right: 0.35rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    background: var(--app-accent, #1976d2);
+    color: #fff;
+  }
 }
 
 .verse-empty {
@@ -110,8 +120,11 @@
     align-items: center;
 
     .verse-num-field { flex: 0 0 90px; }
+    .verse-label-field { flex: 0 0 140px; }
     .grow { flex: 1 1 auto; }
   }
+
+  .verses-header .spacer { flex: 1 1 auto; }
 }
 
 .form-buttons {

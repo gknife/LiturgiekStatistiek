@@ -40,3 +40,18 @@ a {
     text-decoration: underline;
   }
 }
+
+// Dienst toevoegen/bewerken dialog: let the component's own header/footer stay
+// fixed while only the body scrolls, and keep the scrollbar inside the rounded
+// corners of the dialog surface.
+.dienst-dialog-panel {
+  .mat-mdc-dialog-surface {
+    overflow: hidden;
+    border-radius: 16px;
+    padding: 0;
+  }
+
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    padding: 0;
+  }
+}

@@ -70,4 +70,41 @@ public class SongsController : ControllerBase
         if (!success) return NotFound();
         return NoContent();
     }
+
+    // --- Per-bundle rubrieken (categorieën) ---
+
+    [HttpGet("bundle/{bundleId:guid}/sections")]
+    public async Task<ActionResult<IReadOnlyList<BundleSectionDto>>> GetSections(Guid bundleId)
+    {
+        var result = await _songService.GetSectionsAsync(bundleId);
+        return Ok(result);
+    }
+
+    [HttpPost("bundle/{bundleId:guid}/sections")]
+    [Authorize]
+    public async Task<ActionResult<BundleSectionDto>> CreateSection(Guid bundleId, [FromBody] CreateBundleSectionRequest request)
+    {
+        var userId = User.GetDisplayName();
+        var result = await _songService.CreateSectionAsync(bundleId, request, userId);
+        return Ok(result);
+    }
+
+    [HttpPut("sections/{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult<BundleSectionDto>> UpdateSection(Guid id, [FromBody] UpdateBundleSectionRequest request)
+    {
+        var userId = User.GetDisplayName();
+        var result = await _songService.UpdateSectionAsync(id, request, userId);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpDelete("sections/{id:guid}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteSection(Guid id)
+    {
+        var success = await _songService.DeleteSectionAsync(id);
+        if (!success) return NotFound();
+        return NoContent();
+    }
 }
