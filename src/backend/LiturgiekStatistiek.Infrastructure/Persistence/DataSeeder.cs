@@ -334,10 +334,10 @@ public static class DataSeeder
             {
                 Id = Guid.NewGuid(),
                 Slug = "homepage",
-            TitleNl = "Welkom bij Liturgiek Statistiek",
-            ContentMarkdown = @"# Liturgiek Statistiek
+            TitleNl = "Welkom bij Statistiek Lied en liturgie",
+            ContentMarkdown = @"# Statistiek Lied en liturgie
 
-Welkom bij het onderzoeksplatform **Liturgiek Statistiek**. Dit project brengt de liturgische praktijk van kerken in Nederland in kaart door middel van een uitgebreide database van kerkdiensten.
+Welkom bij het onderzoeksplatform **Statistiek Lied en liturgie**. Dit project brengt de liturgische praktijk van kerken in Nederland in kaart door middel van een uitgebreide database van kerkdiensten.
 
 ## Wat kunt u hier vinden?
 
@@ -824,6 +824,5 @@ Dit platform is ontwikkeld ten behoeve van wetenschappelijk onderzoek naar de li
         public string? Title { get; set; }
     }
 }
-
 
 

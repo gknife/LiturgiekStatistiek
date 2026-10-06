@@ -1,4 +1,4 @@
-# Liturgiek Statistiek
+# Statistiek Lied en liturgie
 
 A research platform for studying liturgy and church music across Dutch congregations. Built for academic research in Theology and Liturgy.
 

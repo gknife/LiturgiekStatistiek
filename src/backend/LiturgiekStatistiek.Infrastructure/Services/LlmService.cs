@@ -108,7 +108,7 @@ public class LlmService : ILlmService
             };
         }
 
-        var systemPrompt = @"Je bent een assistent voor het Liturgiek Statistiek platform. 
+        var systemPrompt = @"Je bent een assistent voor het Statistiek Lied en liturgie platform.
 Je taak is om een vraag in het Nederlands te vertalen naar een van de volgende query-sjablonen:
 
 Beschikbare sjablonen:

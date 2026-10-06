@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Liturgiek Statistiek",
+    "title": "Statistiek Lied en liturgie",
     "subtitle": "Onderzoeksplatform voor liturgie en kerkmuziek",
     "nav": {
       "home": "Home",
@@ -15,13 +15,13 @@
       "logout": "Uitloggen"
     },
     "footer": {
-      "copyright": "© 2026 Liturgiek Statistiek — Onderzoeksproject",
+      "copyright": "© 2026 Statistiek Lied en liturgie — Onderzoeksproject",
       "contact": "Contact",
       "github": "GitHub",
       "privacy": "Privacy"
     },
     "home": {
-      "title": "Liturgiek Statistiek",
+      "title": "Statistiek Lied en liturgie",
       "stats": {
         "services": "Diensten",
         "congregations": "Gemeenten",

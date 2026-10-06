@@ -1,6 +1,6 @@
 # Architecture
 
-Liturgiek Statistiek is a Clean Architecture .NET 10 Web API serving an Angular 21
+Statistiek Lied en liturgie is a Clean Architecture .NET 10 Web API serving an Angular 21
 zoneless single-page application.
 
 ## High-level

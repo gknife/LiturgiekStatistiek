@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 100" role="img" aria-labelledby="title">
+  <title id="title">Statistiek Lied en liturgie</title>
+  <defs>
+    <clipPath id="mark">
+      <rect width="94" height="99" />
+    </clipPath>
+  </defs>
+  <image href="logo.png" width="257" height="99" clip-path="url(#mark)" />
+  <text x="106" y="42" fill="#1a365d" font-family="Georgia, serif" font-size="31">Statistiek Lied</text>
+  <text x="106" y="78" fill="#1a365d" font-family="Georgia, serif" font-size="31">en liturgie</text>
+</svg>

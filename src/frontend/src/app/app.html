@@ -18,7 +18,7 @@
         <button mat-icon-button (click)="sidenav.toggle()" class="menu-button">
           <mat-icon>menu</mat-icon>
         </button>
-        <img src="logo.png" alt="Liturgiek Statistiek" class="app-logo" routerLink="/" />
+        <img src="logo.svg" alt="Statistiek Lied en liturgie" class="app-logo" routerLink="/" />
         <span class="spacer"></span>
         <nav class="desktop-nav">
           @for (item of visibleNavItems; track item.path) {
@@ -56,7 +56,7 @@
     @if (auth.isAuthenticated$ | async) {
       <footer class="app-footer">
         <div class="footer-content">
-          <span>&copy; 2026 Liturgiek Statistiek &mdash; Onderzoeksproject</span>
+          <span>&copy; 2026 Statistiek Lied en liturgie &mdash; Onderzoeksproject</span>
           <div class="footer-links">
             <a routerLink="/contact">Contact</a>
             <a href="https://github.com/gknife/LiturgiekStatistiek" target="_blank" rel="noopener">GitHub</a>
