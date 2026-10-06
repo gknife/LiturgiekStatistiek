@@ -151,6 +151,7 @@ export class AddComponent implements OnInit {
   status = 1; // 0 = Concept, 1 = Gepubliceerd
   private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSavedSnapshot = '';
+  private closeAfterSave = false;
   /** Timestamp of the last successful (auto)save, shown per tab. */
   lastSavedAt: Date | null = null;
 
@@ -1217,6 +1218,7 @@ export class AddComponent implements OnInit {
       return throwError(() => new Error('Selecteer een bestaande gemeente.'));
     }
     const preacherId = this.nullableGuid(this.metadataForm.value.preacherId);
+    const savedSnapshot = this.snapshot();
     const request = this.buildRequest(congregationId, preacherId, status);
     const save$ = this.isEditMode && this.editingServiceId
       ? this.api.updateService(this.editingServiceId, request)
@@ -1224,7 +1226,7 @@ export class AddComponent implements OnInit {
     return save$.pipe(tap(saved => {
       this.editingServiceId = saved.id;
       this.status = saved.statusValue ?? status;
-      this.lastSavedSnapshot = this.snapshot();
+      this.lastSavedSnapshot = savedSnapshot;
       this.lastSavedAt = new Date();
     }));
   }
@@ -1259,7 +1261,7 @@ export class AddComponent implements OnInit {
   }
 
   private autosave(): void {
-    if (this.saving || this.publishing) return;
+    if (this.saving || this.publishing || this.autoSaving) return;
     if (!this.metadataForm.get('date')?.value) return;
     if (!this.nullableGuid(this.metadataForm.value.congregationId)) return;
     if (this.snapshot() === this.lastSavedSnapshot) return;
@@ -1268,8 +1270,54 @@ export class AddComponent implements OnInit {
     this.autosaveFailed = false;
     // A brand-new service becomes a Concept draft; an existing one keeps its status.
     this.performSave(this.isEditMode ? this.status : 0).subscribe({
-      next: () => { this.autoSaving = false; },
-      error: () => { this.autoSaving = false; this.autosaveFailed = true; },
+      next: () => {
+        this.autoSaving = false;
+        if (this.closeAfterSave) {
+          this.finishPendingClose();
+        } else if (this.snapshot() !== this.lastSavedSnapshot) {
+          this.scheduleAutosave();
+        }
+      },
+      error: () => {
+        this.autoSaving = false;
+        this.autosaveFailed = true;
+        if (this.closeAfterSave) {
+          this.closeAfterSave = false;
+          alert('Concept niet opgeslagen; de dienst blijft geopend. Controleer uw verbinding en probeer opnieuw.');
+        }
+      },
+    });
+  }
+
+  private finishPendingClose(): void {
+    if (!this.closeAfterSave) return;
+    if (this.saving || this.publishing || this.autoSaving) return;
+
+    if (this.snapshot() === this.lastSavedSnapshot) {
+      this.closeAfterSave = false;
+      this.finish(this.editingServiceId !== null);
+      return;
+    }
+
+    if (!this.metadataForm.get('date')?.value || !this.nullableGuid(this.metadataForm.value.congregationId)) {
+      this.closeAfterSave = false;
+      alert('Concept is nog niet opgeslagen. Vul datum en gemeente in of sla de dienst handmatig op.');
+      return;
+    }
+
+    this.autoSaving = true;
+    this.autosaveFailed = false;
+    this.performSave(this.isEditMode ? this.status : 0).subscribe({
+      next: () => {
+        this.autoSaving = false;
+        this.finishPendingClose();
+      },
+      error: () => {
+        this.autoSaving = false;
+        this.autosaveFailed = true;
+        this.closeAfterSave = false;
+        alert('Concept niet opgeslagen; de dienst blijft geopend. Controleer uw verbinding en probeer opnieuw.');
+      },
     });
   }
 
@@ -1419,6 +1467,11 @@ export class AddComponent implements OnInit {
   }
 
   finish(saved: boolean): void {
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
+    this.closeAfterSave = false;
     if (this.dialogRef) {
       this.dialogRef.close(saved);
     } else if (saved) {
@@ -1427,7 +1480,13 @@ export class AddComponent implements OnInit {
   }
 
   cancel(): void {
-    this.dialogRef?.close(false);
+    if (!this.dialogRef) return;
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
+    this.closeAfterSave = true;
+    this.finishPendingClose();
   }
 
   // --- Persistent footer navigation (drives the Handmatig stepper) ---

@@ -353,7 +353,7 @@ export class ServicesComponent implements OnInit {
       panelClass: 'dienst-dialog-panel',
       data: {} as AddDialogData,
     });
-    ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
+    ref.afterClosed().subscribe(() => this.load());
   }
 
   openEdit(service: ServiceSummary): void {
@@ -364,7 +364,7 @@ export class ServicesComponent implements OnInit {
       panelClass: 'dienst-dialog-panel',
       data: { serviceId: service.id } as AddDialogData,
     });
-    ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
+    ref.afterClosed().subscribe(() => this.load());
   }
 
   duplicate(service: ServiceSummary): void {
@@ -375,7 +375,7 @@ export class ServicesComponent implements OnInit {
       panelClass: 'dienst-dialog-panel',
       data: { duplicateFromId: service.id } as AddDialogData,
     });
-    ref.afterClosed().subscribe(saved => { if (saved) this.load(); });
+    ref.afterClosed().subscribe(() => this.load());
   }
 
   // --- Bulk operations ---
@@ -409,4 +409,3 @@ export class ServicesComponent implements OnInit {
     });
   }
 }
-

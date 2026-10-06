@@ -5,12 +5,13 @@ import { AuthService } from '../core/auth/auth.service';
 import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 describe('ServicesComponent', () => {
   let component: ServicesComponent;
 
   const apiMock = {
-    getServices: () => of({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
+    getServices: vi.fn(() => of({ items: [], totalCount: 0, page: 1, pageSize: 20 })),
     getCongregations: () => of({ items: [], totalCount: 0, page: 1, pageSize: 1000 }),
     getPreachers: () => of({ items: [], totalCount: 0, page: 1, pageSize: 1000 }),
     getListByName: () => of({ items: [] }),
@@ -20,7 +21,7 @@ describe('ServicesComponent', () => {
     isAuthenticated: false,
   } as unknown as AuthService;
 
-  const dialogMock = { open: () => ({ afterClosed: () => of(false) }) } as unknown as MatDialog;
+  const dialogMock = { open: vi.fn(() => ({ afterClosed: () => of(false) })) } as unknown as MatDialog;
 
   const routeMock = { queryParamMap: of({ get: (_: string) => null }) } as unknown as ActivatedRoute;
 
@@ -57,6 +58,14 @@ describe('ServicesComponent', () => {
   it('hides edit controls for anonymous users', () => {
     expect(component.isAuthenticated).toBe(false);
     expect(component.isAdmin).toBe(false);
+  });
+
+  it('reloads the service list when the add dialog closes without an explicit save result', () => {
+    (component as unknown as { dialog: MatDialog }).dialog = dialogMock;
+    component.openAdd();
+
+    expect(dialogMock.open).toHaveBeenCalledOnce();
+    expect(apiMock.getServices).toHaveBeenCalledOnce();
   });
 
   it('formats multi-part reading references into a compact label', () => {
